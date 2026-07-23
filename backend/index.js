@@ -2,8 +2,7 @@ const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
 const pool = require("./config/db");
-const urunRoutes = require("./routes/urunRoutes");
-const kategoriRoutes = require("./routes/kategoriRoutes");
+const routes = require("./routes");
 
 const app = express();
 
@@ -23,8 +22,7 @@ app.get("/test-db", async (req, res) => {
   }
 });
 
-app.use("/urunler", urunRoutes);
-app.use("/kategoriler", kategoriRoutes);
+app.use(routes);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

@@ -12,6 +12,10 @@ const listele = async (req, res) => {
 const ekle = async (req, res) => {
   try {
     const { ad } = req.body;
+
+    if (!ad) {
+      return res.status(400).json({ hata: "Kategori adı zorunludur" });
+    }
     const [result] = await pool.query(
       "INSERT INTO kategoriler (ad) VALUES (?)",
       [ad],
