@@ -1,15 +1,15 @@
 const pool = require("../config/db");
 
-const listele = async (req, res) => {
+const listele = async (req, res, next) => {
   try {
     const [rows] = await pool.query("SELECT * FROM kategoriler");
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    next(err);
   }
 };
 
-const ekle = async (req, res) => {
+const ekle = async (req, res, next) => {
   try {
     const { ad } = req.body;
 
@@ -22,7 +22,7 @@ const ekle = async (req, res) => {
     );
     res.status(201).json({ id: result.insertId, ad });
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    next(err);
   }
 };
 

@@ -1,6 +1,6 @@
 const pool = require("../config/db");
 
-const listele = async (req, res) => {
+const listele = async (req, res, next) => {
   try {
     const [rows] = await pool.query(
       `SELECT sh.*, u.ad AS urun_adi
@@ -10,59 +10,71 @@ const listele = async (req, res) => {
     );
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    next(err);
   }
 };
 
-const ekle = async (req, res) => {
+const ekle = async (req, res, next) => {
+  const connection = await pool.getConnection();
   try {
     const { urun_id, tip, miktar, aciklama } = req.body;
 
     if (!["giris", "cikis", "duzeltme"].includes(tip)) {
-      return res
-        .status(400)
-        .json({
-          hata: "Geçersiz hareket tipi (giris, cikis veya duzeltme olmalı)",
-        });
+      connection.release();
+      return res.status(400).json({
+        hata: "Geçersiz hareket tipi (giris, cikis veya duzeltme olmalı)",
+      });
     }
 
+    await connection.beginTransaction();
+
     if (tip === "cikis") {
-      const [rows] = await pool.query(
+      const [rows] = await connection.query(
         "SELECT miktar FROM urunler WHERE id = ?",
         [urun_id],
       );
-      if (!rows.length)
+      if (!rows.length) {
+        await connection.rollback();
+        connection.release();
         return res.status(404).json({ hata: "Ürün bulunamadı" });
+      }
       if (rows[0].miktar < miktar) {
+        await connection.rollback();
+        connection.release();
         return res.status(400).json({ hata: "Yetersiz stok" });
       }
     }
 
-    await pool.query(
-      "INSERT INTO stok_hareketleri (urun_id, tip, miktar, aciklama) VALUES (?, ?, ?, ?)",
-      [urun_id, tip, miktar, aciklama],
+    await connection.query(
+      "INSERT INTO stok_hareketleri (urun_id, tip, miktar, aciklama, olusturan_kullanici_id) VALUES (?, ?, ?, ?, ?)",
+      [urun_id, tip, miktar, aciklama, req.kullanici.id],
     );
 
     if (tip === "giris") {
-      await pool.query("UPDATE urunler SET miktar = miktar + ? WHERE id = ?", [
-        miktar,
-        urun_id,
-      ]);
+      await connection.query(
+        "UPDATE urunler SET miktar = miktar + ? WHERE id = ?",
+        [miktar, urun_id],
+      );
     } else if (tip === "cikis") {
-      await pool.query("UPDATE urunler SET miktar = miktar - ? WHERE id = ?", [
-        miktar,
-        urun_id,
-      ]);
+      await connection.query(
+        "UPDATE urunler SET miktar = miktar - ? WHERE id = ?",
+        [miktar, urun_id],
+      );
     } else {
-      await pool.query("UPDATE urunler SET miktar = ? WHERE id = ?", [
+      await connection.query("UPDATE urunler SET miktar = ? WHERE id = ?", [
         miktar,
         urun_id,
       ]);
     }
 
+    await connection.commit();
+    connection.release();
+
     res.status(201).json({ mesaj: "Stok hareketi kaydedildi" });
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    await connection.rollback();
+    connection.release();
+    next(err);
   }
 };
 

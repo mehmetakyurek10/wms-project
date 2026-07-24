@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const pool = require("./config/db");
 const routes = require("./routes");
+const hataYonetici = require("./middleware/hataYonetici");
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.get("/test-db", async (req, res) => {
 });
 
 app.use(routes);
+app.use(hataYonetici);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

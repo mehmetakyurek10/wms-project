@@ -1,15 +1,15 @@
 const pool = require("../config/db");
 
-const listele = async (req, res) => {
+const listele = async (req, res, next) => {
   try {
     const [rows] = await pool.query("SELECT * FROM tedarikciler");
     res.json(rows);
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    next(err);
   }
 };
 
-const ekle = async (req, res) => {
+const ekle = async (req, res, next) => {
   try {
     const { ad, yetkili_kisi, telefon, email, adres } = req.body;
     if (!ad) {
@@ -23,11 +23,11 @@ const ekle = async (req, res) => {
       .status(201)
       .json({ id: result.insertId, ad, yetkili_kisi, telefon, email, adres });
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    next(err);
   }
 };
 
-const guncelle = async (req, res) => {
+const guncelle = async (req, res, next) => {
   try {
     const { ad, yetkili_kisi, telefon, email, adres } = req.body;
     const { id } = req.params;
@@ -37,17 +37,17 @@ const guncelle = async (req, res) => {
     );
     res.json({ mesaj: "Güncellendi" });
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    next(err);
   }
 };
 
-const sil = async (req, res) => {
+const sil = async (req, res, next) => {
   try {
     const { id } = req.params;
     await pool.query("DELETE FROM tedarikciler WHERE id=?", [id]);
     res.json({ mesaj: "Silindi" });
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    next(err);
   }
 };
 

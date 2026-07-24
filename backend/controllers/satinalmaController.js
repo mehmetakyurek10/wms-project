@@ -1,6 +1,6 @@
 const pool = require("../config/db");
 
-const listele = async (req, res) => {
+const listele = async (req, res, next) => {
   try {
     const [siparisler] = await pool.query(
       `SELECT s.*, t.ad AS tedarikci_adi
@@ -10,11 +10,11 @@ const listele = async (req, res) => {
     );
     res.json(siparisler);
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    next(err);
   }
 };
 
-const detay = async (req, res) => {
+const detay = async (req, res, next) => {
   try {
     const { id } = req.params;
     const [kalemler] = await pool.query(
@@ -26,11 +26,11 @@ const detay = async (req, res) => {
     );
     res.json(kalemler);
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    next(err);
   }
 };
 
-const olustur = async (req, res) => {
+const olustur = async (req, res, next) => {
   try {
     const { tedarikci_id, kalemler } = req.body;
 
@@ -44,8 +44,8 @@ const olustur = async (req, res) => {
     );
 
     const [siparisResult] = await pool.query(
-      "INSERT INTO satinalma_siparisleri (tedarikci_id, durum, toplam_tutar) VALUES (?, 'beklemede', ?)",
-      [tedarikci_id, toplam_tutar],
+      "INSERT INTO satinalma_siparisleri (tedarikci_id, durum, toplam_tutar, olusturan_kullanici_id) VALUES (?, 'beklemede', ?, ?)",
+      [tedarikci_id, toplam_tutar, req.kullanici.id],
     );
     const siparis_id = siparisResult.insertId;
 
@@ -60,52 +60,64 @@ const olustur = async (req, res) => {
       .status(201)
       .json({ id: siparis_id, mesaj: "Satınalma siparişi oluşturuldu" });
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    next(err);
   }
 };
 
-const teslimAl = async (req, res) => {
+const teslimAl = async (req, res, next) => {
+  const connection = await pool.getConnection();
   try {
     const { id } = req.params;
 
-    const [siparisRows] = await pool.query(
+    const [siparisRows] = await connection.query(
       "SELECT * FROM satinalma_siparisleri WHERE id = ?",
       [id],
     );
-    if (!siparisRows.length)
+    if (!siparisRows.length) {
+      connection.release();
       return res.status(404).json({ hata: "Sipariş bulunamadı" });
+    }
     if (siparisRows[0].durum === "teslim_alindi") {
+      connection.release();
       return res.status(400).json({ hata: "Bu sipariş zaten teslim alınmış" });
     }
 
-    const [kalemler] = await pool.query(
+    await connection.beginTransaction();
+
+    const [kalemler] = await connection.query(
       "SELECT * FROM satinalma_siparis_kalemleri WHERE siparis_id = ?",
       [id],
     );
 
     for (const kalem of kalemler) {
-      await pool.query("UPDATE urunler SET miktar = miktar + ? WHERE id = ?", [
-        kalem.miktar,
-        kalem.urun_id,
-      ]);
-      await pool.query(
-        "INSERT INTO stok_hareketleri (urun_id, tip, miktar, aciklama) VALUES (?, 'giris', ?, ?)",
+      await connection.query(
+        "UPDATE urunler SET miktar = miktar + ? WHERE id = ?",
+        [kalem.miktar, kalem.urun_id],
+      );
+      await connection.query(
+        "INSERT INTO stok_hareketleri (urun_id, tip, miktar, aciklama, olusturan_kullanici_id) VALUES (?, 'giris', ?, ?, ?)",
         [
           kalem.urun_id,
           kalem.miktar,
           `Satınalma siparişi #${id} teslim alındı`,
+          req.kullanici.id,
         ],
       );
     }
 
-    await pool.query(
+    await connection.query(
       "UPDATE satinalma_siparisleri SET durum = 'teslim_alindi', teslim_tarihi = NOW() WHERE id = ?",
       [id],
     );
 
+    await connection.commit();
+    connection.release();
+
     res.json({ mesaj: "Sipariş teslim alındı, stoklar güncellendi" });
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    await connection.rollback();
+    connection.release();
+    next(err);
   }
 };
 

@@ -2,7 +2,7 @@ const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
-const kayitOl = async (req, res) => {
+const kayitOl = async (req, res, next) => {
   try {
     const { ad, email, sifre, rol } = req.body;
 
@@ -24,11 +24,11 @@ const kayitOl = async (req, res) => {
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ hata: "Bu email zaten kayıtlı" });
     }
-    res.status(500).json({ hata: err.message });
+    next(err);
   }
 };
 
-const girisYap = async (req, res) => {
+const girisYap = async (req, res, next) => {
   try {
     const { email, sifre } = req.body;
 
@@ -63,7 +63,7 @@ const girisYap = async (req, res) => {
       },
     });
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    next(err);
   }
 };
 
