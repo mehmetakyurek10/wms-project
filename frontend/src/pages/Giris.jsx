@@ -18,7 +18,7 @@ function Giris() {
         "kullanici",
         JSON.stringify(response.data.kullanici),
       );
-      navigate("/urunler");
+      navigate("/panel");
     } catch (err) {
       setHata(err.response?.data?.hata || "Giriş başarısız");
     }

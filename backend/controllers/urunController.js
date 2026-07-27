@@ -2,7 +2,29 @@ const pool = require("../config/db");
 
 const listele = async (req, res, next) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM urunler");
+    const { ara, kategori_id, sayfa = 1, limit = 10 } = req.query;
+
+    let sorgu = "SELECT * FROM urunler WHERE 1=1";
+    const degerler = [];
+
+    if (ara) {
+      sorgu += " AND ad LIKE ?";
+      degerler.push(`%${ara}%`);
+    }
+
+    if (kategori_id) {
+      sorgu += " AND kategori_id = ?";
+      degerler.push(kategori_id);
+    }
+
+    const sayfaNo = parseInt(sayfa, 10) || 1;
+    const limitSayi = parseInt(limit, 10) || 10;
+    const offset = (sayfaNo - 1) * limitSayi;
+
+    sorgu += " ORDER BY id LIMIT ? OFFSET ?";
+    degerler.push(limitSayi, offset);
+
+    const [rows] = await pool.query(sorgu, degerler);
     res.json(rows);
   } catch (err) {
     next(err);
