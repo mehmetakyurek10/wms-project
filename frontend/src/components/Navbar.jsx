@@ -13,6 +13,11 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 
+const ROL_ADLARI = {
+  admin: "Yönetici",
+  depo_sorumlusu: "Depo Sorumlusu",
+};
+
 function Navbar() {
   const navigate = useNavigate();
   const kullanici = JSON.parse(localStorage.getItem("kullanici") || "null");
@@ -70,8 +75,19 @@ function Navbar() {
 
       <div className="navbar-kullanici">
         {kullanici && (
-          <span className="navbar-rozet">
-            {kullanici.ad} · {kullanici.rol}
+          <span
+            className="navbar-rozet"
+            title={`${kullanici.ad} · ${ROL_ADLARI[kullanici.rol] || kullanici.rol}`}
+          >
+            <span className="navbar-avatar">
+              {kullanici.ad
+                .split(" ")
+                .map((kelime) => kelime[0])
+                .slice(0, 2)
+                .join("")
+                .toUpperCase()}
+            </span>
+            <span className="navbar-ad">{kullanici.ad}</span>
           </span>
         )}
         <button

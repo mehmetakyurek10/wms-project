@@ -6,14 +6,18 @@ import {
 } from "../api/satinalmaApi";
 import { tedarikcileriGetir } from "../api/tedarikciApi";
 import { urunleriGetir } from "../api/urunApi";
+import Etiket from "../components/Etiket";
+import { useToast } from "../context/ToastContext";
+import OnayModal from "../components/OnayModal";
 
 function SatinalmaSiparisleri() {
+  const bildir = useToast();
   const [siparisler, setSiparisler] = useState([]);
   const [tedarikciler, setTedarikciler] = useState([]);
   const [urunler, setUrunler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
-  const [formHata, setFormHata] = useState("");
+  const [teslimAlinacak, setTeslimAlinacak] = useState(null);
 
   const [tedarikciId, setTedarikciId] = useState("");
   const [kalemler, setKalemler] = useState([
@@ -58,7 +62,6 @@ function SatinalmaSiparisleri() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormHata("");
     try {
       await siparisOlustur({
         tedarikci_id: tedarikciId,
@@ -69,20 +72,22 @@ function SatinalmaSiparisleri() {
         })),
       });
       setKalemler([{ urun_id: "", miktar: "", birim_fiyat: "" }]);
+      bildir("Satınalma siparişi oluşturuldu");
       veriGetir();
     } catch (err) {
-      setFormHata(err.response?.data?.hata || "Sipariş oluşturulamadı");
+      bildir(err.response?.data?.hata || "Sipariş oluşturulamadı", "hata");
     }
   };
 
-  const teslimAl = async (id) => {
-    if (!window.confirm("Bu siparişi teslim almak istediğine emin misin?"))
-      return;
+  const teslimAlOnayla = async () => {
+    const id = teslimAlinacak.id;
+    setTeslimAlinacak(null);
     try {
       await siparisTeslimAl(id);
+      bildir("Sipariş teslim alındı, stoklar güncellendi");
       veriGetir();
     } catch (err) {
-      alert(err.response?.data?.hata || "Teslim alınamadı");
+      bildir(err.response?.data?.hata || "Teslim alınamadı", "hata");
     }
   };
 
@@ -93,18 +98,15 @@ function SatinalmaSiparisleri() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p style={{ color: "red" }}>{hata}</p>;
+  if (hata) return <p className="hata-metni">{hata}</p>;
 
   return (
     <div>
       <h2>Satınalma Siparişleri</h2>
 
-      <form
-        onSubmit={handleSubmit}
-        style={{ flexDirection: "column", alignItems: "stretch" }}
-      >
-        <div style={{ marginBottom: "10px" }}>
-          <label>Tedarikçi: </label>
+      <form onSubmit={handleSubmit} className="form-dikey">
+        <div className="form-satir">
+          <label>Tedarikçi</label>
           <select
             value={tedarikciId}
             onChange={(e) => setTedarikciId(e.target.value)}
@@ -118,10 +120,7 @@ function SatinalmaSiparisleri() {
         </div>
 
         {kalemler.map((kalem, index) => (
-          <div
-            key={index}
-            style={{ display: "flex", gap: "10px", marginBottom: "8px" }}
-          >
+          <div key={index} className="kalem-satiri">
             <select
               value={kalem.urun_id}
               onChange={(e) => kalemDegistir(index, "urun_id", e.target.value)}
@@ -164,41 +163,57 @@ function SatinalmaSiparisleri() {
           </div>
         ))}
 
-        <div>
+        <div className="form-aksiyon">
           <button type="button" onClick={kalemEkle}>
             + Kalem Ekle
           </button>
           <button type="submit">Siparişi Oluştur</button>
         </div>
-        {formHata && <p style={{ color: "red" }}>{formHata}</p>}
       </form>
 
-      <table border="1" cellPadding="8" style={{ marginTop: "20px" }}>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Tedarikçi</th>
-            <th>Durum</th>
-            <th>Toplam Tutar</th>
-            <th>İşlem</th>
-          </tr>
-        </thead>
-        <tbody>
-          {siparisler.map((s) => (
-            <tr key={s.id}>
-              <td>{s.id}</td>
-              <td>{s.tedarikci_adi}</td>
-              <td>{s.durum}</td>
-              <td>{s.toplam_tutar}</td>
-              <td>
-                {s.durum !== "teslim_alindi" && s.durum !== "iptal" && (
-                  <button onClick={() => teslimAl(s.id)}>Teslim Al</button>
-                )}
-              </td>
+      {siparisler.length === 0 ? (
+        <div className="bos-durum">Henüz satınalma siparişi yok.</div>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Tedarikçi</th>
+              <th>Durum</th>
+              <th>Toplam Tutar</th>
+              <th>İşlem</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {siparisler.map((s) => (
+              <tr key={s.id}>
+                <td>{s.id}</td>
+                <td>{s.tedarikci_adi}</td>
+                <td>
+                  <Etiket deger={s.durum} />
+                </td>
+                <td>{s.toplam_tutar}</td>
+                <td>
+                  {s.durum !== "teslim_alindi" && s.durum !== "iptal" && (
+                    <button onClick={() => setTeslimAlinacak(s)}>
+                      Teslim Al
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <OnayModal
+        acik={teslimAlinacak !== null}
+        baslik="Siparişi teslim al"
+        mesaj={`#${teslimAlinacak?.id} numaralı siparişin kalemleri stoğa eklenecek ve stok hareketleri kaydedilecek.`}
+        onayMetni="Teslim Al"
+        onayla={teslimAlOnayla}
+        iptal={() => setTeslimAlinacak(null)}
+      />
     </div>
   );
 }

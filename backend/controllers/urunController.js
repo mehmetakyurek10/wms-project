@@ -2,27 +2,39 @@ const pool = require("../config/db");
 
 const listele = async (req, res, next) => {
   try {
-    const { ara, kategori_id, sayfa = 1, limit = 10 } = req.query;
+    const { ara, kategori_id, sayfa, limit } = req.query;
 
-    let sorgu = "SELECT * FROM urunler WHERE 1=1";
-    const degerler = [];
+    let kosul = " WHERE 1=1";
+    const kosulDegerleri = [];
 
     if (ara) {
-      sorgu += " AND ad LIKE ?";
-      degerler.push(`%${ara}%`);
+      kosul += " AND ad LIKE ?";
+      kosulDegerleri.push(`%${ara}%`);
     }
 
     if (kategori_id) {
-      sorgu += " AND kategori_id = ?";
-      degerler.push(kategori_id);
+      kosul += " AND kategori_id = ?";
+      kosulDegerleri.push(kategori_id);
     }
 
-    const sayfaNo = parseInt(sayfa, 10) || 1;
-    const limitSayi = parseInt(limit, 10) || 10;
-    const offset = (sayfaNo - 1) * limitSayi;
+    const [sayim] = await pool.query(
+      "SELECT COUNT(*) AS toplam FROM urunler" + kosul,
+      kosulDegerleri,
+    );
+    res.set("X-Toplam-Kayit", sayim[0].toplam);
 
-    sorgu += " ORDER BY id LIMIT ? OFFSET ?";
-    degerler.push(limitSayi, offset);
+    let sorgu = "SELECT * FROM urunler" + kosul;
+    const degerler = [...kosulDegerleri];
+
+    if (sayfa || limit) {
+      const sayfaNo = parseInt(sayfa, 10) || 1;
+      const limitSayi = parseInt(limit, 10) || 10;
+      const offset = (sayfaNo - 1) * limitSayi;
+      sorgu += " ORDER BY id LIMIT ? OFFSET ?";
+      degerler.push(limitSayi, offset);
+    } else {
+      sorgu += " ORDER BY id";
+    }
 
     const [rows] = await pool.query(sorgu, degerler);
     res.json(rows);

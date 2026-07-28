@@ -3,9 +3,10 @@ const pool = require("../config/db");
 const listele = async (req, res, next) => {
   try {
     const [rows] = await pool.query(
-      `SELECT sh.*, u.ad AS urun_adi
+      `SELECT sh.*, u.ad AS urun_adi, k.ad AS kullanici_adi
        FROM stok_hareketleri sh
        JOIN urunler u ON sh.urun_id = u.id
+       LEFT JOIN kullanicilar k ON sh.olusturan_kullanici_id = k.id
        ORDER BY sh.tarih DESC`,
     );
     res.json(rows);

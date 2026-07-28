@@ -4,13 +4,15 @@ import {
   stokHareketiEkle,
 } from "../api/stokHareketleri";
 import { urunleriGetir } from "../api/urunApi";
+import Etiket from "../components/Etiket";
+import { useToast } from "../context/ToastContext";
 
 function StokHareketleri() {
+  const bildir = useToast();
   const [hareketler, setHareketler] = useState([]);
   const [urunler, setUrunler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
-  const [formHata, setFormHata] = useState("");
   const [form, setForm] = useState({
     urun_id: "",
     tip: "giris",
@@ -46,13 +48,13 @@ function StokHareketleri() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormHata("");
     try {
       await stokHareketiEkle(form);
       setForm({ ...form, miktar: "", aciklama: "" });
+      bildir("Stok hareketi kaydedildi");
       veriGetir();
     } catch (err) {
-      setFormHata(err.response?.data?.hata || "Hareket eklenemedi");
+      bildir(err.response?.data?.hata || "Hareket eklenemedi", "hata");
     }
   };
 
@@ -63,13 +65,13 @@ function StokHareketleri() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p style={{ color: "red" }}>{hata}</p>;
+  if (hata) return <p className="hata-metni">{hata}</p>;
 
   return (
     <div>
       <h2>Stok Hareketleri</h2>
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: "20px" }}>
+      <form onSubmit={handleSubmit}>
         <select name="urun_id" value={form.urun_id} onChange={handleChange}>
           {urunler.map((u) => (
             <option key={u.id} value={u.id}>
@@ -98,31 +100,38 @@ function StokHareketleri() {
           onChange={handleChange}
         />
         <button type="submit">Kaydet</button>
-        {formHata && <p style={{ color: "red" }}>{formHata}</p>}
       </form>
 
-      <table border="1" cellPadding="8">
-        <thead>
-          <tr>
-            <th>Tarih</th>
-            <th>Ürün</th>
-            <th>Tip</th>
-            <th>Miktar</th>
-            <th>Açıklama</th>
-          </tr>
-        </thead>
-        <tbody>
-          {hareketler.map((h) => (
-            <tr key={h.id}>
-              <td>{new Date(h.tarih).toLocaleString("tr-TR")}</td>
-              <td>{h.urun_adi}</td>
-              <td>{h.tip}</td>
-              <td>{h.miktar}</td>
-              <td>{h.aciklama}</td>
+      {hareketler.length === 0 ? (
+        <div className="bos-durum">Henüz stok hareketi yok.</div>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Tarih</th>
+              <th>Ürün</th>
+              <th>Tip</th>
+              <th>Miktar</th>
+              <th>Açıklama</th>
+              <th>İşlemi Yapan</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {hareketler.map((h) => (
+              <tr key={h.id}>
+                <td>{new Date(h.tarih).toLocaleString("tr-TR")}</td>
+                <td>{h.urun_adi}</td>
+                <td>
+                  <Etiket deger={h.tip} />
+                </td>
+                <td>{h.miktar}</td>
+                <td>{h.aciklama}</td>
+                <td>{h.kullanici_adi || "-"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </div>
   );
 }

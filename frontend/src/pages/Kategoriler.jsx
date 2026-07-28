@@ -1,12 +1,19 @@
 import { useEffect, useState } from "react";
-import { kategorileriGetir, kategoriEkle } from "../api/kategoriApi";
+import {
+  kategorileriGetir,
+  kategoriEkle,
+  kategoriSil,
+} from "../api/kategoriApi";
+import { useToast } from "../context/ToastContext";
+import OnayModal from "../components/OnayModal";
 
 function Kategoriler() {
+  const bildir = useToast();
   const [kategoriler, setKategoriler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
-  const [formHata, setFormHata] = useState("");
   const [ad, setAd] = useState("");
+  const [silinecek, setSilinecek] = useState(null);
 
   const veriGetir = async () => {
     try {
@@ -25,13 +32,25 @@ function Kategoriler() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setFormHata("");
     try {
       await kategoriEkle({ ad });
       setAd("");
+      bildir("Kategori eklendi");
       veriGetir();
     } catch (err) {
-      setFormHata(err.response?.data?.hata || "Kategori eklenemedi");
+      bildir(err.response?.data?.hata || "Kategori eklenemedi", "hata");
+    }
+  };
+
+  const silOnayla = async () => {
+    const id = silinecek.id;
+    setSilinecek(null);
+    try {
+      await kategoriSil(id);
+      bildir("Kategori silindi");
+      veriGetir();
+    } catch (err) {
+      bildir(err.response?.data?.hata || "Silinemedi", "hata");
     }
   };
 
@@ -42,13 +61,13 @@ function Kategoriler() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p style={{ color: "red" }}>{hata}</p>;
+  if (hata) return <p className="hata-metni">{hata}</p>;
 
   return (
     <div>
       <h2>Kategoriler</h2>
 
-      <form onSubmit={handleSubmit} style={{ marginBottom: "20px" }}>
+      <form onSubmit={handleSubmit}>
         <input
           placeholder="Kategori adı"
           value={ad}
@@ -56,23 +75,51 @@ function Kategoriler() {
           required
         />
         <button type="submit">Ekle</button>
-        {formHata && <p style={{ color: "red" }}>{formHata}</p>}
       </form>
 
-      <table border="1" cellPadding="8">
-        <thead>
-          <tr>
-            <th>Ad</th>
-          </tr>
-        </thead>
-        <tbody>
-          {kategoriler.map((kategori) => (
-            <tr key={kategori.id}>
-              <td>{kategori.ad}</td>
+      {kategoriler.length === 0 ? (
+        <div className="bos-durum">Henüz kategori eklenmemiş.</div>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Ad</th>
+              <th>Ürün Sayısı</th>
+              <th>İşlemler</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {kategoriler.map((kategori) => (
+              <tr key={kategori.id}>
+                <td>{kategori.ad}</td>
+                <td>{kategori.urun_sayisi}</td>
+                <td>
+                  <button
+                    onClick={() => setSilinecek(kategori)}
+                    className="tehlike"
+                    disabled={kategori.urun_sayisi > 0}
+                    title={
+                      kategori.urun_sayisi > 0
+                        ? "Bu kategoriye bağlı ürünler var"
+                        : "Kategoriyi sil"
+                    }
+                  >
+                    Sil
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
+      <OnayModal
+        acik={silinecek !== null}
+        baslik="Kategoriyi sil"
+        mesaj={`"${silinecek?.ad}" kategorisi silinecek.`}
+        onayla={silOnayla}
+        iptal={() => setSilinecek(null)}
+      />
     </div>
   );
 }

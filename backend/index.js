@@ -7,7 +7,7 @@ const hataYonetici = require("./middleware/hataYonetici");
 
 const app = express();
 
-app.use(cors());
+app.use(cors({ exposedHeaders: ["X-Toplam-Kayit"] }));
 app.use(express.json());
 
 app.get("/", (req, res) => {
