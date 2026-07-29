@@ -8,5 +8,6 @@ router.use("/stok-hareketleri", require("./stokHareketleriRoutes"));
 router.use("/satinalma-siparisleri", require("./satinalmaRoutes"));
 router.use("/auth", require("./authRoutes"));
 router.use("/varyantlar", require("./varyantRoutes"));
+router.use("/kullanicilar", require("./kullaniciRoutes"));
 
 module.exports = router;

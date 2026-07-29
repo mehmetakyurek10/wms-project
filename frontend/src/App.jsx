@@ -10,6 +10,7 @@ import SatinalmaSiparisleri from "./pages/SatinalmaSiparisleri";
 import Panel from "./pages/Panel";
 import Varyantlar from "./pages/Varyantlar";
 import { ToastSaglayici } from "./context/ToastContext";
+import Kullanicilar from "./pages/Kullaniciler";
 
 function App() {
   useEffect(() => {
@@ -27,6 +28,7 @@ function App() {
             <Route path="/urunler" element={<Urunler />} />
             <Route path="/varyantlar" element={<Varyantlar />} />
             <Route path="/kategoriler" element={<Kategoriler />} />
+            <Route path="/kullanicilar" element={<Kullanicilar />} />
             <Route path="/tedarikciler" element={<Tedarikciler />} />
             <Route path="/stok-hareketleri" element={<StokHareketleri />} />
             <Route

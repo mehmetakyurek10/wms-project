@@ -1,5 +1,5 @@
 import { Navigate, Outlet } from "react-router-dom";
-import Navbar from "./Navbar";
+import Sidebar from "./Sidebar";
 
 function KorumaliRota() {
   const token = localStorage.getItem("token");
@@ -9,10 +9,14 @@ function KorumaliRota() {
   }
 
   return (
-    <>
-      <Navbar />
-      <Outlet />
-    </>
+    <div className="uygulama">
+      <Sidebar />
+      <main className="icerik">
+        <div className="icerik-ic">
+          <Outlet />
+        </div>
+      </main>
+    </div>
   );
 }
 

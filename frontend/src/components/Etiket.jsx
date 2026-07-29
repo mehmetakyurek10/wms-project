@@ -6,6 +6,8 @@ const RENKLER = {
   giris: "yesil",
   cikis: "kirmizi",
   duzeltme: "sari",
+  aktif: "yesil",
+  pasif: "gri",
 };
 
 const METINLER = {
@@ -16,6 +18,8 @@ const METINLER = {
   giris: "Giriş",
   cikis: "Çıkış",
   duzeltme: "Düzeltme",
+  aktif: "Aktif",
+  pasif: "Pasif",
 };
 
 function Etiket({ deger }) {
