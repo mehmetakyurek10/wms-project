@@ -1,26 +1,28 @@
 import { Fragment, useEffect, useState } from "react";
 import { ChevronDown, ChevronRight, Receipt } from "lucide-react";
 import {
-  siparisleriGetir,
-  siparisOlustur,
-  siparisTeslimAl,
-  siparisDetay,
-} from "../api/satinalmaApi";
-import { tedarikcileriGetir } from "../api/tedarikciApi";
+  satislariGetir,
+  satisOlustur,
+  satisTeslimEt,
+  satisIptal,
+  satisDetay,
+} from "../api/satisApi";
+import { musterileriGetir } from "../api/musteriApi";
 import { varyantlariGetir } from "../api/varyantApi";
 import Etiket from "../components/Etiket";
 import Fis from "../components/Fis";
 import { useToast } from "../context/ToastContext";
 import OnayModal from "../components/OnayModal";
 
-function SatinalmaSiparisleri() {
+function SatisSiparisleri() {
   const bildir = useToast();
   const [siparisler, setSiparisler] = useState([]);
-  const [tedarikciler, setTedarikciler] = useState([]);
+  const [musteriler, setMusteriler] = useState([]);
   const [varyantlar, setVaryantlar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
-  const [teslimAlinacak, setTeslimAlinacak] = useState(null);
+  const [teslimEdilecek, setTeslimEdilecek] = useState(null);
+  const [iptalEdilecek, setIptalEdilecek] = useState(null);
 
   const [acikDetay, setAcikDetay] = useState(null);
   const [detayKalemler, setDetayKalemler] = useState([]);
@@ -29,22 +31,22 @@ function SatinalmaSiparisleri() {
   const [fisSiparis, setFisSiparis] = useState(null);
   const [fisKalemler, setFisKalemler] = useState([]);
 
-  const [tedarikciId, setTedarikciId] = useState("");
+  const [musteriId, setMusteriId] = useState("");
   const [kalemler, setKalemler] = useState([
     { varyant_id: "", miktar: "", birim_fiyat: "" },
   ]);
 
   const veriGetir = async () => {
     try {
-      const [siparisRes, tedarikciRes, varyantRes] = await Promise.all([
-        siparisleriGetir(),
-        tedarikcileriGetir(),
+      const [satisRes, musteriRes, varyantRes] = await Promise.all([
+        satislariGetir(),
+        musterileriGetir(),
         varyantlariGetir(),
       ]);
-      setSiparisler(siparisRes.data);
-      setTedarikciler(tedarikciRes.data);
+      setSiparisler(satisRes.data);
+      setMusteriler(musteriRes.data);
       setVaryantlar(varyantRes.data);
-      setTedarikciId((mevcut) => mevcut || tedarikciRes.data[0]?.id || "");
+      setMusteriId((mevcut) => mevcut || musteriRes.data[0]?.id || "");
     } catch (err) {
       setHata("Veriler yüklenemedi");
     } finally {
@@ -65,7 +67,7 @@ function SatinalmaSiparisleri() {
     setDetayKalemler([]);
     setDetayYukleniyor(true);
     try {
-      const response = await siparisDetay(id);
+      const response = await satisDetay(id);
       setDetayKalemler(response.data);
     } catch (err) {
       bildir("Sipariş detayı yüklenemedi", "hata");
@@ -76,7 +78,7 @@ function SatinalmaSiparisleri() {
 
   const fisAc = async (siparis) => {
     try {
-      const response = await siparisDetay(siparis.id);
+      const response = await satisDetay(siparis.id);
       setFisKalemler(response.data);
       setFisSiparis(siparis);
     } catch (err) {
@@ -87,6 +89,14 @@ function SatinalmaSiparisleri() {
   const kalemDegistir = (index, alan, deger) => {
     const yeniKalemler = [...kalemler];
     yeniKalemler[index] = { ...yeniKalemler[index], [alan]: deger };
+
+    if (alan === "varyant_id") {
+      const varyant = varyantlar.find((v) => v.id === parseInt(deger, 10));
+      if (varyant && !yeniKalemler[index].birim_fiyat) {
+        yeniKalemler[index].birim_fiyat = varyant.birim_fiyat;
+      }
+    }
+
     setKalemler(yeniKalemler);
   };
 
@@ -101,8 +111,8 @@ function SatinalmaSiparisleri() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await siparisOlustur({
-        tedarikci_id: tedarikciId,
+      await satisOlustur({
+        musteri_id: musteriId,
         kalemler: kalemler.map((k) => ({
           varyant_id: k.varyant_id,
           miktar: parseFloat(k.miktar),
@@ -110,22 +120,34 @@ function SatinalmaSiparisleri() {
         })),
       });
       setKalemler([{ varyant_id: "", miktar: "", birim_fiyat: "" }]);
-      bildir("Satınalma siparişi oluşturuldu");
+      bildir("Satış siparişi oluşturuldu");
       veriGetir();
     } catch (err) {
       bildir(err.response?.data?.hata || "Sipariş oluşturulamadı", "hata");
     }
   };
 
-  const teslimAlOnayla = async () => {
-    const id = teslimAlinacak.id;
-    setTeslimAlinacak(null);
+  const teslimEtOnayla = async () => {
+    const id = teslimEdilecek.id;
+    setTeslimEdilecek(null);
     try {
-      await siparisTeslimAl(id);
-      bildir("Sipariş teslim alındı, stoklar güncellendi");
+      await satisTeslimEt(id);
+      bildir("Sipariş teslim edildi, stoklar düşüldü");
       veriGetir();
     } catch (err) {
-      bildir(err.response?.data?.hata || "Teslim alınamadı", "hata");
+      bildir(err.response?.data?.hata || "Teslim edilemedi", "hata");
+    }
+  };
+
+  const iptalOnayla = async () => {
+    const id = iptalEdilecek.id;
+    setIptalEdilecek(null);
+    try {
+      await satisIptal(id);
+      bildir("Sipariş iptal edildi");
+      veriGetir();
+    } catch (err) {
+      bildir(err.response?.data?.hata || "İptal edilemedi", "hata");
     }
   };
 
@@ -140,18 +162,20 @@ function SatinalmaSiparisleri() {
 
   return (
     <div>
-      <h2>Alım Siparişleri</h2>
+      <h2>Satış Siparişleri</h2>
 
       <form onSubmit={handleSubmit} className="form-dikey">
         <div className="form-satir">
-          <label>Tedarikçi</label>
+          <label>Müşteri</label>
           <select
-            value={tedarikciId}
-            onChange={(e) => setTedarikciId(e.target.value)}
+            value={musteriId}
+            onChange={(e) => setMusteriId(e.target.value)}
+            required
           >
-            {tedarikciler.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.ad}
+            <option value="">Seçiniz</option>
+            {musteriler.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.ad}
               </option>
             ))}
           </select>
@@ -169,7 +193,8 @@ function SatinalmaSiparisleri() {
               <option value="">Varyant seç</option>
               {varyantlar.map((v) => (
                 <option key={v.id} value={v.id}>
-                  {v.urun_adi} · {v.boy} · {v.ambalaj_kg}kg {v.ambalaj_tipi}
+                  {v.urun_adi} · {v.boy} · {v.ambalaj_kg}kg {v.ambalaj_tipi}{" "}
+                  (stok: {v.miktar})
                 </option>
               ))}
             </select>
@@ -212,14 +237,14 @@ function SatinalmaSiparisleri() {
       </form>
 
       {siparisler.length === 0 ? (
-        <div className="bos-durum">Henüz alım siparişi yok.</div>
+        <div className="bos-durum">Henüz satış siparişi yok.</div>
       ) : (
         <table>
           <thead>
             <tr>
               <th></th>
               <th>#</th>
-              <th>Tedarikçi</th>
+              <th>Müşteri</th>
               <th>Durum</th>
               <th>Toplam Tutar</th>
               <th>İşlem</th>
@@ -243,16 +268,24 @@ function SatinalmaSiparisleri() {
                     </button>
                   </td>
                   <td>{s.id}</td>
-                  <td>{s.tedarikci_adi}</td>
+                  <td>{s.musteri_adi}</td>
                   <td>
                     <Etiket deger={s.durum} />
                   </td>
                   <td>{Number(s.toplam_tutar).toLocaleString("tr-TR")} ₺</td>
                   <td>
-                    {s.durum !== "teslim_alindi" && s.durum !== "iptal" && (
-                      <button onClick={() => setTeslimAlinacak(s)}>
-                        Teslim Al
-                      </button>
+                    {s.durum !== "teslim_edildi" && s.durum !== "iptal" && (
+                      <>
+                        <button onClick={() => setTeslimEdilecek(s)}>
+                          Teslim Et
+                        </button>
+                        <button
+                          className="ikincil"
+                          onClick={() => setIptalEdilecek(s)}
+                        >
+                          İptal
+                        </button>
+                      </>
                     )}
                     <button
                       className="ikincil ikon-btn"
@@ -319,17 +352,26 @@ function SatinalmaSiparisleri() {
       )}
 
       <OnayModal
-        acik={teslimAlinacak !== null}
-        baslik="Siparişi teslim al"
-        mesaj={`#${teslimAlinacak?.id} numaralı siparişin kalemleri stoğa eklenecek ve stok hareketleri kaydedilecek.`}
-        onayMetni="Teslim Al"
-        onayla={teslimAlOnayla}
-        iptal={() => setTeslimAlinacak(null)}
+        acik={teslimEdilecek !== null}
+        baslik="Siparişi teslim et"
+        mesaj={`#${teslimEdilecek?.id} numaralı siparişin kalemleri stoktan düşülecek.`}
+        onayMetni="Teslim Et"
+        onayla={teslimEtOnayla}
+        iptal={() => setTeslimEdilecek(null)}
+      />
+
+      <OnayModal
+        acik={iptalEdilecek !== null}
+        baslik="Siparişi iptal et"
+        mesaj={`#${iptalEdilecek?.id} numaralı sipariş iptal edilecek. Stok hareketi oluşmayacak.`}
+        onayMetni="İptal Et"
+        onayla={iptalOnayla}
+        iptal={() => setIptalEdilecek(null)}
       />
 
       <Fis
         acik={fisSiparis !== null}
-        tip="alim"
+        tip="satis"
         siparis={fisSiparis}
         kalemler={fisKalemler}
         kapat={() => setFisSiparis(null)}
@@ -338,4 +380,4 @@ function SatinalmaSiparisleri() {
   );
 }
 
-export default SatinalmaSiparisleri;
+export default SatisSiparisleri;

@@ -1,5 +1,14 @@
 const pool = require("../config/db");
 
+const GECERLI_SEBEPLER = [
+  "satinalma",
+  "satis",
+  "sayim",
+  "fire",
+  "iade",
+  "manuel",
+];
+
 const listele = async (req, res, next) => {
   try {
     const [rows] = await pool.query(
@@ -20,13 +29,18 @@ const listele = async (req, res, next) => {
 const ekle = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
-    const { varyant_id, tip, miktar, aciklama } = req.body;
+    const { varyant_id, tip, sebep, miktar, aciklama } = req.body;
 
-    if (!["giris", "cikis", "duzeltme"].includes(tip)) {
+    if (!["giris", "cikis"].includes(tip)) {
       connection.release();
-      return res.status(400).json({
-        hata: "Geçersiz hareket tipi (giris, cikis veya duzeltme olmalı)",
-      });
+      return res
+        .status(400)
+        .json({ hata: "Hareket tipi giris veya cikis olmalı" });
+    }
+
+    if (sebep && !GECERLI_SEBEPLER.includes(sebep)) {
+      connection.release();
+      return res.status(400).json({ hata: "Geçersiz sebep" });
     }
 
     if (!varyant_id) {
@@ -55,9 +69,9 @@ const ekle = async (req, res, next) => {
 
     await connection.query(
       `INSERT INTO stok_hareketleri
-       (varyant_id, tip, miktar, aciklama, olusturan_kullanici_id)
-       VALUES (?, ?, ?, ?, ?)`,
-      [varyant_id, tip, miktar, aciklama, req.kullanici.id],
+       (varyant_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [varyant_id, tip, sebep || "manuel", miktar, aciklama, req.kullanici.id],
     );
 
     if (tip === "giris") {
@@ -65,14 +79,9 @@ const ekle = async (req, res, next) => {
         "UPDATE urun_varyantlari SET miktar = miktar + ? WHERE id = ?",
         [miktar, varyant_id],
       );
-    } else if (tip === "cikis") {
-      await connection.query(
-        "UPDATE urun_varyantlari SET miktar = miktar - ? WHERE id = ?",
-        [miktar, varyant_id],
-      );
     } else {
       await connection.query(
-        "UPDATE urun_varyantlari SET miktar = ? WHERE id = ?",
+        "UPDATE urun_varyantlari SET miktar = miktar - ? WHERE id = ?",
         [miktar, varyant_id],
       );
     }

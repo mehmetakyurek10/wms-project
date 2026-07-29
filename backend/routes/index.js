@@ -9,5 +9,8 @@ router.use("/satinalma-siparisleri", require("./satinalmaRoutes"));
 router.use("/auth", require("./authRoutes"));
 router.use("/varyantlar", require("./varyantRoutes"));
 router.use("/kullanicilar", require("./kullaniciRoutes"));
+router.use("/raporlar", require("./raporRoutes"));
+router.use("/musteriler", require("./musteriRoutes"));
+router.use("/satis-siparisleri", require("./satisRoutes"));
 
 module.exports = router;

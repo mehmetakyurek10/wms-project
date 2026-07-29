@@ -3,7 +3,7 @@ const pool = require("../config/db");
 const listele = async (req, res, next) => {
   try {
     const [siparisler] = await pool.query(
-      `SELECT s.*, t.ad AS tedarikci_adi
+      `SELECT s.*, t.ad AS tedarikci_adi, t.telefon AS tedarikci_telefon
        FROM satinalma_siparisleri s
        JOIN tedarikciler t ON s.tedarikci_id = t.id
        ORDER BY s.siparis_tarihi DESC`,
@@ -18,7 +18,7 @@ const detay = async (req, res, next) => {
   try {
     const { id } = req.params;
     const [kalemler] = await pool.query(
-      `SELECT k.*, u.ad AS urun_adi, v.boy, v.ambalaj_tipi
+      `SELECT k.*, u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg
        FROM satinalma_siparis_kalemleri k
        JOIN urun_varyantlari v ON k.varyant_id = v.id
        JOIN urunler u ON v.urun_id = u.id
@@ -97,8 +97,8 @@ const teslimAl = async (req, res, next) => {
       );
       await connection.query(
         `INSERT INTO stok_hareketleri
-         (varyant_id, tip, miktar, aciklama, olusturan_kullanici_id)
-         VALUES (?, 'giris', ?, ?, ?)`,
+         (varyant_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
+         VALUES (?, 'giris', 'satinalma', ?, ?, ?)`,
         [
           kalem.varyant_id,
           kalem.miktar,

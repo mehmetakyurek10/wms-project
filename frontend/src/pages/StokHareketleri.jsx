@@ -16,6 +16,7 @@ function StokHareketleri() {
   const [form, setForm] = useState({
     varyant_id: "",
     tip: "giris",
+    sebep: "manuel",
     miktar: "",
     aciklama: "",
   });
@@ -94,7 +95,18 @@ function StokHareketleri() {
           <select name="tip" value={form.tip} onChange={handleChange}>
             <option value="giris">Giriş</option>
             <option value="cikis">Çıkış</option>
-            <option value="duzeltme">Düzeltme</option>
+          </select>
+        </div>
+
+        <div className="form-alan">
+          <label>Sebep</label>
+          <select name="sebep" value={form.sebep} onChange={handleChange}>
+            <option value="manuel">Manuel</option>
+            <option value="satinalma">Satınalma</option>
+            <option value="satis">Satış</option>
+            <option value="sayim">Sayım</option>
+            <option value="fire">Fire</option>
+            <option value="iade">İade</option>
           </select>
         </div>
 
@@ -133,6 +145,7 @@ function StokHareketleri() {
               <th>Ürün</th>
               <th>Varyant</th>
               <th>Tip</th>
+              <th>Sebep</th>
               <th>Miktar</th>
               <th>Açıklama</th>
               <th>İşlemi Yapan</th>
@@ -148,6 +161,9 @@ function StokHareketleri() {
                 </td>
                 <td>
                   <Etiket deger={h.tip} />
+                </td>
+                <td>
+                  <Etiket deger={h.sebep} />
                 </td>
                 <td>{h.miktar}</td>
                 <td>{h.aciklama}</td>
