@@ -1,13 +1,15 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Package, AlertTriangle, Truck, ShoppingCart } from "lucide-react";
-import { urunleriGetir, dusukStokGetir } from "../api/urunApi";
+import { urunleriGetir } from "../api/urunApi";
+import { dusukStokGetir, varyantlariGetir } from "../api/varyantApi";
 import { tedarikcileriGetir } from "../api/tedarikciApi";
 import { siparisleriGetir } from "../api/satinalmaApi";
 
 function Panel() {
   const [veri, setVeri] = useState({
     urun: 0,
+    varyant: 0,
     dusukStok: 0,
     tedarikci: 0,
     bekleyen: 0,
@@ -18,16 +20,17 @@ function Panel() {
   useEffect(() => {
     const veriGetir = async () => {
       try {
-        const [urunRes, dusukRes, tedarikciRes, siparisRes] = await Promise.all(
-          [
+        const [urunRes, varyantRes, dusukRes, tedarikciRes, siparisRes] =
+          await Promise.all([
             urunleriGetir(),
+            varyantlariGetir(),
             dusukStokGetir(),
             tedarikcileriGetir(),
             siparisleriGetir(),
-          ],
-        );
+          ]);
         setVeri({
           urun: urunRes.data.length,
+          varyant: varyantRes.data.length,
           dusukStok: dusukRes.data.length,
           tedarikci: tedarikciRes.data.length,
           bekleyen: siparisRes.data.filter(
@@ -54,31 +57,31 @@ function Panel() {
 
   const kartlar = [
     {
-      baslik: "Toplam Ürün",
+      baslik: "Ürün Çeşidi",
       deger: veri.urun,
       ikon: <Package size={22} />,
       link: "/urunler",
       renk: "mavi",
     },
     {
+      baslik: "Stok Kalemi",
+      deger: veri.varyant,
+      ikon: <ShoppingCart size={22} />,
+      link: "/varyantlar",
+      renk: "yesil",
+    },
+    {
       baslik: "Düşük Stok",
       deger: veri.dusukStok,
       ikon: <AlertTriangle size={22} />,
-      link: "/urunler",
+      link: "/varyantlar",
       renk: "kirmizi",
       nabiz: veri.dusukStok > 0,
     },
     {
-      baslik: "Tedarikçi",
-      deger: veri.tedarikci,
-      ikon: <Truck size={22} />,
-      link: "/tedarikciler",
-      renk: "yesil",
-    },
-    {
       baslik: "Bekleyen Sipariş",
       deger: veri.bekleyen,
-      ikon: <ShoppingCart size={22} />,
+      ikon: <Truck size={22} />,
       link: "/satinalma-siparisleri",
       renk: "turuncu",
     },
@@ -102,28 +105,28 @@ function Panel() {
         ))}
       </div>
 
-      <h2 style={{ marginTop: "32px" }}>Kritik Seviyedeki Ürünler</h2>
+      <h2 className="bolum-basligi">Kritik Seviyedeki Stok Kalemleri</h2>
       {dusukListe.length === 0 ? (
-        <div className="bos-durum">Kritik seviyenin altında ürün yok.</div>
+        <div className="bos-durum">Kritik seviyenin altında stok yok.</div>
       ) : (
         <table>
           <thead>
             <tr>
               <th>Ürün</th>
+              <th>Varyant</th>
               <th>Mevcut</th>
               <th>Kritik Seviye</th>
             </tr>
           </thead>
           <tbody>
-            {dusukListe.map((u) => (
-              <tr key={u.id}>
-                <td>{u.ad}</td>
+            {dusukListe.map((v) => (
+              <tr key={v.id} className="kritik">
+                <td>{v.urun_adi}</td>
                 <td>
-                  {u.miktar} {u.birim}
+                  {v.boy} · {v.ambalaj_kg}kg {v.ambalaj_tipi}
                 </td>
-                <td>
-                  {u.kritik_seviye} {u.birim}
-                </td>
+                <td>{v.miktar}</td>
+                <td>{v.kritik_seviye}</td>
               </tr>
             ))}
           </tbody>

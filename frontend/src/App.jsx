@@ -8,6 +8,7 @@ import Tedarikciler from "./pages/Tedarikciler";
 import StokHareketleri from "./pages/StokHareketleri";
 import SatinalmaSiparisleri from "./pages/SatinalmaSiparisleri";
 import Panel from "./pages/Panel";
+import Varyantlar from "./pages/Varyantlar";
 import { ToastSaglayici } from "./context/ToastContext";
 
 function App() {
@@ -24,6 +25,7 @@ function App() {
           <Route element={<KorumaliRota />}>
             <Route path="/panel" element={<Panel />} />
             <Route path="/urunler" element={<Urunler />} />
+            <Route path="/varyantlar" element={<Varyantlar />} />
             <Route path="/kategoriler" element={<Kategoriler />} />
             <Route path="/tedarikciler" element={<Tedarikciler />} />
             <Route path="/stok-hareketleri" element={<StokHareketleri />} />

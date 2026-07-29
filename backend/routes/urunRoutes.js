@@ -5,7 +5,6 @@ const dogrula = require("../middleware/auth");
 const izinVer = require("../middleware/izinVer");
 
 router.get("/", urunController.listele);
-router.get("/dusuk-stok", urunController.dusukStok);
 router.get("/:id", urunController.getirTek);
 router.post("/", dogrula, urunController.ekle);
 router.put("/:id", dogrula, urunController.guncelle);

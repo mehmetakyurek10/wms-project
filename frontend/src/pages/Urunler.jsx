@@ -5,7 +5,7 @@ import { kategorileriGetir } from "../api/kategoriApi";
 import { useToast } from "../context/ToastContext";
 import OnayModal from "../components/OnayModal";
 
-const SAYFA_BOYUTU = 5;
+const SAYFA_BOYUTU = 10;
 
 function Urunler() {
   const bildir = useToast();
@@ -17,13 +17,7 @@ function Urunler() {
   const [aranan, setAranan] = useState("");
   const [sayfa, setSayfa] = useState(1);
   const [toplam, setToplam] = useState(0);
-  const [form, setForm] = useState({
-    ad: "",
-    kategori_id: "",
-    miktar: "",
-    birim: "kg",
-    kritik_seviye: "",
-  });
+  const [form, setForm] = useState({ ad: "", kategori_id: "" });
   const [duzenlenenId, setDuzenlenenId] = useState(null);
   const [duzenlemeForm, setDuzenlemeForm] = useState({});
   const [silinecek, setSilinecek] = useState(null);
@@ -58,8 +52,6 @@ function Urunler() {
     veriGetir();
   }, [aranan, sayfa]);
 
-  const kategoriAdi = (id) => kategoriler.find((k) => k.id === id)?.ad || "-";
-
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -68,13 +60,7 @@ function Urunler() {
     e.preventDefault();
     try {
       await urunEkle(form);
-      setForm({
-        ad: "",
-        kategori_id: "",
-        miktar: "",
-        birim: "kg",
-        kritik_seviye: "",
-      });
+      setForm({ ad: "", kategori_id: "" });
       bildir("Ürün eklendi");
       veriGetir();
     } catch (err) {
@@ -84,13 +70,7 @@ function Urunler() {
 
   const duzenlemeyeBasla = (urun) => {
     setDuzenlenenId(urun.id);
-    setDuzenlemeForm({
-      ad: urun.ad,
-      kategori_id: urun.kategori_id || "",
-      miktar: urun.miktar,
-      birim: urun.birim,
-      kritik_seviye: urun.kritik_seviye,
-    });
+    setDuzenlemeForm({ ad: urun.ad, kategori_id: urun.kategori_id || "" });
   };
 
   const duzenlemeKaydet = async (id) => {
@@ -131,50 +111,34 @@ function Urunler() {
 
   return (
     <div>
-      <h2>Ürünler</h2>
+      <h2>Ürünler (Çeşitler)</h2>
 
       <form onSubmit={handleSubmit}>
-        <input
-          name="ad"
-          placeholder="Ürün adı"
-          value={form.ad}
-          onChange={handleChange}
-          required
-        />
-        <select
-          name="kategori_id"
-          value={form.kategori_id}
-          onChange={handleChange}
-        >
-          <option value="">Kategori seç</option>
-          {kategoriler.map((k) => (
-            <option key={k.id} value={k.id}>
-              {k.ad}
-            </option>
-          ))}
-        </select>
-        <input
-          name="miktar"
-          type="number"
-          step="0.01"
-          placeholder="Miktar"
-          value={form.miktar}
-          onChange={handleChange}
-        />
-        <input
-          name="birim"
-          placeholder="Birim"
-          value={form.birim}
-          onChange={handleChange}
-        />
-        <input
-          name="kritik_seviye"
-          type="number"
-          step="0.01"
-          placeholder="Kritik seviye"
-          value={form.kritik_seviye}
-          onChange={handleChange}
-        />
+        <div className="form-alan">
+          <label>Ürün adı</label>
+          <input
+            name="ad"
+            placeholder="Örn. Kırma"
+            value={form.ad}
+            onChange={handleChange}
+            required
+          />
+        </div>
+        <div className="form-alan">
+          <label>Kategori</label>
+          <select
+            name="kategori_id"
+            value={form.kategori_id}
+            onChange={handleChange}
+          >
+            <option value="">Seçiniz</option>
+            {kategoriler.map((k) => (
+              <option key={k.id} value={k.id}>
+                {k.ad}
+              </option>
+            ))}
+          </select>
+        </div>
         <button type="submit">Ekle</button>
       </form>
 
@@ -200,9 +164,8 @@ function Urunler() {
               <tr>
                 <th>Ad</th>
                 <th>Kategori</th>
-                <th>Miktar</th>
-                <th>Birim</th>
-                <th>Kritik Seviye</th>
+                <th>Varyant</th>
+                <th>Toplam Stok</th>
                 <th>İşlemler</th>
               </tr>
             </thead>
@@ -231,7 +194,7 @@ function Urunler() {
                           })
                         }
                       >
-                        <option value="">Kategori seç</option>
+                        <option value="">Seçiniz</option>
                         {kategoriler.map((k) => (
                           <option key={k.id} value={k.id}>
                             {k.ad}
@@ -239,66 +202,26 @@ function Urunler() {
                         ))}
                       </select>
                     </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={duzenlemeForm.miktar}
-                        onChange={(e) =>
-                          setDuzenlemeForm({
-                            ...duzenlemeForm,
-                            miktar: e.target.value,
-                          })
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        value={duzenlemeForm.birim}
-                        onChange={(e) =>
-                          setDuzenlemeForm({
-                            ...duzenlemeForm,
-                            birim: e.target.value,
-                          })
-                        }
-                      />
-                    </td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={duzenlemeForm.kritik_seviye}
-                        onChange={(e) =>
-                          setDuzenlemeForm({
-                            ...duzenlemeForm,
-                            kritik_seviye: e.target.value,
-                          })
-                        }
-                      />
-                    </td>
+                    <td>{urun.varyant_sayisi}</td>
+                    <td>{urun.toplam_stok}</td>
                     <td>
                       <button onClick={() => duzenlemeKaydet(urun.id)}>
                         Kaydet
                       </button>
-                      <button onClick={() => setDuzenlenenId(null)}>
+                      <button
+                        className="ikincil"
+                        onClick={() => setDuzenlenenId(null)}
+                      >
                         İptal
                       </button>
                     </td>
                   </tr>
                 ) : (
-                  <tr
-                    key={urun.id}
-                    className={
-                      parseFloat(urun.miktar) <= parseFloat(urun.kritik_seviye)
-                        ? "kritik"
-                        : ""
-                    }
-                  >
+                  <tr key={urun.id}>
                     <td>{urun.ad}</td>
-                    <td>{kategoriAdi(urun.kategori_id)}</td>
-                    <td>{urun.miktar}</td>
-                    <td>{urun.birim}</td>
-                    <td>{urun.kritik_seviye}</td>
+                    <td>{urun.kategori_adi || "-"}</td>
+                    <td>{urun.varyant_sayisi}</td>
+                    <td>{urun.toplam_stok}</td>
                     <td>
                       <button onClick={() => duzenlemeyeBasla(urun)}>
                         Düzenle
@@ -306,6 +229,12 @@ function Urunler() {
                       <button
                         onClick={() => setSilinecek(urun)}
                         className="tehlike"
+                        disabled={urun.varyant_sayisi > 0}
+                        title={
+                          urun.varyant_sayisi > 0
+                            ? "Bu ürünün varyantları var"
+                            : "Ürünü sil"
+                        }
                       >
                         Sil
                       </button>
@@ -341,7 +270,7 @@ function Urunler() {
       <OnayModal
         acik={silinecek !== null}
         baslik="Ürünü sil"
-        mesaj={`"${silinecek?.ad}" ürünü kalıcı olarak silinecek. Bu işlem geri alınamaz.`}
+        mesaj={`"${silinecek?.ad}" ürünü silinecek.`}
         onayla={silOnayla}
         iptal={() => setSilinecek(null)}
       />

@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import {
   Warehouse,
   Package,
+  Boxes,
   Tags,
   Truck,
   ArrowLeftRight,
@@ -53,6 +54,10 @@ function Navbar() {
           <NavLink to="/urunler">
             <Package size={15} />
             Ürünler
+          </NavLink>
+          <NavLink to="/varyantlar">
+            <Boxes size={15} />
+            Stok
           </NavLink>
           <NavLink to="/kategoriler">
             <Tags size={15} />

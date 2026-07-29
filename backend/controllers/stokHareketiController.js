@@ -3,9 +3,11 @@ const pool = require("../config/db");
 const listele = async (req, res, next) => {
   try {
     const [rows] = await pool.query(
-      `SELECT sh.*, u.ad AS urun_adi, k.ad AS kullanici_adi
+      `SELECT sh.*, u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg,
+              k.ad AS kullanici_adi
        FROM stok_hareketleri sh
-       JOIN urunler u ON sh.urun_id = u.id
+       JOIN urun_varyantlari v ON sh.varyant_id = v.id
+       JOIN urunler u ON v.urun_id = u.id
        LEFT JOIN kullanicilar k ON sh.olusturan_kullanici_id = k.id
        ORDER BY sh.tarih DESC`,
     );
@@ -18,7 +20,7 @@ const listele = async (req, res, next) => {
 const ekle = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
-    const { urun_id, tip, miktar, aciklama } = req.body;
+    const { varyant_id, tip, miktar, aciklama } = req.body;
 
     if (!["giris", "cikis", "duzeltme"].includes(tip)) {
       connection.release();
@@ -27,45 +29,52 @@ const ekle = async (req, res, next) => {
       });
     }
 
+    if (!varyant_id) {
+      connection.release();
+      return res.status(400).json({ hata: "Varyant seçilmelidir" });
+    }
+
     await connection.beginTransaction();
 
-    if (tip === "cikis") {
-      const [rows] = await connection.query(
-        "SELECT miktar FROM urunler WHERE id = ?",
-        [urun_id],
-      );
-      if (!rows.length) {
-        await connection.rollback();
-        connection.release();
-        return res.status(404).json({ hata: "Ürün bulunamadı" });
-      }
-      if (rows[0].miktar < miktar) {
-        await connection.rollback();
-        connection.release();
-        return res.status(400).json({ hata: "Yetersiz stok" });
-      }
+    const [rows] = await connection.query(
+      "SELECT miktar FROM urun_varyantlari WHERE id = ?",
+      [varyant_id],
+    );
+
+    if (!rows.length) {
+      await connection.rollback();
+      connection.release();
+      return res.status(404).json({ hata: "Varyant bulunamadı" });
+    }
+
+    if (tip === "cikis" && parseFloat(rows[0].miktar) < parseFloat(miktar)) {
+      await connection.rollback();
+      connection.release();
+      return res.status(400).json({ hata: "Yetersiz stok" });
     }
 
     await connection.query(
-      "INSERT INTO stok_hareketleri (urun_id, tip, miktar, aciklama, olusturan_kullanici_id) VALUES (?, ?, ?, ?, ?)",
-      [urun_id, tip, miktar, aciklama, req.kullanici.id],
+      `INSERT INTO stok_hareketleri
+       (varyant_id, tip, miktar, aciklama, olusturan_kullanici_id)
+       VALUES (?, ?, ?, ?, ?)`,
+      [varyant_id, tip, miktar, aciklama, req.kullanici.id],
     );
 
     if (tip === "giris") {
       await connection.query(
-        "UPDATE urunler SET miktar = miktar + ? WHERE id = ?",
-        [miktar, urun_id],
+        "UPDATE urun_varyantlari SET miktar = miktar + ? WHERE id = ?",
+        [miktar, varyant_id],
       );
     } else if (tip === "cikis") {
       await connection.query(
-        "UPDATE urunler SET miktar = miktar - ? WHERE id = ?",
-        [miktar, urun_id],
+        "UPDATE urun_varyantlari SET miktar = miktar - ? WHERE id = ?",
+        [miktar, varyant_id],
       );
     } else {
-      await connection.query("UPDATE urunler SET miktar = ? WHERE id = ?", [
-        miktar,
-        urun_id,
-      ]);
+      await connection.query(
+        "UPDATE urun_varyantlari SET miktar = ? WHERE id = ?",
+        [miktar, varyant_id],
+      );
     }
 
     await connection.commit();

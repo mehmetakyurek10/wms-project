@@ -5,7 +5,7 @@ import {
   siparisTeslimAl,
 } from "../api/satinalmaApi";
 import { tedarikcileriGetir } from "../api/tedarikciApi";
-import { urunleriGetir } from "../api/urunApi";
+import { varyantlariGetir } from "../api/varyantApi";
 import Etiket from "../components/Etiket";
 import { useToast } from "../context/ToastContext";
 import OnayModal from "../components/OnayModal";
@@ -14,26 +14,26 @@ function SatinalmaSiparisleri() {
   const bildir = useToast();
   const [siparisler, setSiparisler] = useState([]);
   const [tedarikciler, setTedarikciler] = useState([]);
-  const [urunler, setUrunler] = useState([]);
+  const [varyantlar, setVaryantlar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
   const [teslimAlinacak, setTeslimAlinacak] = useState(null);
 
   const [tedarikciId, setTedarikciId] = useState("");
   const [kalemler, setKalemler] = useState([
-    { urun_id: "", miktar: "", birim_fiyat: "" },
+    { varyant_id: "", miktar: "", birim_fiyat: "" },
   ]);
 
   const veriGetir = async () => {
     try {
-      const [siparisRes, tedarikciRes, urunRes] = await Promise.all([
+      const [siparisRes, tedarikciRes, varyantRes] = await Promise.all([
         siparisleriGetir(),
         tedarikcileriGetir(),
-        urunleriGetir(),
+        varyantlariGetir(),
       ]);
       setSiparisler(siparisRes.data);
       setTedarikciler(tedarikciRes.data);
-      setUrunler(urunRes.data);
+      setVaryantlar(varyantRes.data);
       setTedarikciId((mevcut) => mevcut || tedarikciRes.data[0]?.id || "");
     } catch (err) {
       setHata("Veriler yüklenemedi");
@@ -53,7 +53,7 @@ function SatinalmaSiparisleri() {
   };
 
   const kalemEkle = () => {
-    setKalemler([...kalemler, { urun_id: "", miktar: "", birim_fiyat: "" }]);
+    setKalemler([...kalemler, { varyant_id: "", miktar: "", birim_fiyat: "" }]);
   };
 
   const kalemSil = (index) => {
@@ -66,12 +66,12 @@ function SatinalmaSiparisleri() {
       await siparisOlustur({
         tedarikci_id: tedarikciId,
         kalemler: kalemler.map((k) => ({
-          urun_id: k.urun_id,
+          varyant_id: k.varyant_id,
           miktar: parseFloat(k.miktar),
           birim_fiyat: parseFloat(k.birim_fiyat),
         })),
       });
-      setKalemler([{ urun_id: "", miktar: "", birim_fiyat: "" }]);
+      setKalemler([{ varyant_id: "", miktar: "", birim_fiyat: "" }]);
       bildir("Satınalma siparişi oluşturuldu");
       veriGetir();
     } catch (err) {
@@ -122,14 +122,16 @@ function SatinalmaSiparisleri() {
         {kalemler.map((kalem, index) => (
           <div key={index} className="kalem-satiri">
             <select
-              value={kalem.urun_id}
-              onChange={(e) => kalemDegistir(index, "urun_id", e.target.value)}
+              value={kalem.varyant_id}
+              onChange={(e) =>
+                kalemDegistir(index, "varyant_id", e.target.value)
+              }
               required
             >
-              <option value="">Ürün seç</option>
-              {urunler.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.ad}
+              <option value="">Varyant seç</option>
+              {varyantlar.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.urun_adi} · {v.boy} · {v.ambalaj_kg}kg {v.ambalaj_tipi}
                 </option>
               ))}
             </select>

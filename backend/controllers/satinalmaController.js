@@ -18,9 +18,10 @@ const detay = async (req, res, next) => {
   try {
     const { id } = req.params;
     const [kalemler] = await pool.query(
-      `SELECT k.*, u.ad AS urun_adi
+      `SELECT k.*, u.ad AS urun_adi, v.boy, v.ambalaj_tipi
        FROM satinalma_siparis_kalemleri k
-       JOIN urunler u ON k.urun_id = u.id
+       JOIN urun_varyantlari v ON k.varyant_id = v.id
+       JOIN urunler u ON v.urun_id = u.id
        WHERE k.siparis_id = ?`,
       [id],
     );
@@ -51,8 +52,8 @@ const olustur = async (req, res, next) => {
 
     for (const kalem of kalemler) {
       await pool.query(
-        "INSERT INTO satinalma_siparis_kalemleri (siparis_id, urun_id, miktar, birim_fiyat) VALUES (?, ?, ?, ?)",
-        [siparis_id, kalem.urun_id, kalem.miktar, kalem.birim_fiyat],
+        "INSERT INTO satinalma_siparis_kalemleri (siparis_id, varyant_id, miktar, birim_fiyat) VALUES (?, ?, ?, ?)",
+        [siparis_id, kalem.varyant_id, kalem.miktar, kalem.birim_fiyat],
       );
     }
 
@@ -91,13 +92,15 @@ const teslimAl = async (req, res, next) => {
 
     for (const kalem of kalemler) {
       await connection.query(
-        "UPDATE urunler SET miktar = miktar + ? WHERE id = ?",
-        [kalem.miktar, kalem.urun_id],
+        "UPDATE urun_varyantlari SET miktar = miktar + ? WHERE id = ?",
+        [kalem.miktar, kalem.varyant_id],
       );
       await connection.query(
-        "INSERT INTO stok_hareketleri (urun_id, tip, miktar, aciklama, olusturan_kullanici_id) VALUES (?, 'giris', ?, ?, ?)",
+        `INSERT INTO stok_hareketleri
+         (varyant_id, tip, miktar, aciklama, olusturan_kullanici_id)
+         VALUES (?, 'giris', ?, ?, ?)`,
         [
-          kalem.urun_id,
+          kalem.varyant_id,
           kalem.miktar,
           `Satınalma siparişi #${id} teslim alındı`,
           req.kullanici.id,

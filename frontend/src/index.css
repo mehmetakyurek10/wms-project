@@ -248,8 +248,8 @@ h2 {
 .navbar-linkler a:nth-child(5) {
   animation-delay: 0.25s;
 }
-.navbar-linkler a:nth-child(6) {
-  animation-delay: 0.3s;
+.navbar-linkler a:nth-child(7) {
+  animation-delay: 0.34s;
 }
 
 .navbar-linkler a:hover {
@@ -996,4 +996,25 @@ tr.kritik td:first-child {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.form-alan {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-alan label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--renk-metin-soluk);
+  letter-spacing: 0.02em;
+}
+
+form > button[type="submit"] {
+  align-self: flex-end;
+}
+
+.bolum-basligi {
+  margin-top: 32px;
 }
