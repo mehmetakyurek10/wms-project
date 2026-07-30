@@ -14,5 +14,6 @@ router.use("/musteriler", require("./musteriRoutes"));
 router.use("/satis-siparisleri", require("./satisRoutes"));
 router.use("/sayim", require("./sayimRoutes"));
 router.use("/lokasyonlar", require("./lokasyonRoutes"));
+router.use("/transferler", require("./transferRoutes"));
 
 module.exports = router;

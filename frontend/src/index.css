@@ -1721,3 +1721,68 @@ tr.kritik td:first-child {
 .lokasyon-detay-aksiyon button {
   margin-right: 0;
 }
+
+.transfer-modal {
+  max-width: 440px;
+  text-align: left;
+}
+
+.transfer-ozet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--renk-input);
+  border: 1px solid var(--renk-kenar);
+  margin-bottom: 18px;
+}
+
+.transfer-ozet strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.transfer-yon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--renk-birincil);
+}
+
+.transfer-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  animation: none;
+}
+
+.transfer-form .modal-aksiyon {
+  margin-top: 4px;
+}
+
+.transfer-form .modal-aksiyon button {
+  flex: 1;
+  margin-right: 0;
+}
+
+.lokasyon-detay td button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.alan-bolge.tip-kabul {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.45);
+  border-style: solid;
+}

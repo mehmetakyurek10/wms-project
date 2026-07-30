@@ -1,26 +1,8 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Pencil, X, Layers } from "lucide-react";
-import {
-  lokasyonlariGetir,
-  lokasyonStok,
-  lokasyonEkle,
-  lokasyonGuncelle,
-  lokasyonSil,
-} from "../api/lokasyonApi";
+import { X, Layers, MoveRight } from "lucide-react";
+import { lokasyonlariGetir, lokasyonStok } from "../api/lokasyonApi";
 import Etiket from "../components/Etiket";
-import OnayModal from "../components/OnayModal";
-import { useToast } from "../context/ToastContext";
-
-const BOS_FORM = {
-  kod: "",
-  ad: "",
-  tip: "alan",
-  satir: 1,
-  kolon: 1,
-  satir_span: 1,
-  kolon_span: 1,
-  kapasite: 0,
-};
+import TransferModal from "../components/TransferModal";
 
 function dolulukSinifi(lokasyon) {
   const miktar = Number(lokasyon.toplam_miktar);
@@ -41,7 +23,6 @@ function dolulukSinifi(lokasyon) {
 }
 
 function DepoHaritasi() {
-  const bildir = useToast();
   const [lokasyonlar, setLokasyonlar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
@@ -51,15 +32,13 @@ function DepoHaritasi() {
   const [seciliStok, setSeciliStok] = useState([]);
   const [stokYukleniyor, setStokYukleniyor] = useState(false);
 
-  const [formAcik, setFormAcik] = useState(false);
-  const [form, setForm] = useState(BOS_FORM);
-  const [duzenlenenId, setDuzenlenenId] = useState(null);
-  const [silinecek, setSilinecek] = useState(null);
+  const [transferSatiri, setTransferSatiri] = useState(null);
 
   const veriGetir = async () => {
     try {
       const response = await lokasyonlariGetir();
       setLokasyonlar(response.data);
+      return response.data;
     } catch (err) {
       setHata("Lokasyonlar yüklenemedi");
     } finally {
@@ -71,78 +50,34 @@ function DepoHaritasi() {
     veriGetir();
   }, []);
 
-  const lokasyonSec = async (lokasyon) => {
+  const stokGetir = async (lokasyonId) => {
+    setStokYukleniyor(true);
+    try {
+      const response = await lokasyonStok(lokasyonId);
+      setSeciliStok(response.data);
+    } catch (err) {
+      setSeciliStok([]);
+    } finally {
+      setStokYukleniyor(false);
+    }
+  };
+
+  const lokasyonSec = (lokasyon) => {
     if (secili?.id === lokasyon.id) {
       setSecili(null);
       return;
     }
     setSecili(lokasyon);
     setSeciliStok([]);
-    setStokYukleniyor(true);
-    try {
-      const response = await lokasyonStok(lokasyon.id);
-      setSeciliStok(response.data);
-    } catch (err) {
-      bildir("Lokasyon içeriği yüklenemedi", "hata");
-    } finally {
-      setStokYukleniyor(false);
-    }
+    stokGetir(lokasyon.id);
   };
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const formuAc = (lokasyon) => {
-    if (lokasyon) {
-      setDuzenlenenId(lokasyon.id);
-      setForm({
-        kod: lokasyon.kod,
-        ad: lokasyon.ad || "",
-        tip: lokasyon.tip,
-        satir: lokasyon.satir,
-        kolon: lokasyon.kolon,
-        satir_span: lokasyon.satir_span,
-        kolon_span: lokasyon.kolon_span,
-        kapasite: lokasyon.kapasite,
-      });
-    } else {
-      setDuzenlenenId(null);
-      setForm(BOS_FORM);
-    }
-    setFormAcik(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (duzenlenenId) {
-        await lokasyonGuncelle(duzenlenenId, form);
-        bildir("Lokasyon güncellendi");
-      } else {
-        await lokasyonEkle(form);
-        bildir("Lokasyon eklendi");
-      }
-      setFormAcik(false);
-      setForm(BOS_FORM);
-      setDuzenlenenId(null);
-      setSecili(null);
-      veriGetir();
-    } catch (err) {
-      bildir(err.response?.data?.hata || "Kaydedilemedi", "hata");
-    }
-  };
-
-  const silOnayla = async () => {
-    const id = silinecek.id;
-    setSilinecek(null);
-    try {
-      await lokasyonSil(id);
-      bildir("Lokasyon silindi");
-      setSecili(null);
-      veriGetir();
-    } catch (err) {
-      bildir(err.response?.data?.hata || "Silinemedi", "hata");
+  const transferTamamlandi = async () => {
+    setTransferSatiri(null);
+    const yeniListe = await veriGetir();
+    if (secili && yeniListe) {
+      setSecili(yeniListe.find((l) => l.id === secili.id) || null);
+      stokGetir(secili.id);
     }
   };
 
@@ -174,110 +109,7 @@ function DepoHaritasi() {
 
   return (
     <div>
-      <div className="sayfa-basligi">
-        <h2>Depo Haritası</h2>
-        <button className="ikincil" onClick={() => formuAc(null)}>
-          <Plus size={15} /> Alan Ekle
-        </button>
-      </div>
-
-      {formAcik && (
-        <form onSubmit={handleSubmit}>
-          <div className="form-alan">
-            <label>Kod</label>
-            <input
-              name="kod"
-              placeholder="SEVK-01"
-              value={form.kod}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-alan">
-            <label>Ad</label>
-            <input
-              name="ad"
-              placeholder="İsteğe bağlı"
-              value={form.ad}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="form-alan">
-            <label>Tip</label>
-            <select name="tip" value={form.tip} onChange={handleChange}>
-              <option value="alan">Alan</option>
-              <option value="raf">Raf</option>
-              <option value="soguk_oda">Soğuk Oda</option>
-              <option value="sevkiyat">Sevkiyat</option>
-              <option value="koridor">Koridor</option>
-              <option value="ofis">Ofis</option>
-            </select>
-          </div>
-          <div className="form-alan">
-            <label>Satır</label>
-            <input
-              name="satir"
-              type="number"
-              min="1"
-              value={form.satir}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-alan">
-            <label>Kolon</label>
-            <input
-              name="kolon"
-              type="number"
-              min="1"
-              value={form.kolon}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="form-alan">
-            <label>Satır yayılma</label>
-            <input
-              name="satir_span"
-              type="number"
-              min="1"
-              value={form.satir_span}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="form-alan">
-            <label>Kolon yayılma</label>
-            <input
-              name="kolon_span"
-              type="number"
-              min="1"
-              value={form.kolon_span}
-              onChange={handleChange}
-            />
-          </div>
-          <div className="form-alan">
-            <label>Kapasite (adet)</label>
-            <input
-              name="kapasite"
-              type="number"
-              step="0.01"
-              value={form.kapasite}
-              onChange={handleChange}
-            />
-          </div>
-          <button type="submit">{duzenlenenId ? "Güncelle" : "Ekle"}</button>
-          <button
-            type="button"
-            className="ikincil"
-            onClick={() => {
-              setFormAcik(false);
-              setDuzenlenenId(null);
-            }}
-          >
-            Vazgeç
-          </button>
-        </form>
-      )}
+      <h2>Depo Haritası</h2>
 
       <div className="harita-ust">
         <div className="kat-secici">
@@ -386,33 +218,17 @@ function DepoHaritasi() {
                 <span className="kucuk-not">
                   {secili.tip === "palet"
                     ? `Blok ${secili.blok} · Sıra ${secili.sira} · Derinlik ${secili.derinlik} · Kat ${secili.kat}`
-                    : `Satır ${secili.satir} · Kolon ${secili.kolon} · ${secili.satir_span}×${secili.kolon_span} hücre`}
+                    : `${secili.satir_span}×${secili.kolon_span} hücre`}
                 </span>
               </div>
             </div>
-            <div className="lokasyon-detay-aksiyon">
-              <button
-                className="ikincil ikon-btn"
-                onClick={() => formuAc(secili)}
-                title="Düzenle"
-              >
-                <Pencil size={15} />
-              </button>
-              <button
-                className="tehlike ikon-btn"
-                onClick={() => setSilinecek(secili)}
-                title="Sil"
-              >
-                <Trash2 size={15} />
-              </button>
-              <button
-                className="ikincil ikon-btn"
-                onClick={() => setSecili(null)}
-                title="Kapat"
-              >
-                <X size={15} />
-              </button>
-            </div>
+            <button
+              className="ikincil ikon-btn"
+              onClick={() => setSecili(null)}
+              title="Kapat"
+            >
+              <X size={15} />
+            </button>
           </div>
 
           {stokYukleniyor ? (
@@ -429,7 +245,7 @@ function DepoHaritasi() {
                   <th>Varyant</th>
                   <th>Miktar (adet)</th>
                   <th>Toplam kg</th>
-                  <th>Barkod</th>
+                  <th>İşlem</th>
                 </tr>
               </thead>
               <tbody>
@@ -443,7 +259,11 @@ function DepoHaritasi() {
                     <td>
                       {(Number(s.miktar) * Number(s.ambalaj_kg)).toFixed(0)} kg
                     </td>
-                    <td>{s.barkod || "-"}</td>
+                    <td>
+                      <button onClick={() => setTransferSatiri(s)}>
+                        <MoveRight size={14} /> Taşı
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -452,12 +272,13 @@ function DepoHaritasi() {
         </div>
       )}
 
-      <OnayModal
-        acik={silinecek !== null}
-        baslik="Lokasyonu sil"
-        mesaj={`${silinecek?.kod} lokasyonu silinecek.`}
-        onayla={silOnayla}
-        iptal={() => setSilinecek(null)}
+      <TransferModal
+        acik={transferSatiri !== null}
+        kaynak={secili}
+        stokSatiri={transferSatiri}
+        lokasyonlar={lokasyonlar}
+        kapat={() => setTransferSatiri(null)}
+        tamamlandi={transferTamamlandi}
       />
     </div>
   );
