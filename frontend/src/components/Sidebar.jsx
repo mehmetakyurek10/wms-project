@@ -7,6 +7,7 @@ import {
   Boxes,
   ArrowLeftRight,
   ClipboardCheck,
+  Map as MapIcon,
   Truck,
   ShoppingCart,
   Building2,
@@ -37,6 +38,7 @@ function menuGruplari(kullanici) {
       linkler: [
         { to: "/urunler", ikon: Package, ad: "Ürünler" },
         { to: "/varyantlar", ikon: Boxes, ad: "Stok Kalemleri" },
+        { to: "/depo-haritasi", ikon: MapIcon, ad: "Depo Haritası" },
         { to: "/stok-hareketleri", ikon: ArrowLeftRight, ad: "Hareketler" },
         { to: "/sayim", ikon: ClipboardCheck, ad: "Sayım" },
       ],

@@ -16,6 +16,10 @@ const RENKLER = {
   manuel: "gri",
   hazirlaniyor: "mavi",
   teslim_edildi: "yesil",
+  raf: "mavi",
+  alan: "gri",
+  soguk_oda: "mavi",
+  sevkiyat: "sari",
 };
 
 const METINLER = {
@@ -36,6 +40,10 @@ const METINLER = {
   manuel: "Manuel",
   hazirlaniyor: "Hazırlanıyor",
   teslim_edildi: "Teslim Edildi",
+  raf: "Raf",
+  alan: "Alan",
+  soguk_oda: "Soğuk Oda",
+  sevkiyat: "Sevkiyat",
 };
 
 function Etiket({ deger }) {

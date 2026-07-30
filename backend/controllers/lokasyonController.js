@@ -1,0 +1,285 @@
+const pool = require("../config/db");
+
+const listele = async (req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT l.*,
+              COALESCE(SUM(vl.miktar), 0) AS toplam_miktar,
+              COUNT(CASE WHEN vl.miktar > 0 THEN 1 END) AS kalem_sayisi
+       FROM lokasyonlar l
+       LEFT JOIN varyant_lokasyon vl ON vl.lokasyon_id = l.id
+       GROUP BY l.id
+       ORDER BY l.satir, l.kolon`,
+    );
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const stok = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(
+      `SELECT vl.id, vl.miktar, vl.varyant_id,
+              u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg, v.barkod
+       FROM varyant_lokasyon vl
+       JOIN urun_varyantlari v ON vl.varyant_id = v.id
+       JOIN urunler u ON v.urun_id = u.id
+       WHERE vl.lokasyon_id = ? AND vl.miktar > 0
+       ORDER BY u.ad, v.boy`,
+      [id],
+    );
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const ekle = async (req, res, next) => {
+  try {
+    const { kod, ad, tip, satir, kolon, satir_span, kolon_span, kapasite } =
+      req.body;
+
+    if (!kod || !satir || !kolon) {
+      return res.status(400).json({ hata: "Kod, satır ve kolon zorunludur" });
+    }
+
+    const [result] = await pool.query(
+      `INSERT INTO lokasyonlar
+       (kod, ad, tip, satir, kolon, satir_span, kolon_span, kapasite)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        kod,
+        ad || null,
+        tip || "alan",
+        satir,
+        kolon,
+        satir_span || 1,
+        kolon_span || 1,
+        kapasite || 0,
+      ],
+    );
+
+    res.status(201).json({ id: result.insertId, kod });
+  } catch (err) {
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        hata: "Bu kod zaten kullanılıyor ya da bu konumda başka bir lokasyon var",
+      });
+    }
+    next(err);
+  }
+};
+
+const guncelle = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const {
+      kod,
+      ad,
+      tip,
+      satir,
+      kolon,
+      satir_span,
+      kolon_span,
+      kapasite,
+      aktif,
+    } = req.body;
+
+    const [sonuc] = await pool.query(
+      `UPDATE lokasyonlar
+       SET kod=?, ad=?, tip=?, satir=?, kolon=?, satir_span=?, kolon_span=?,
+           kapasite=?, aktif=?
+       WHERE id=?`,
+      [
+        kod,
+        ad || null,
+        tip,
+        satir,
+        kolon,
+        satir_span || 1,
+        kolon_span || 1,
+        kapasite || 0,
+        aktif ?? true,
+        id,
+      ],
+    );
+
+    if (sonuc.affectedRows === 0) {
+      return res.status(404).json({ hata: "Lokasyon bulunamadı" });
+    }
+
+    res.json({ mesaj: "Güncellendi" });
+  } catch (err) {
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        hata: "Bu kod zaten kullanılıyor ya da bu konumda başka bir lokasyon var",
+      });
+    }
+    next(err);
+  }
+};
+
+const sil = async (req, res, next) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id } = req.params;
+
+    const [stokSayim] = await connection.query(
+      "SELECT COALESCE(SUM(miktar), 0) AS toplam FROM varyant_lokasyon WHERE lokasyon_id = ?",
+      [id],
+    );
+
+    if (Number(stokSayim[0].toplam) > 0) {
+      connection.release();
+      return res.status(409).json({
+        hata: "Bu lokasyonda stok var, önce başka bir lokasyona transfer edin",
+      });
+    }
+
+    const [hareketSayim] = await connection.query(
+      "SELECT COUNT(*) AS adet FROM stok_hareketleri WHERE lokasyon_id = ?",
+      [id],
+    );
+
+    if (hareketSayim[0].adet > 0) {
+      connection.release();
+      return res.status(409).json({
+        hata: `Bu lokasyonun ${hareketSayim[0].adet} stok hareketi var, silinemez. Pasife alabilirsiniz.`,
+      });
+    }
+
+    await connection.beginTransaction();
+
+    await connection.query(
+      "DELETE FROM varyant_lokasyon WHERE lokasyon_id = ?",
+      [id],
+    );
+
+    const [sonuc] = await connection.query(
+      "DELETE FROM lokasyonlar WHERE id = ?",
+      [id],
+    );
+
+    if (sonuc.affectedRows === 0) {
+      await connection.rollback();
+      connection.release();
+      return res.status(404).json({ hata: "Lokasyon bulunamadı" });
+    }
+
+    await connection.commit();
+    connection.release();
+
+    res.json({ mesaj: "Lokasyon silindi" });
+  } catch (err) {
+    await connection.rollback();
+    connection.release();
+    next(err);
+  }
+};
+
+const blokOlustur = async (req, res, next) => {
+  const connection = await pool.getConnection();
+  try {
+    const {
+      blok,
+      sira_baslangic,
+      sira_sayisi,
+      derinlik,
+      kat,
+      yon,
+      baslangic_satir,
+      baslangic_kolon,
+      ters,
+      derinlik_genislik,
+      derinlik_ters,
+    } = req.body;
+
+    if (!blok || !sira_sayisi || !derinlik || !kat) {
+      connection.release();
+      return res.status(400).json({
+        hata: "Blok, sıra sayısı, derinlik ve kat zorunludur",
+      });
+    }
+
+    const ilkSira = parseInt(sira_baslangic, 10) || 1;
+    const siraSayisi = parseInt(sira_sayisi, 10);
+    const derinlikSayisi = parseInt(derinlik, 10);
+    const katSayisi = parseInt(kat, 10);
+    const ilkSatir = parseInt(baslangic_satir, 10) || 1;
+    const ilkKolon = parseInt(baslangic_kolon, 10) || 1;
+    const derinlikGenislik = parseInt(derinlik_genislik, 10) || 1;
+    const derinlikTers = derinlik_ters === true;
+    const dikey = yon !== "yatay";
+    const yonCarpani = ters ? -1 : 1;
+
+    const kayitlar = [];
+
+    for (let s = 0; s < siraSayisi; s++) {
+      const siraNo = ilkSira + s;
+
+      for (let d = 1; d <= derinlikSayisi; d++) {
+        const derinlikSira = derinlikTers ? derinlikSayisi - d : d - 1;
+
+        const satir = dikey
+          ? ilkSatir + s * yonCarpani
+          : ilkSatir + derinlikSira * derinlikGenislik;
+        const kolon = dikey
+          ? ilkKolon + derinlikSira * derinlikGenislik
+          : ilkKolon + s * yonCarpani;
+
+        const satirSpan = dikey ? 1 : derinlikGenislik;
+        const kolonSpan = dikey ? derinlikGenislik : 1;
+
+        for (let k = 1; k <= katSayisi; k++) {
+          const kod = `${blok}-${String(siraNo).padStart(2, "0")}-${String(d).padStart(2, "0")}-K${k}`;
+          kayitlar.push([
+            kod,
+            blok,
+            siraNo,
+            d,
+            k,
+            satir,
+            kolon,
+            satirSpan,
+            kolonSpan,
+          ]);
+        }
+      }
+    }
+
+    await connection.beginTransaction();
+
+    let olusan = 0;
+
+    for (const kayit of kayitlar) {
+      const [sonuc] = await connection.query(
+        `INSERT IGNORE INTO lokasyonlar
+         (kod, blok, sira, derinlik, kat, satir, kolon, satir_span, kolon_span, tip, kapasite)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'palet', 1)`,
+        kayit,
+      );
+      olusan += sonuc.affectedRows;
+    }
+
+    await connection.commit();
+    connection.release();
+
+    res.status(201).json({
+      mesaj: `${olusan} palet yeri oluşturuldu${
+        olusan < kayitlar.length
+          ? `, ${kayitlar.length - olusan} tanesi zaten vardı`
+          : ""
+      }`,
+      olusan,
+      istenen: kayitlar.length,
+    });
+  } catch (err) {
+    await connection.rollback();
+    connection.release();
+    next(err);
+  }
+};
+
+module.exports = { listele, stok, ekle, guncelle, sil, blokOlustur };

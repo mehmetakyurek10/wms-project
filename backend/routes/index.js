@@ -13,5 +13,6 @@ router.use("/raporlar", require("./raporRoutes"));
 router.use("/musteriler", require("./musteriRoutes"));
 router.use("/satis-siparisleri", require("./satisRoutes"));
 router.use("/sayim", require("./sayimRoutes"));
+router.use("/lokasyonlar", require("./lokasyonRoutes"));
 
 module.exports = router;
