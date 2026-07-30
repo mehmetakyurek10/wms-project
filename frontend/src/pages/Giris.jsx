@@ -1,16 +1,39 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { Warehouse, Mail, Lock, Eye, EyeOff, Sun, Moon } from "lucide-react";
 import { girisYap } from "../api/authApi";
 
 function Giris() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [sifre, setSifre] = useState("");
+  const [sifreGorunur, setSifreGorunur] = useState(false);
   const [hata, setHata] = useState("");
-  const navigate = useNavigate();
+  const [bilgi, setBilgi] = useState("");
+  const [gonderiliyor, setGonderiliyor] = useState(false);
+  const [tema, setTema] = useState(
+    () => document.documentElement.getAttribute("data-tema") || "dark",
+  );
+
+  useEffect(() => {
+    if (sessionStorage.getItem("oturumBitti")) {
+      setBilgi("Oturum süresi doldu, lütfen tekrar giriş yapın.");
+      sessionStorage.removeItem("oturumBitti");
+    }
+  }, []);
+
+  const temaDegistir = () => {
+    const yeni = tema === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-tema", yeni);
+    localStorage.setItem("tema", yeni);
+    setTema(yeni);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setHata("");
+    setBilgi("");
+    setGonderiliyor(true);
     try {
       const response = await girisYap(email, sifre);
       localStorage.setItem("token", response.data.token);
@@ -21,34 +44,76 @@ function Giris() {
       navigate("/panel");
     } catch (err) {
       setHata(err.response?.data?.hata || "Giriş başarısız");
+    } finally {
+      setGonderiliyor(false);
     }
   };
 
   return (
-    <div>
-      <h2>Giriş Yap</h2>
-      {hata && <p style={{ color: "red" }}>{hata}</p>}
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Email</label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+    <div className="giris-sayfasi">
+      <button
+        className="ikincil ikon-btn giris-tema"
+        onClick={temaDegistir}
+        title="Tema değiştir"
+      >
+        {tema === "dark" ? <Sun size={15} /> : <Moon size={15} />}
+      </button>
+
+      <div className="giris-karti">
+        <div className="giris-marka">
+          <Warehouse size={26} />
+          <span>WMS</span>
         </div>
-        <div>
-          <label>Şifre</label>
-          <input
-            type="password"
-            value={sifre}
-            onChange={(e) => setSifre(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit">Giriş Yap</button>
-      </form>
+
+        <h1>Depo Yönetim Sistemi</h1>
+        <p className="giris-alt-baslik">Devam etmek için giriş yapın</p>
+
+        {bilgi && <p className="bilgi-metni">{bilgi}</p>}
+        {hata && <p className="hata-kutusu">{hata}</p>}
+
+        <form onSubmit={handleSubmit} className="giris-form">
+          <div className="form-alan">
+            <label>E-posta</label>
+            <div className="ikonlu-giris">
+              <Mail size={16} />
+              <input
+                type="email"
+                placeholder="ornek@sirket.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
+              />
+            </div>
+          </div>
+
+          <div className="form-alan">
+            <label>Şifre</label>
+            <div className="ikonlu-giris">
+              <Lock size={16} />
+              <input
+                type={sifreGorunur ? "text" : "password"}
+                placeholder="••••••••"
+                value={sifre}
+                onChange={(e) => setSifre(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                className="sifre-goster"
+                onClick={() => setSifreGorunur(!sifreGorunur)}
+                title={sifreGorunur ? "Şifreyi gizle" : "Şifreyi göster"}
+              >
+                {sifreGorunur ? <EyeOff size={15} /> : <Eye size={15} />}
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" disabled={gonderiliyor}>
+            {gonderiliyor ? "Giriş yapılıyor..." : "Giriş Yap"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }

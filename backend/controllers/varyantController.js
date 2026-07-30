@@ -2,27 +2,62 @@ const pool = require("../config/db");
 
 const listele = async (req, res, next) => {
   try {
-    const { urun_id, ara } = req.query;
+    const { urun_id, kategori_id, ara, aktif, sadece_dusuk, sayfa, limit } =
+      req.query;
 
-    let sorgu = `
-      SELECT v.*, u.ad AS urun_adi, k.ad AS kategori_adi
-      FROM urun_varyantlari v
-      JOIN urunler u ON v.urun_id = u.id
-      LEFT JOIN kategoriler k ON u.kategori_id = k.id
-      WHERE 1=1`;
-    const degerler = [];
+    let kosul = " WHERE 1=1";
+    const kosulDegerleri = [];
 
     if (urun_id) {
-      sorgu += " AND v.urun_id = ?";
-      degerler.push(urun_id);
+      kosul += " AND v.urun_id = ?";
+      kosulDegerleri.push(urun_id);
+    }
+
+    if (kategori_id) {
+      kosul += " AND u.kategori_id = ?";
+      kosulDegerleri.push(kategori_id);
     }
 
     if (ara) {
-      sorgu += " AND (u.ad LIKE ? OR v.boy LIKE ? OR v.barkod LIKE ?)";
-      degerler.push(`%${ara}%`, `%${ara}%`, `%${ara}%`);
+      kosul += " AND (u.ad LIKE ? OR v.boy LIKE ? OR v.barkod LIKE ?)";
+      kosulDegerleri.push(`%${ara}%`, `%${ara}%`, `%${ara}%`);
     }
 
-    sorgu += " ORDER BY u.ad, v.boy";
+    if (aktif === "1" || aktif === "0") {
+      kosul += " AND v.aktif = ?";
+      kosulDegerleri.push(aktif);
+    }
+
+    if (sadece_dusuk === "1") {
+      kosul += " AND v.miktar <= v.kritik_seviye";
+    }
+
+    const govde = `
+      FROM urun_varyantlari v
+      JOIN urunler u ON v.urun_id = u.id
+      LEFT JOIN kategoriler k ON u.kategori_id = k.id`;
+
+    const [sayim] = await pool.query(
+      "SELECT COUNT(*) AS toplam" + govde + kosul,
+      kosulDegerleri,
+    );
+    res.set("X-Toplam-Kayit", sayim[0].toplam);
+
+    let sorgu =
+      "SELECT v.*, u.ad AS urun_adi, k.ad AS kategori_adi" +
+      govde +
+      kosul +
+      " ORDER BY u.ad, v.boy";
+
+    const degerler = [...kosulDegerleri];
+
+    if (sayfa || limit) {
+      const sayfaNo = parseInt(sayfa, 10) || 1;
+      const limitSayi = parseInt(limit, 10) || 20;
+      const offset = (sayfaNo - 1) * limitSayi;
+      sorgu += " LIMIT ? OFFSET ?";
+      degerler.push(limitSayi, offset);
+    }
 
     const [rows] = await pool.query(sorgu, degerler);
     res.json(rows);
@@ -126,11 +161,9 @@ const guncelle = async (req, res, next) => {
     res.json({ mesaj: "Güncellendi" });
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
-      return res
-        .status(409)
-        .json({
-          hata: "Bu boy/ambalaj kombinasyonu ya da barkod zaten kullanımda",
-        });
+      return res.status(409).json({
+        hata: "Bu boy/ambalaj kombinasyonu ya da barkod zaten kullanımda",
+      });
     }
     next(err);
   }

@@ -1,4 +1,5 @@
 import api from "./axios";
 
-export const stokHareketleriniGetir = () => api.get("/stok-hareketleri");
 export const stokHareketiEkle = (data) => api.post("/stok-hareketleri", data);
+export const stokHareketleriniGetir = (params) =>
+  api.get("/stok-hareketleri", { params });

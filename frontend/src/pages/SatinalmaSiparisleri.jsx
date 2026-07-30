@@ -31,7 +31,7 @@ function SatinalmaSiparisleri() {
 
   const [tedarikciId, setTedarikciId] = useState("");
   const [kalemler, setKalemler] = useState([
-    { varyant_id: "", miktar: "", birim_fiyat: "" },
+    { varyant_id: "", miktar: "", birim: "adet", birim_fiyat: "" },
   ]);
 
   const veriGetir = async () => {
@@ -55,6 +55,33 @@ function SatinalmaSiparisleri() {
   useEffect(() => {
     veriGetir();
   }, []);
+
+  const kalemHesapla = (kalem) => {
+    const varyant = varyantlar.find(
+      (v) => v.id === parseInt(kalem.varyant_id, 10),
+    );
+    const ambalajKg = Number(varyant?.ambalaj_kg) || 1;
+    const girilenMiktar = Number(kalem.miktar || 0);
+    const fiyatKg = Number(kalem.birim_fiyat || 0);
+    const kgModu = kalem.birim === "kg";
+
+    const miktarAdet = kgModu ? girilenMiktar / ambalajKg : girilenMiktar;
+    const miktarKg = miktarAdet * ambalajKg;
+
+    return {
+      ambalajKg,
+      miktarAdet,
+      miktarKg,
+      fiyatKg,
+      fiyatAdet: fiyatKg * ambalajKg,
+      tutar: miktarKg * fiyatKg,
+    };
+  };
+
+  const genelToplam = kalemler.reduce(
+    (toplam, kalem) => toplam + kalemHesapla(kalem).tutar,
+    0,
+  );
 
   const detayAc = async (id) => {
     if (acikDetay === id) {
@@ -91,7 +118,10 @@ function SatinalmaSiparisleri() {
   };
 
   const kalemEkle = () => {
-    setKalemler([...kalemler, { varyant_id: "", miktar: "", birim_fiyat: "" }]);
+    setKalemler([
+      ...kalemler,
+      { varyant_id: "", miktar: "", birim: "adet", birim_fiyat: "" },
+    ]);
   };
 
   const kalemSil = (index) => {
@@ -103,14 +133,19 @@ function SatinalmaSiparisleri() {
     try {
       await siparisOlustur({
         tedarikci_id: tedarikciId,
-        kalemler: kalemler.map((k) => ({
-          varyant_id: k.varyant_id,
-          miktar: parseFloat(k.miktar),
-          birim_fiyat: parseFloat(k.birim_fiyat),
-        })),
+        kalemler: kalemler.map((kalem) => {
+          const hesap = kalemHesapla(kalem);
+          return {
+            varyant_id: kalem.varyant_id,
+            miktar: hesap.miktarAdet,
+            birim_fiyat: hesap.fiyatAdet,
+          };
+        }),
       });
-      setKalemler([{ varyant_id: "", miktar: "", birim_fiyat: "" }]);
-      bildir("Satınalma siparişi oluşturuldu");
+      setKalemler([
+        { varyant_id: "", miktar: "", birim: "adet", birim_fiyat: "" },
+      ]);
+      bildir("Alım siparişi oluşturuldu");
       veriGetir();
     } catch (err) {
       bildir(err.response?.data?.hata || "Sipariş oluşturulamadı", "hata");
@@ -157,51 +192,83 @@ function SatinalmaSiparisleri() {
           </select>
         </div>
 
-        {kalemler.map((kalem, index) => (
-          <div key={index} className="kalem-satiri">
-            <select
-              value={kalem.varyant_id}
-              onChange={(e) =>
-                kalemDegistir(index, "varyant_id", e.target.value)
-              }
-              required
-            >
-              <option value="">Varyant seç</option>
-              {varyantlar.map((v) => (
-                <option key={v.id} value={v.id}>
-                  {v.urun_adi} · {v.boy} · {v.ambalaj_kg}kg {v.ambalaj_tipi}
-                </option>
-              ))}
-            </select>
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Miktar"
-              value={kalem.miktar}
-              onChange={(e) => kalemDegistir(index, "miktar", e.target.value)}
-              required
-            />
-            <input
-              type="number"
-              step="0.01"
-              placeholder="Birim Fiyat"
-              value={kalem.birim_fiyat}
-              onChange={(e) =>
-                kalemDegistir(index, "birim_fiyat", e.target.value)
-              }
-              required
-            />
-            {kalemler.length > 1 && (
-              <button
-                type="button"
-                className="tehlike"
-                onClick={() => kalemSil(index)}
-              >
-                Kaldır
-              </button>
-            )}
-          </div>
-        ))}
+        {kalemler.map((kalem, index) => {
+          const hesap = kalemHesapla(kalem);
+
+          return (
+            <div key={index} className="kalem-blogu">
+              <div className="kalem-satiri">
+                <select
+                  value={kalem.varyant_id}
+                  onChange={(e) =>
+                    kalemDegistir(index, "varyant_id", e.target.value)
+                  }
+                  required
+                >
+                  <option value="">Varyant seç</option>
+                  {varyantlar.map((v) => (
+                    <option key={v.id} value={v.id}>
+                      {v.urun_adi} · {v.boy} · {Number(v.ambalaj_kg)}kg{" "}
+                      {v.ambalaj_tipi}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="miktar-girisi">
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="Miktar"
+                    value={kalem.miktar}
+                    onChange={(e) =>
+                      kalemDegistir(index, "miktar", e.target.value)
+                    }
+                    required
+                  />
+                  <select
+                    value={kalem.birim}
+                    onChange={(e) =>
+                      kalemDegistir(index, "birim", e.target.value)
+                    }
+                  >
+                    <option value="adet">adet</option>
+                    <option value="kg">kg</option>
+                  </select>
+                </div>
+
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="TL / kg"
+                  value={kalem.birim_fiyat}
+                  onChange={(e) =>
+                    kalemDegistir(index, "birim_fiyat", e.target.value)
+                  }
+                  required
+                />
+
+                {kalemler.length > 1 && (
+                  <button
+                    type="button"
+                    className="tehlike"
+                    onClick={() => kalemSil(index)}
+                  >
+                    Kaldır
+                  </button>
+                )}
+              </div>
+
+              {kalem.varyant_id && Number(kalem.miktar) > 0 && (
+                <span className="kucuk-not">
+                  {hesap.miktarAdet.toFixed(2)} adet ·{" "}
+                  {hesap.miktarKg.toFixed(0)} kg
+                  {hesap.fiyatKg > 0 &&
+                    ` · ${hesap.fiyatAdet.toFixed(2)} TL/adet · Tutar: ${hesap.tutar.toLocaleString("tr-TR")} ₺`}
+                </span>
+              )}
+            </div>
+          );
+        })}
 
         <div className="form-aksiyon">
           <button type="button" onClick={kalemEkle}>
@@ -209,6 +276,13 @@ function SatinalmaSiparisleri() {
           </button>
           <button type="submit">Siparişi Oluştur</button>
         </div>
+
+        {genelToplam > 0 && (
+          <div className="form-toplam">
+            <span>Genel Toplam</span>
+            <strong>{genelToplam.toLocaleString("tr-TR")} ₺</strong>
+          </div>
+        )}
       </form>
 
       {siparisler.length === 0 ? (
@@ -280,6 +354,7 @@ function SatinalmaSiparisleri() {
                               <th>Ürün</th>
                               <th>Varyant</th>
                               <th>Miktar</th>
+                              <th>Toplam kg</th>
                               <th>Birim Fiyat</th>
                               <th>Tutar</th>
                             </tr>
@@ -289,9 +364,16 @@ function SatinalmaSiparisleri() {
                               <tr key={k.id}>
                                 <td>{k.urun_adi}</td>
                                 <td>
-                                  {k.boy} · {k.ambalaj_kg}kg {k.ambalaj_tipi}
+                                  {k.boy} · {Number(k.ambalaj_kg)}kg{" "}
+                                  {k.ambalaj_tipi}
                                 </td>
-                                <td>{k.miktar}</td>
+                                <td>{Number(k.miktar).toFixed(0)} adet</td>
+                                <td>
+                                  {(
+                                    Number(k.miktar) * Number(k.ambalaj_kg)
+                                  ).toFixed(0)}{" "}
+                                  kg
+                                </td>
                                 <td>
                                   {Number(k.birim_fiyat).toLocaleString(
                                     "tr-TR",

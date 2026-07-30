@@ -6,6 +6,7 @@ import {
   Package,
   Boxes,
   ArrowLeftRight,
+  ClipboardCheck,
   Truck,
   ShoppingCart,
   Building2,
@@ -37,6 +38,7 @@ function menuGruplari(kullanici) {
         { to: "/urunler", ikon: Package, ad: "Ürünler" },
         { to: "/varyantlar", ikon: Boxes, ad: "Stok Kalemleri" },
         { to: "/stok-hareketleri", ikon: ArrowLeftRight, ad: "Hareketler" },
+        { to: "/sayim", ikon: ClipboardCheck, ad: "Sayım" },
       ],
     },
     {

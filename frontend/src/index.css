@@ -987,6 +987,18 @@ tr.kritik td:first-child {
     padding: 14px;
   }
 
+  .filtre-cubugu {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filtre-cubugu .form-alan,
+  .filtre-cubugu select,
+  .filtre-cubugu input,
+  .filtre-cubugu button {
+    width: 100%;
+  }
+
   form input,
   form select,
   form button,
@@ -1227,4 +1239,234 @@ tr.kritik td:first-child {
   .fis-kapat {
     display: none;
   }
+}
+
+.miktar-girisi {
+  display: flex;
+  gap: 6px;
+}
+
+.miktar-girisi input {
+  min-width: 0;
+  flex: 1;
+}
+
+.miktar-girisi select {
+  flex-shrink: 0;
+  padding: 9px 8px;
+}
+
+.filtre-cubugu {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  background: var(--renk-yuzey);
+  border: 1px solid var(--renk-kenar);
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  box-shadow: var(--golge);
+  margin-bottom: 18px;
+}
+
+.kalem-blogu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.kalem-blogu .kalem-satiri {
+  margin-bottom: 0;
+}
+
+.form-toplam {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--renk-kenar);
+  font-size: 14px;
+  color: var(--renk-metin-soluk);
+}
+
+.form-toplam strong {
+  font-size: 18px;
+  color: var(--renk-birincil);
+}
+
+.bilgi-metni {
+  color: var(--renk-metin-soluk);
+  background: var(--renk-input);
+  border: 1px solid var(--renk-kenar);
+  border-left: 3px solid var(--renk-birincil);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+
+.giris-sayfasi {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  position: relative;
+}
+
+.giris-tema {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  margin-right: 0;
+}
+
+.giris-karti {
+  width: 100%;
+  max-width: 380px;
+  background: var(--renk-yuzey);
+  border: 1px solid var(--renk-kenar);
+  border-radius: 14px;
+  padding: 34px 30px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+  animation: buyu 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.giris-marka {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--renk-birincil);
+  margin-bottom: 22px;
+}
+
+.giris-karti h1 {
+  font-size: 19px;
+  font-weight: 600;
+  text-align: center;
+  margin: 0 0 6px;
+  color: var(--renk-metin);
+}
+
+.giris-alt-baslik {
+  font-size: 13px;
+  text-align: center;
+  color: var(--renk-metin-soluk);
+  margin: 0 0 24px;
+}
+
+.giris-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 16px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  animation: none;
+}
+
+.giris-form button[type="submit"] {
+  width: 100%;
+  margin-top: 6px;
+  padding: 11px;
+  align-self: stretch;
+}
+
+.ikonlu-giris {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 12px;
+  background: var(--renk-input);
+  border: 1px solid var(--renk-kenar);
+  border-radius: 8px;
+  color: var(--renk-metin-soluk);
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s;
+}
+
+.ikonlu-giris:focus-within {
+  border-color: var(--renk-birincil);
+  box-shadow: 0 0 0 3px var(--renk-birincil-parlak);
+}
+
+.ikonlu-giris input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  padding: 11px 0;
+}
+
+.ikonlu-giris input:focus {
+  box-shadow: none;
+  transform: none;
+}
+
+.sifre-goster {
+  background: transparent;
+  border: none;
+  color: var(--renk-metin-soluk);
+  padding: 4px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.sifre-goster:hover {
+  background: transparent;
+  color: var(--renk-metin);
+  transform: none;
+  box-shadow: none;
+}
+
+.hata-kutusu {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-left: 3px solid var(--renk-tehlike);
+  color: var(--renk-tehlike-hover);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin: 0 0 16px;
+  animation: belir 0.25s ease-out;
+}
+
+.sayim-alt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.sayim-alt button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 0;
+}
+
+.fark-arti {
+  color: #4ade80;
+}
+
+.fark-eksi {
+  color: var(--renk-tehlike-hover);
+}
+
+[data-tema="light"] .fark-arti {
+  color: #15803d;
 }
