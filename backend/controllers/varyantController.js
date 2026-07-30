@@ -208,4 +208,28 @@ const sil = async (req, res, next) => {
   }
 };
 
-module.exports = { listele, dusukStok, ekle, guncelle, sil };
+const varyantLokasyonlari = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(
+      `SELECT vl.lokasyon_id, vl.miktar, l.kod, l.ad, l.tip
+       FROM varyant_lokasyon vl
+       JOIN lokasyonlar l ON vl.lokasyon_id = l.id
+       WHERE vl.varyant_id = ? AND vl.miktar > 0
+       ORDER BY l.kod`,
+      [id],
+    );
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  listele,
+  dusukStok,
+  ekle,
+  guncelle,
+  sil,
+  varyantLokasyonlari,
+};

@@ -69,6 +69,14 @@ const teslimAl = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
     const { id } = req.params;
+    const { lokasyon_id } = req.body;
+
+    if (!lokasyon_id) {
+      connection.release();
+      return res
+        .status(400)
+        .json({ hata: "Malın indirileceği lokasyon seçilmelidir" });
+    }
 
     const [siparisRows] = await connection.query(
       "SELECT * FROM satinalma_siparisleri WHERE id = ?",
@@ -95,12 +103,21 @@ const teslimAl = async (req, res, next) => {
         "UPDATE urun_varyantlari SET miktar = miktar + ? WHERE id = ?",
         [kalem.miktar, kalem.varyant_id],
       );
+
+      await connection.query(
+        `INSERT INTO varyant_lokasyon (varyant_id, lokasyon_id, miktar)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE miktar = miktar + ?`,
+        [kalem.varyant_id, lokasyon_id, kalem.miktar, kalem.miktar],
+      );
+
       await connection.query(
         `INSERT INTO stok_hareketleri
-         (varyant_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
-         VALUES (?, 'giris', 'satinalma', ?, ?, ?)`,
+         (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
+         VALUES (?, ?, 'giris', 'satinalma', ?, ?, ?)`,
         [
           kalem.varyant_id,
+          lokasyon_id,
           kalem.miktar,
           `Satınalma siparişi #${id} teslim alındı`,
           req.kullanici.id,

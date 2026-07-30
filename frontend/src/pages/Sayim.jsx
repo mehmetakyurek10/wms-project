@@ -1,49 +1,38 @@
 import { useEffect, useState } from "react";
-import { ClipboardCheck, X } from "lucide-react";
+import { ClipboardCheck, Plus } from "lucide-react";
+import { lokasyonlariGetir, lokasyonStok } from "../api/lokasyonApi";
 import { varyantlariGetir } from "../api/varyantApi";
-import { urunleriGetir } from "../api/urunApi";
-import { kategorileriGetir } from "../api/kategoriApi";
 import { sayimKaydet } from "../api/sayimApi";
-import { useToast } from "../context/ToastContext";
+import LokasyonSecici from "../components/LokasyonSecici";
 import OnayModal from "../components/OnayModal";
-
-const BOS_FILTRE = { kategori_id: "", urun_id: "" };
+import { useToast } from "../context/ToastContext";
 
 function Sayim() {
   const bildir = useToast();
+  const [lokasyonlar, setLokasyonlar] = useState([]);
   const [varyantlar, setVaryantlar] = useState([]);
-  const [urunler, setUrunler] = useState([]);
-  const [kategoriler, setKategoriler] = useState([]);
+  const [lokasyonId, setLokasyonId] = useState("");
+  const [satirlar, setSatirlar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
+  const [stokYukleniyor, setStokYukleniyor] = useState(false);
   const [hata, setHata] = useState("");
 
-  const [filtre, setFiltre] = useState(BOS_FILTRE);
   const [birim, setBirim] = useState("adet");
   const [sayimlar, setSayimlar] = useState({});
   const [aciklama, setAciklama] = useState("");
+  const [eklenecekVaryant, setEklenecekVaryant] = useState("");
   const [onayAcik, setOnayAcik] = useState(false);
-
-  const filtreVar = Object.values(filtre).some((deger) => deger !== "");
 
   const tanimlariYukle = async () => {
     try {
-      const [urunRes, kategoriRes] = await Promise.all([
-        urunleriGetir(),
-        kategorileriGetir(),
+      const [lokasyonRes, varyantRes] = await Promise.all([
+        lokasyonlariGetir(),
+        varyantlariGetir(),
       ]);
-      setUrunler(urunRes.data);
-      setKategoriler(kategoriRes.data);
+      setLokasyonlar(lokasyonRes.data.filter((l) => l.aktif));
+      setVaryantlar(varyantRes.data);
     } catch (err) {
       setHata("Tanımlar yüklenemedi");
-    }
-  };
-
-  const varyantlariYukle = async () => {
-    try {
-      const response = await varyantlariGetir({ ...filtre, aktif: "1" });
-      setVaryantlar(response.data);
-    } catch (err) {
-      setHata("Stok kalemleri yüklenemedi");
     } finally {
       setYukleniyor(false);
     }
@@ -53,48 +42,83 @@ function Sayim() {
     tanimlariYukle();
   }, []);
 
-  useEffect(() => {
-    varyantlariYukle();
-  }, [filtre]);
+  const lokasyonSecildi = async (e) => {
+    const id = e.target.value;
+    setLokasyonId(id);
+    setSayimlar({});
+    setSatirlar([]);
 
-  const sayilanAdet = (varyant) => {
-    const girilen = sayimlar[varyant.id];
+    if (!id) return;
+
+    setStokYukleniyor(true);
+    try {
+      const response = await lokasyonStok(id);
+      setSatirlar(response.data);
+    } catch (err) {
+      bildir("Lokasyon içeriği yüklenemedi", "hata");
+    } finally {
+      setStokYukleniyor(false);
+    }
+  };
+
+  const varyantEkle = () => {
+    if (!eklenecekVaryant) return;
+
+    const varyantId = parseInt(eklenecekVaryant, 10);
+
+    if (satirlar.some((s) => s.varyant_id === varyantId)) {
+      bildir("Bu varyant zaten listede", "hata");
+      return;
+    }
+
+    const varyant = varyantlar.find((v) => v.id === varyantId);
+
+    setSatirlar([
+      ...satirlar,
+      {
+        id: `yeni-${varyantId}`,
+        varyant_id: varyantId,
+        urun_adi: varyant.urun_adi,
+        boy: varyant.boy,
+        ambalaj_tipi: varyant.ambalaj_tipi,
+        ambalaj_kg: varyant.ambalaj_kg,
+        miktar: 0,
+      },
+    ]);
+    setEklenecekVaryant("");
+  };
+
+  const sayilanAdet = (satir) => {
+    const girilen = sayimlar[satir.varyant_id];
     if (girilen === undefined || girilen === "") return null;
     const sayi = Number(girilen);
     if (Number.isNaN(sayi) || sayi < 0) return null;
-    return birim === "kg" ? sayi / (Number(varyant.ambalaj_kg) || 1) : sayi;
+    return birim === "kg" ? sayi / (Number(satir.ambalaj_kg) || 1) : sayi;
   };
 
-  const girilenKalemler = varyantlar
-    .map((varyant) => ({ varyant, sayilan: sayilanAdet(varyant) }))
+  const girilenKalemler = satirlar
+    .map((satir) => ({ satir, sayilan: sayilanAdet(satir) }))
     .filter((kalem) => kalem.sayilan !== null);
 
   const farkliKalemler = girilenKalemler.filter(
-    (kalem) => kalem.sayilan !== Number(kalem.varyant.miktar),
+    (kalem) => kalem.sayilan !== Number(kalem.satir.miktar),
   );
-
-  const sayimDegisti = (varyantId, deger) => {
-    setSayimlar({ ...sayimlar, [varyantId]: deger });
-  };
-
-  const filtreDegisti = (e) => {
-    setFiltre({ ...filtre, [e.target.name]: e.target.value });
-  };
 
   const kaydet = async () => {
     setOnayAcik(false);
     try {
       const response = await sayimKaydet({
+        lokasyon_id: lokasyonId,
         aciklama,
         kalemler: girilenKalemler.map((kalem) => ({
-          varyant_id: kalem.varyant.id,
+          varyant_id: kalem.satir.varyant_id,
           sayilan_miktar: kalem.sayilan,
         })),
       });
       bildir(response.data.mesaj);
       setSayimlar({});
       setAciklama("");
-      varyantlariYukle();
+      lokasyonSecildi({ target: { value: lokasyonId } });
     } catch (err) {
       bildir(err.response?.data?.hata || "Sayım kaydedilemedi", "hata");
     }
@@ -109,41 +133,22 @@ function Sayim() {
     );
   if (hata) return <p className="hata-metni">{hata}</p>;
 
+  const secilenLokasyon = lokasyonlar.find(
+    (l) => l.id === parseInt(lokasyonId, 10),
+  );
+
   return (
     <div>
       <h2>Stok Sayımı</h2>
 
       <div className="filtre-cubugu">
         <div className="form-alan">
-          <label>Kategori</label>
-          <select
-            name="kategori_id"
-            value={filtre.kategori_id}
-            onChange={filtreDegisti}
-          >
-            <option value="">Tümü</option>
-            {kategoriler.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.ad}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="form-alan">
-          <label>Ürün</label>
-          <select
-            name="urun_id"
-            value={filtre.urun_id}
-            onChange={filtreDegisti}
-          >
-            <option value="">Tümü</option>
-            {urunler.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.ad}
-              </option>
-            ))}
-          </select>
+          <label>Sayılacak lokasyon</label>
+          <LokasyonSecici
+            deger={lokasyonId}
+            degisti={lokasyonSecildi}
+            lokasyonlar={lokasyonlar}
+          />
         </div>
 
         <div className="form-alan">
@@ -162,87 +167,122 @@ function Sayim() {
             onChange={(e) => setAciklama(e.target.value)}
           />
         </div>
-
-        {filtreVar && (
-          <button
-            className="ikincil ikon-btn"
-            onClick={() => setFiltre(BOS_FILTRE)}
-            title="Filtreleri temizle"
-          >
-            <X size={15} />
-          </button>
-        )}
       </div>
 
-      {varyantlar.length === 0 ? (
-        <div className="bos-durum">Sayılacak stok kalemi bulunamadı.</div>
+      {!lokasyonId ? (
+        <div className="bos-durum">
+          Sayıma başlamak için bir lokasyon seçin.
+        </div>
+      ) : stokYukleniyor ? (
+        <div className="yukleniyor-kutu">
+          <div className="spinner" />
+        </div>
       ) : (
         <>
-          <table>
-            <thead>
-              <tr>
-                <th>Ürün</th>
-                <th>Varyant</th>
-                <th>Sistemde (adet)</th>
-                <th>Sayılan ({birim})</th>
-                <th>Fark (adet)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {varyantlar.map((v) => {
-                const sayilan = sayilanAdet(v);
-                const mevcut = Number(v.miktar);
-                const fark = sayilan === null ? null : sayilan - mevcut;
-
-                return (
-                  <tr key={v.id}>
-                    <td>{v.urun_adi}</td>
-                    <td>
-                      {v.boy} · {Number(v.ambalaj_kg)}kg {v.ambalaj_tipi}
-                    </td>
-                    <td>{mevcut.toFixed(0)}</td>
-                    <td>
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        placeholder="-"
-                        value={sayimlar[v.id] ?? ""}
-                        onChange={(e) => sayimDegisti(v.id, e.target.value)}
-                      />
-                    </td>
-                    <td>
-                      {fark === null ? (
-                        <span className="kucuk-not">-</span>
-                      ) : fark === 0 ? (
-                        <span className="kucuk-not">Uyumlu</span>
-                      ) : (
-                        <strong
-                          className={fark > 0 ? "fark-arti" : "fark-eksi"}
-                        >
-                          {fark > 0 ? "+" : ""}
-                          {fark.toFixed(2)}
-                        </strong>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-
-          <div className="sayim-alt">
-            <span className="kucuk-not">
-              {girilenKalemler.length} kalem sayıldı · {farkliKalemler.length}{" "}
-              kalemde fark var
-            </span>
+          <div className="filtre-cubugu">
+            <div className="form-alan">
+              <label>Listede olmayan varyant ekle</label>
+              <select
+                value={eklenecekVaryant}
+                onChange={(e) => setEklenecekVaryant(e.target.value)}
+              >
+                <option value="">Seçiniz</option>
+                {varyantlar.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.urun_adi} · {v.boy} · {Number(v.ambalaj_kg)}kg{" "}
+                    {v.ambalaj_tipi}
+                  </option>
+                ))}
+              </select>
+            </div>
             <button
-              onClick={() => setOnayAcik(true)}
-              disabled={girilenKalemler.length === 0}
+              className="ikincil"
+              onClick={varyantEkle}
+              disabled={!eklenecekVaryant}
             >
-              <ClipboardCheck size={15} /> Sayımı Kaydet
+              <Plus size={15} /> Ekle
             </button>
           </div>
+
+          {satirlar.length === 0 ? (
+            <div className="bos-durum">
+              Bu lokasyonda kayıtlı stok yok. Beklenmedik ürün bulduysan
+              yukarıdan ekleyebilirsin.
+            </div>
+          ) : (
+            <>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Ürün</th>
+                    <th>Varyant</th>
+                    <th>Sistemde (adet)</th>
+                    <th>Sayılan ({birim})</th>
+                    <th>Fark (adet)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {satirlar.map((s) => {
+                    const sayilan = sayilanAdet(s);
+                    const mevcut = Number(s.miktar);
+                    const fark = sayilan === null ? null : sayilan - mevcut;
+
+                    return (
+                      <tr key={s.id}>
+                        <td>{s.urun_adi}</td>
+                        <td>
+                          {s.boy} · {Number(s.ambalaj_kg)}kg {s.ambalaj_tipi}
+                        </td>
+                        <td>{mevcut.toFixed(0)}</td>
+                        <td>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="-"
+                            value={sayimlar[s.varyant_id] ?? ""}
+                            onChange={(e) =>
+                              setSayimlar({
+                                ...sayimlar,
+                                [s.varyant_id]: e.target.value,
+                              })
+                            }
+                          />
+                        </td>
+                        <td>
+                          {fark === null ? (
+                            <span className="kucuk-not">-</span>
+                          ) : fark === 0 ? (
+                            <span className="kucuk-not">Uyumlu</span>
+                          ) : (
+                            <strong
+                              className={fark > 0 ? "fark-arti" : "fark-eksi"}
+                            >
+                              {fark > 0 ? "+" : ""}
+                              {fark.toFixed(2)}
+                            </strong>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+
+              <div className="sayim-alt">
+                <span className="kucuk-not">
+                  {girilenKalemler.length} kalem sayıldı ·{" "}
+                  {farkliKalemler.length} kalemde fark var
+                </span>
+                <button
+                  onClick={() => setOnayAcik(true)}
+                  disabled={girilenKalemler.length === 0}
+                >
+                  <ClipboardCheck size={15} /> Sayımı Kaydet
+                </button>
+              </div>
+            </>
+          )}
         </>
       )}
 
@@ -252,7 +292,7 @@ function Sayim() {
         mesaj={
           farkliKalemler.length === 0
             ? `${girilenKalemler.length} kalem sayıldı, hiçbirinde fark yok. Kayıt oluşturulmayacak.`
-            : `${farkliKalemler.length} kalemde fark tespit edildi. Onaylarsan stoklar sayılan değerlere güncellenecek ve her fark için sayım hareketi kaydedilecek.`
+            : `${secilenLokasyon?.kod} lokasyonunda ${farkliKalemler.length} kalemde fark tespit edildi. Onaylarsan bu lokasyondaki stoklar sayılan değerlere güncellenecek.`
         }
         onayMetni="Kaydet"
         onayla={kaydet}

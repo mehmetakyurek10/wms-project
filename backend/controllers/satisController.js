@@ -108,7 +108,7 @@ const teslimEt = async (req, res, next) => {
     await connection.beginTransaction();
 
     const [kalemler] = await connection.query(
-      `SELECT k.*, u.ad AS urun_adi, v.boy, v.miktar AS mevcut_stok
+      `SELECT k.*, u.ad AS urun_adi, v.boy
        FROM satis_siparis_kalemleri k
        JOIN urun_varyantlari v ON k.varyant_id = v.id
        JOIN urunler u ON v.urun_id = u.id
@@ -116,28 +116,68 @@ const teslimEt = async (req, res, next) => {
       [id],
     );
 
+    const tahsisPlani = [];
+
     for (const kalem of kalemler) {
-      if (parseFloat(kalem.mevcut_stok) < parseFloat(kalem.miktar)) {
+      const [lokasyonStoklari] = await connection.query(
+        `SELECT vl.lokasyon_id, vl.miktar, l.kod
+         FROM varyant_lokasyon vl
+         JOIN lokasyonlar l ON vl.lokasyon_id = l.id
+         WHERE vl.varyant_id = ? AND vl.miktar > 0
+         ORDER BY vl.miktar DESC
+         FOR UPDATE`,
+        [kalem.varyant_id],
+      );
+
+      const toplamMevcut = lokasyonStoklari.reduce(
+        (toplam, satir) => toplam + Number(satir.miktar),
+        0,
+      );
+
+      const gereken = Number(kalem.miktar);
+
+      if (toplamMevcut < gereken) {
         await connection.rollback();
         connection.release();
         return res.status(400).json({
-          hata: `Yetersiz stok: ${kalem.urun_adi} (${kalem.boy}) — mevcut ${kalem.mevcut_stok}, gereken ${kalem.miktar}`,
+          hata: `Yetersiz stok: ${kalem.urun_adi} (${kalem.boy}) — mevcut ${toplamMevcut.toFixed(0)}, gereken ${gereken.toFixed(0)}`,
         });
+      }
+
+      let kalan = gereken;
+
+      for (const satir of lokasyonStoklari) {
+        if (kalan <= 0) break;
+        const alinacak = Math.min(kalan, Number(satir.miktar));
+        tahsisPlani.push({
+          varyant_id: kalem.varyant_id,
+          lokasyon_id: satir.lokasyon_id,
+          miktar: alinacak,
+        });
+        kalan -= alinacak;
       }
     }
 
-    for (const kalem of kalemler) {
+    for (const tahsis of tahsisPlani) {
+      await connection.query(
+        `UPDATE varyant_lokasyon SET miktar = miktar - ?
+         WHERE varyant_id = ? AND lokasyon_id = ?`,
+        [tahsis.miktar, tahsis.varyant_id, tahsis.lokasyon_id],
+      );
+
       await connection.query(
         "UPDATE urun_varyantlari SET miktar = miktar - ? WHERE id = ?",
-        [kalem.miktar, kalem.varyant_id],
+        [tahsis.miktar, tahsis.varyant_id],
       );
+
       await connection.query(
         `INSERT INTO stok_hareketleri
-         (varyant_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
-         VALUES (?, 'cikis', 'satis', ?, ?, ?)`,
+         (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
+         VALUES (?, ?, 'cikis', 'satis', ?, ?, ?)`,
         [
-          kalem.varyant_id,
-          kalem.miktar,
+          tahsis.varyant_id,
+          tahsis.lokasyon_id,
+          tahsis.miktar,
           `Satış siparişi #${id} teslim edildi`,
           req.kullanici.id,
         ],
@@ -152,7 +192,9 @@ const teslimEt = async (req, res, next) => {
     await connection.commit();
     connection.release();
 
-    res.json({ mesaj: "Sipariş teslim edildi, stoklar düşüldü" });
+    res.json({
+      mesaj: `Sipariş teslim edildi, ${tahsisPlani.length} lokasyondan stok düşüldü`,
+    });
   } catch (err) {
     await connection.rollback();
     connection.release();

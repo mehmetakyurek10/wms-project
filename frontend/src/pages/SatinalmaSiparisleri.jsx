@@ -8,16 +8,18 @@ import {
 } from "../api/satinalmaApi";
 import { tedarikcileriGetir } from "../api/tedarikciApi";
 import { varyantlariGetir } from "../api/varyantApi";
+import { lokasyonlariGetir } from "../api/lokasyonApi";
 import Etiket from "../components/Etiket";
 import Fis from "../components/Fis";
+import TeslimAlModal from "../components/TeslimAlModal";
 import { useToast } from "../context/ToastContext";
-import OnayModal from "../components/OnayModal";
 
 function SatinalmaSiparisleri() {
   const bildir = useToast();
   const [siparisler, setSiparisler] = useState([]);
   const [tedarikciler, setTedarikciler] = useState([]);
   const [varyantlar, setVaryantlar] = useState([]);
+  const [lokasyonlar, setLokasyonlar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
   const [teslimAlinacak, setTeslimAlinacak] = useState(null);
@@ -36,14 +38,17 @@ function SatinalmaSiparisleri() {
 
   const veriGetir = async () => {
     try {
-      const [siparisRes, tedarikciRes, varyantRes] = await Promise.all([
-        siparisleriGetir(),
-        tedarikcileriGetir(),
-        varyantlariGetir(),
-      ]);
+      const [siparisRes, tedarikciRes, varyantRes, lokasyonRes] =
+        await Promise.all([
+          siparisleriGetir(),
+          tedarikcileriGetir(),
+          varyantlariGetir(),
+          lokasyonlariGetir(),
+        ]);
       setSiparisler(siparisRes.data);
       setTedarikciler(tedarikciRes.data);
       setVaryantlar(varyantRes.data);
+      setLokasyonlar(lokasyonRes.data.filter((l) => l.aktif));
       setTedarikciId((mevcut) => mevcut || tedarikciRes.data[0]?.id || "");
     } catch (err) {
       setHata("Veriler yüklenemedi");
@@ -152,11 +157,11 @@ function SatinalmaSiparisleri() {
     }
   };
 
-  const teslimAlOnayla = async () => {
+  const teslimAlOnayla = async (lokasyonId) => {
     const id = teslimAlinacak.id;
     setTeslimAlinacak(null);
     try {
-      await siparisTeslimAl(id);
+      await siparisTeslimAl(id, { lokasyon_id: lokasyonId });
       bildir("Sipariş teslim alındı, stoklar güncellendi");
       veriGetir();
     } catch (err) {
@@ -400,13 +405,12 @@ function SatinalmaSiparisleri() {
         </table>
       )}
 
-      <OnayModal
+      <TeslimAlModal
         acik={teslimAlinacak !== null}
-        baslik="Siparişi teslim al"
-        mesaj={`#${teslimAlinacak?.id} numaralı siparişin kalemleri stoğa eklenecek ve stok hareketleri kaydedilecek.`}
-        onayMetni="Teslim Al"
+        siparis={teslimAlinacak}
+        lokasyonlar={lokasyonlar}
+        kapat={() => setTeslimAlinacak(null)}
         onayla={teslimAlOnayla}
-        iptal={() => setTeslimAlinacak(null)}
       />
 
       <Fis

@@ -3,7 +3,14 @@ const pool = require("../config/db");
 const kaydet = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
-    const { kalemler, aciklama } = req.body;
+    const { lokasyon_id, kalemler, aciklama } = req.body;
+
+    if (!lokasyon_id) {
+      connection.release();
+      return res
+        .status(400)
+        .json({ hata: "Sayım yapılacak lokasyon seçilmelidir" });
+    }
 
     if (!kalemler || !kalemler.length) {
       connection.release();
@@ -15,19 +22,6 @@ const kaydet = async (req, res, next) => {
     const sonuclar = [];
 
     for (const kalem of kalemler) {
-      const [rows] = await connection.query(
-        "SELECT miktar FROM urun_varyantlari WHERE id = ?",
-        [kalem.varyant_id],
-      );
-
-      if (!rows.length) {
-        await connection.rollback();
-        connection.release();
-        return res
-          .status(404)
-          .json({ hata: `Varyant bulunamadı (id: ${kalem.varyant_id})` });
-      }
-
       const sayilan = Number(kalem.sayilan_miktar);
 
       if (Number.isNaN(sayilan) || sayilan < 0) {
@@ -36,17 +30,37 @@ const kaydet = async (req, res, next) => {
         return res.status(400).json({ hata: "Sayılan miktar geçersiz" });
       }
 
-      const mevcut = Number(rows[0].miktar);
+      const [varyantRows] = await connection.query(
+        "SELECT id FROM urun_varyantlari WHERE id = ?",
+        [kalem.varyant_id],
+      );
+
+      if (!varyantRows.length) {
+        await connection.rollback();
+        connection.release();
+        return res
+          .status(404)
+          .json({ hata: `Varyant bulunamadı (id: ${kalem.varyant_id})` });
+      }
+
+      const [lokasyonRows] = await connection.query(
+        `SELECT miktar FROM varyant_lokasyon
+         WHERE varyant_id = ? AND lokasyon_id = ? FOR UPDATE`,
+        [kalem.varyant_id, lokasyon_id],
+      );
+
+      const mevcut = lokasyonRows.length ? Number(lokasyonRows[0].miktar) : 0;
       const fark = sayilan - mevcut;
 
       if (fark === 0) continue;
 
       await connection.query(
         `INSERT INTO stok_hareketleri
-         (varyant_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
-         VALUES (?, ?, 'sayim', ?, ?, ?)`,
+         (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
+         VALUES (?, ?, ?, 'sayim', ?, ?, ?)`,
         [
           kalem.varyant_id,
+          lokasyon_id,
           fark > 0 ? "giris" : "cikis",
           Math.abs(fark),
           aciklama || "Stok sayımı",
@@ -55,11 +69,23 @@ const kaydet = async (req, res, next) => {
       );
 
       await connection.query(
-        "UPDATE urun_varyantlari SET miktar = ? WHERE id = ?",
-        [sayilan, kalem.varyant_id],
+        `INSERT INTO varyant_lokasyon (varyant_id, lokasyon_id, miktar)
+         VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE miktar = ?`,
+        [kalem.varyant_id, lokasyon_id, sayilan, sayilan],
       );
 
-      sonuclar.push({ varyant_id: kalem.varyant_id, mevcut, sayilan, fark });
+      await connection.query(
+        "UPDATE urun_varyantlari SET miktar = miktar + ? WHERE id = ?",
+        [fark, kalem.varyant_id],
+      );
+
+      sonuclar.push({
+        varyant_id: kalem.varyant_id,
+        mevcut,
+        sayilan,
+        fark,
+      });
     }
 
     await connection.commit();

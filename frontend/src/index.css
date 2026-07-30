@@ -1786,3 +1786,8 @@ tr.kritik td:first-child {
   border-color: rgba(34, 197, 94, 0.45);
   border-style: solid;
 }
+.modal-ikon-notr {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--renk-birincil-hover);
+  animation: none;
+}

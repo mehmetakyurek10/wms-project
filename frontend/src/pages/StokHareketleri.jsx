@@ -4,8 +4,10 @@ import {
   stokHareketleriniGetir,
   stokHareketiEkle,
 } from "../api/stokHareketleri";
-import { varyantlariGetir } from "../api/varyantApi";
+import { varyantlariGetir, varyantLokasyonlariGetir } from "../api/varyantApi";
+import { lokasyonlariGetir } from "../api/lokasyonApi";
 import Etiket from "../components/Etiket";
+import LokasyonSecici from "../components/LokasyonSecici";
 import { useToast } from "../context/ToastContext";
 
 const SAYFA_BOYUTU = 20;
@@ -22,6 +24,8 @@ function StokHareketleri() {
   const bildir = useToast();
   const [hareketler, setHareketler] = useState([]);
   const [varyantlar, setVaryantlar] = useState([]);
+  const [lokasyonlar, setLokasyonlar] = useState([]);
+  const [varyantLokasyonlari, setVaryantLokasyonlari] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
 
@@ -31,6 +35,7 @@ function StokHareketleri() {
 
   const [form, setForm] = useState({
     varyant_id: "",
+    lokasyon_id: "",
     tip: "giris",
     sebep: "manuel",
     miktar: "",
@@ -41,15 +46,19 @@ function StokHareketleri() {
   const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
   const filtreVar = Object.values(filtre).some((deger) => deger !== "");
 
-  const varyantlariYukle = async () => {
+  const tanimlariYukle = async () => {
     try {
-      const response = await varyantlariGetir();
-      setVaryantlar(response.data);
+      const [varyantRes, lokasyonRes] = await Promise.all([
+        varyantlariGetir(),
+        lokasyonlariGetir(),
+      ]);
+      setVaryantlar(varyantRes.data);
+      setLokasyonlar(lokasyonRes.data.filter((l) => l.aktif));
       setForm((f) =>
-        f.varyant_id ? f : { ...f, varyant_id: response.data[0]?.id || "" },
+        f.varyant_id ? f : { ...f, varyant_id: varyantRes.data[0]?.id || "" },
       );
     } catch (err) {
-      setHata("Varyantlar yüklenemedi");
+      setHata("Tanımlar yüklenemedi");
     }
   };
 
@@ -70,12 +79,22 @@ function StokHareketleri() {
   };
 
   useEffect(() => {
-    varyantlariYukle();
+    tanimlariYukle();
   }, []);
 
   useEffect(() => {
     hareketleriYukle();
   }, [filtre, sayfa]);
+
+  useEffect(() => {
+    if (form.tip !== "cikis" || !form.varyant_id) {
+      setVaryantLokasyonlari([]);
+      return;
+    }
+    varyantLokasyonlariGetir(form.varyant_id)
+      .then((res) => setVaryantLokasyonlari(res.data))
+      .catch(() => setVaryantLokasyonlari([]));
+  }, [form.varyant_id, form.tip]);
 
   const filtreDegisti = (e) => {
     setFiltre({ ...filtre, [e.target.name]: e.target.value });
@@ -92,7 +111,11 @@ function StokHareketleri() {
       : Number(form.miktar || 0);
 
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    const yeniForm = { ...form, [e.target.name]: e.target.value };
+    if (e.target.name === "varyant_id" || e.target.name === "tip") {
+      yeniForm.lokasyon_id = "";
+    }
+    setForm(yeniForm);
   };
 
   const handleSubmit = async (e) => {
@@ -100,6 +123,7 @@ function StokHareketleri() {
     try {
       await stokHareketiEkle({
         varyant_id: form.varyant_id,
+        lokasyon_id: form.lokasyon_id,
         tip: form.tip,
         sebep: form.sebep,
         miktar: miktarAdet,
@@ -108,7 +132,7 @@ function StokHareketleri() {
       setForm({ ...form, miktar: "", aciklama: "" });
       bildir("Stok hareketi kaydedildi");
       hareketleriYukle();
-      varyantlariYukle();
+      tanimlariYukle();
     } catch (err) {
       bildir(err.response?.data?.hata || "Hareket eklenemedi", "hata");
     }
@@ -122,6 +146,9 @@ function StokHareketleri() {
       </div>
     );
   if (hata) return <p className="hata-metni">{hata}</p>;
+
+  const cikisModu = form.tip === "cikis";
+  const secilebilirLokasyonlar = cikisModu ? varyantLokasyonlari : lokasyonlar;
 
   return (
     <div>
@@ -152,6 +179,22 @@ function StokHareketleri() {
             <option value="giris">Giriş</option>
             <option value="cikis">Çıkış</option>
           </select>
+        </div>
+
+        <div className="form-alan">
+          <label>{cikisModu ? "Nereden" : "Nereye"}</label>
+          <LokasyonSecici
+            ad="lokasyon_id"
+            deger={form.lokasyon_id}
+            degisti={handleChange}
+            lokasyonlar={secilebilirLokasyonlar}
+            bosMetin={
+              cikisModu && varyantLokasyonlari.length === 0
+                ? "Bu varyantın stoğu yok"
+                : "Seçiniz"
+            }
+            zorunlu
+          />
         </div>
 
         <div className="form-alan">
@@ -289,10 +332,10 @@ function StokHareketleri() {
                 <th>Tarih</th>
                 <th>Ürün</th>
                 <th>Varyant</th>
+                <th>Lokasyon</th>
                 <th>Tip</th>
                 <th>Sebep</th>
                 <th>Miktar</th>
-                <th>Toplam kg</th>
                 <th>Açıklama</th>
                 <th>İşlemi Yapan</th>
               </tr>
@@ -305,6 +348,7 @@ function StokHareketleri() {
                   <td>
                     {h.boy} · {Number(h.ambalaj_kg)}kg {h.ambalaj_tipi}
                   </td>
+                  <td>{h.lokasyon_kod || "-"}</td>
                   <td>
                     <Etiket deger={h.tip} />
                   </td>
@@ -312,9 +356,6 @@ function StokHareketleri() {
                     <Etiket deger={h.sebep} />
                   </td>
                   <td>{Number(h.miktar).toFixed(0)}</td>
-                  <td>
-                    {(Number(h.miktar) * Number(h.ambalaj_kg)).toFixed(0)} kg
-                  </td>
                   <td>{h.aciklama}</td>
                   <td>{h.kullanici_adi || "-"}</td>
                 </tr>

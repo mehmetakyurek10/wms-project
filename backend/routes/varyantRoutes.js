@@ -9,5 +9,6 @@ router.get("/dusuk-stok", varyantController.dusukStok);
 router.post("/", dogrula, varyantController.ekle);
 router.put("/:id", dogrula, varyantController.guncelle);
 router.delete("/:id", dogrula, izinVer("admin"), varyantController.sil);
+router.get("/:id/lokasyonlar", varyantController.varyantLokasyonlari);
 
 module.exports = router;
