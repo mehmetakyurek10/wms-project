@@ -6,50 +6,78 @@ const kaydet = async (req, res, next) => {
     const { lokasyon_id, kalemler, aciklama } = req.body;
 
     if (!lokasyon_id) {
-      connection.release();
       return res
         .status(400)
         .json({ hata: "Sayım yapılacak lokasyon seçilmelidir" });
     }
 
-    if (!kalemler || !kalemler.length) {
-      connection.release();
+    if (!Array.isArray(kalemler) || !kalemler.length) {
       return res.status(400).json({ hata: "Sayılacak kalem gönderilmedi" });
     }
 
-    await connection.beginTransaction();
-
-    const sonuclar = [];
+    const sayimlar = new Map();
 
     for (const kalem of kalemler) {
+      const varyantId = Number(kalem.varyant_id);
       const sayilan = Number(kalem.sayilan_miktar);
 
-      if (Number.isNaN(sayilan) || sayilan < 0) {
-        await connection.rollback();
-        connection.release();
+      if (!Number.isInteger(varyantId) || varyantId <= 0) {
+        return res.status(400).json({ hata: "Geçersiz varyant" });
+      }
+
+      if (!Number.isFinite(sayilan) || sayilan < 0) {
         return res.status(400).json({ hata: "Sayılan miktar geçersiz" });
       }
 
-      const [varyantRows] = await connection.query(
-        "SELECT id FROM urun_varyantlari WHERE id = ?",
-        [kalem.varyant_id],
-      );
-
-      if (!varyantRows.length) {
-        await connection.rollback();
-        connection.release();
-        return res
-          .status(404)
-          .json({ hata: `Varyant bulunamadı (id: ${kalem.varyant_id})` });
+      if (sayimlar.has(varyantId)) {
+        return res.status(400).json({
+          hata: `Aynı varyant listede birden fazla kez var (id: ${varyantId})`,
+        });
       }
 
-      const [lokasyonRows] = await connection.query(
+      sayimlar.set(varyantId, sayilan);
+    }
+
+    const varyantIdleri = [...sayimlar.keys()].sort((a, b) => a - b);
+
+    await connection.beginTransaction();
+
+    const [lokasyonRows] = await connection.query(
+      "SELECT id FROM lokasyonlar WHERE id = ? AND aktif = TRUE",
+      [lokasyon_id],
+    );
+
+    if (!lokasyonRows.length) {
+      await connection.rollback();
+      return res.status(404).json({ hata: "Lokasyon bulunamadı" });
+    }
+
+    const [varyantRows] = await connection.query(
+      "SELECT id FROM urun_varyantlari WHERE id IN (?)",
+      [varyantIdleri],
+    );
+
+    if (varyantRows.length !== varyantIdleri.length) {
+      const bulunanlar = new Set(varyantRows.map((r) => r.id));
+      const eksik = varyantIdleri.filter((id) => !bulunanlar.has(id));
+      await connection.rollback();
+      return res
+        .status(404)
+        .json({ hata: `Varyant bulunamadı (id: ${eksik.join(", ")})` });
+    }
+
+    const sonuclar = [];
+
+    for (const varyantId of varyantIdleri) {
+      const sayilan = sayimlar.get(varyantId);
+
+      const [stokRows] = await connection.query(
         `SELECT miktar FROM varyant_lokasyon
          WHERE varyant_id = ? AND lokasyon_id = ? FOR UPDATE`,
-        [kalem.varyant_id, lokasyon_id],
+        [varyantId, lokasyon_id],
       );
 
-      const mevcut = lokasyonRows.length ? Number(lokasyonRows[0].miktar) : 0;
+      const mevcut = stokRows.length ? Number(stokRows[0].miktar) : 0;
       const fark = sayilan - mevcut;
 
       if (fark === 0) continue;
@@ -59,7 +87,7 @@ const kaydet = async (req, res, next) => {
          (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
          VALUES (?, ?, ?, 'sayim', ?, ?, ?)`,
         [
-          kalem.varyant_id,
+          varyantId,
           lokasyon_id,
           fark > 0 ? "giris" : "cikis",
           Math.abs(fark),
@@ -72,24 +100,18 @@ const kaydet = async (req, res, next) => {
         `INSERT INTO varyant_lokasyon (varyant_id, lokasyon_id, miktar)
          VALUES (?, ?, ?)
          ON DUPLICATE KEY UPDATE miktar = ?`,
-        [kalem.varyant_id, lokasyon_id, sayilan, sayilan],
+        [varyantId, lokasyon_id, sayilan, sayilan],
       );
 
       await connection.query(
         "UPDATE urun_varyantlari SET miktar = miktar + ? WHERE id = ?",
-        [fark, kalem.varyant_id],
+        [fark, varyantId],
       );
 
-      sonuclar.push({
-        varyant_id: kalem.varyant_id,
-        mevcut,
-        sayilan,
-        fark,
-      });
+      sonuclar.push({ varyant_id: varyantId, mevcut, sayilan, fark });
     }
 
     await connection.commit();
-    connection.release();
 
     res.json({
       mesaj: sonuclar.length
@@ -98,9 +120,10 @@ const kaydet = async (req, res, next) => {
       sonuclar,
     });
   } catch (err) {
-    await connection.rollback();
-    connection.release();
+    await connection.rollback().catch(() => {});
     next(err);
+  } finally {
+    connection.release();
   }
 };
 

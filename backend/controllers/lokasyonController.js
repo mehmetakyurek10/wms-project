@@ -1,9 +1,12 @@
 const pool = require("../config/db");
 
+const MAKS_BLOK_KAYIT = 5000;
+
 const listele = async (req, res, next) => {
   try {
     const [rows] = await pool.query(
-      `SELECT l.*,
+      `SELECT l.id, l.kod, l.ad, l.tip, l.blok, l.sira, l.derinlik, l.kat,
+              l.satir, l.kolon, l.satir_span, l.kolon_span, l.kapasite, l.aktif,
               COALESCE(SUM(vl.miktar), 0) AS toplam_miktar,
               COUNT(CASE WHEN vl.miktar > 0 THEN 1 END) AS kalem_sayisi
        FROM lokasyonlar l
@@ -41,8 +44,22 @@ const ekle = async (req, res, next) => {
     const { kod, ad, tip, satir, kolon, satir_span, kolon_span, kapasite } =
       req.body;
 
-    if (!kod || !satir || !kolon) {
+    if (!kod || satir === undefined || kolon === undefined) {
       return res.status(400).json({ hata: "Kod, satır ve kolon zorunludur" });
+    }
+
+    const satirNo = parseInt(satir, 10);
+    const kolonNo = parseInt(kolon, 10);
+
+    if (!Number.isInteger(satirNo) || satirNo < 1) {
+      return res
+        .status(400)
+        .json({ hata: "Satır 1 veya daha büyük olmalıdır" });
+    }
+    if (!Number.isInteger(kolonNo) || kolonNo < 1) {
+      return res
+        .status(400)
+        .json({ hata: "Kolon 1 veya daha büyük olmalıdır" });
     }
 
     const [result] = await pool.query(
@@ -53,11 +70,11 @@ const ekle = async (req, res, next) => {
         kod,
         ad || null,
         tip || "alan",
-        satir,
-        kolon,
-        satir_span || 1,
-        kolon_span || 1,
-        kapasite || 0,
+        satirNo,
+        kolonNo,
+        parseInt(satir_span, 10) || 1,
+        parseInt(kolon_span, 10) || 1,
+        Number(kapasite) || 0,
       ],
     );
 
@@ -87,6 +104,12 @@ const guncelle = async (req, res, next) => {
       aktif,
     } = req.body;
 
+    if (!kod || !tip || satir === undefined || kolon === undefined) {
+      return res
+        .status(400)
+        .json({ hata: "Kod, tip, satır ve kolon zorunludur" });
+    }
+
     const [sonuc] = await pool.query(
       `UPDATE lokasyonlar
        SET kod=?, ad=?, tip=?, satir=?, kolon=?, satir_span=?, kolon_span=?,
@@ -96,12 +119,12 @@ const guncelle = async (req, res, next) => {
         kod,
         ad || null,
         tip,
-        satir,
-        kolon,
-        satir_span || 1,
-        kolon_span || 1,
-        kapasite || 0,
-        aktif ?? true,
+        parseInt(satir, 10),
+        parseInt(kolon, 10),
+        parseInt(satir_span, 10) || 1,
+        parseInt(kolon_span, 10) || 1,
+        Number(kapasite) || 0,
+        aktif === undefined ? true : Boolean(aktif),
         id,
       ],
     );
@@ -126,13 +149,15 @@ const sil = async (req, res, next) => {
   try {
     const { id } = req.params;
 
+    await connection.beginTransaction();
+
     const [stokSayim] = await connection.query(
       "SELECT COALESCE(SUM(miktar), 0) AS toplam FROM varyant_lokasyon WHERE lokasyon_id = ?",
       [id],
     );
 
     if (Number(stokSayim[0].toplam) > 0) {
-      connection.release();
+      await connection.rollback();
       return res.status(409).json({
         hata: "Bu lokasyonda stok var, önce başka bir lokasyona transfer edin",
       });
@@ -144,13 +169,11 @@ const sil = async (req, res, next) => {
     );
 
     if (hareketSayim[0].adet > 0) {
-      connection.release();
+      await connection.rollback();
       return res.status(409).json({
         hata: `Bu lokasyonun ${hareketSayim[0].adet} stok hareketi var, silinemez. Pasife alabilirsiniz.`,
       });
     }
-
-    await connection.beginTransaction();
 
     await connection.query(
       "DELETE FROM varyant_lokasyon WHERE lokasyon_id = ?",
@@ -164,18 +187,17 @@ const sil = async (req, res, next) => {
 
     if (sonuc.affectedRows === 0) {
       await connection.rollback();
-      connection.release();
       return res.status(404).json({ hata: "Lokasyon bulunamadı" });
     }
 
     await connection.commit();
-    connection.release();
 
     res.json({ mesaj: "Lokasyon silindi" });
   } catch (err) {
-    await connection.rollback();
-    connection.release();
+    await connection.rollback().catch(() => {});
     next(err);
+  } finally {
+    connection.release();
   }
 };
 
@@ -197,7 +219,6 @@ const blokOlustur = async (req, res, next) => {
     } = req.body;
 
     if (!blok || !sira_sayisi || !derinlik || !kat) {
-      connection.release();
       return res.status(400).json({
         hata: "Blok, sıra sayısı, derinlik ve kat zorunludur",
       });
@@ -213,6 +234,20 @@ const blokOlustur = async (req, res, next) => {
     const derinlikTers = derinlik_ters === true;
     const dikey = yon !== "yatay";
     const yonCarpani = ters ? -1 : 1;
+
+    if (siraSayisi < 1 || derinlikSayisi < 1 || katSayisi < 1) {
+      return res
+        .status(400)
+        .json({ hata: "Sıra, derinlik ve kat 1 veya daha büyük olmalıdır" });
+    }
+
+    const toplamKayit = siraSayisi * derinlikSayisi * katSayisi;
+
+    if (toplamKayit > MAKS_BLOK_KAYIT) {
+      return res.status(400).json({
+        hata: `Tek seferde en fazla ${MAKS_BLOK_KAYIT} palet yeri üretilebilir (istenen: ${toplamKayit})`,
+      });
+    }
 
     const kayitlar = [];
 
@@ -244,6 +279,8 @@ const blokOlustur = async (req, res, next) => {
             kolon,
             satirSpan,
             kolonSpan,
+            "palet",
+            1,
           ]);
         }
       }
@@ -251,20 +288,16 @@ const blokOlustur = async (req, res, next) => {
 
     await connection.beginTransaction();
 
-    let olusan = 0;
-
-    for (const kayit of kayitlar) {
-      const [sonuc] = await connection.query(
-        `INSERT IGNORE INTO lokasyonlar
-         (kod, blok, sira, derinlik, kat, satir, kolon, satir_span, kolon_span, tip, kapasite)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'palet', 1)`,
-        kayit,
-      );
-      olusan += sonuc.affectedRows;
-    }
+    const [sonuc] = await connection.query(
+      `INSERT IGNORE INTO lokasyonlar
+       (kod, blok, sira, derinlik, kat, satir, kolon, satir_span, kolon_span, tip, kapasite)
+       VALUES ?`,
+      [kayitlar],
+    );
 
     await connection.commit();
-    connection.release();
+
+    const olusan = sonuc.affectedRows;
 
     res.status(201).json({
       mesaj: `${olusan} palet yeri oluşturuldu${
@@ -276,9 +309,10 @@ const blokOlustur = async (req, res, next) => {
       istenen: kayitlar.length,
     });
   } catch (err) {
-    await connection.rollback();
-    connection.release();
+    await connection.rollback().catch(() => {});
     next(err);
+  } finally {
+    connection.release();
   }
 };
 

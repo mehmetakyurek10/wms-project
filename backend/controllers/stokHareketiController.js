@@ -49,7 +49,9 @@ const listele = async (req, res, next) => {
     res.set("X-Toplam-Kayit", sayim[0].toplam);
 
     let sorgu =
-      `SELECT sh.*, u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg,
+      `SELECT sh.id, sh.varyant_id, sh.lokasyon_id, sh.tip, sh.sebep,
+              sh.miktar, sh.aciklama, sh.tarih,
+              u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg,
               k.ad AS kullanici_adi, l.kod AS lokasyon_kod
        FROM stok_hareketleri sh
        JOIN urun_varyantlari v ON sh.varyant_id = v.id
@@ -61,13 +63,12 @@ const listele = async (req, res, next) => {
 
     const degerler = [...kosulDegerleri];
 
-    if (sayfa || limit) {
-      const sayfaNo = parseInt(sayfa, 10) || 1;
-      const limitSayi = parseInt(limit, 10) || 20;
-      const offset = (sayfaNo - 1) * limitSayi;
-      sorgu += " LIMIT ? OFFSET ?";
-      degerler.push(limitSayi, offset);
-    }
+    const sayfaNo = parseInt(sayfa, 10) || 1;
+    const limitSayi = Math.min(parseInt(limit, 10) || 20, 100);
+    const offset = (sayfaNo - 1) * limitSayi;
+
+    sorgu += " LIMIT ? OFFSET ?";
+    degerler.push(limitSayi, offset);
 
     const [rows] = await pool.query(sorgu, degerler);
     res.json(rows);
@@ -82,56 +83,58 @@ const ekle = async (req, res, next) => {
     const { varyant_id, lokasyon_id, tip, sebep, miktar, aciklama } = req.body;
 
     if (!["giris", "cikis"].includes(tip)) {
-      connection.release();
       return res
         .status(400)
         .json({ hata: "Hareket tipi giris veya cikis olmalı" });
     }
 
     if (sebep && !GECERLI_SEBEPLER.includes(sebep)) {
-      connection.release();
       return res.status(400).json({ hata: "Geçersiz sebep" });
     }
 
     if (!varyant_id || !lokasyon_id) {
-      connection.release();
       return res.status(400).json({ hata: "Varyant ve lokasyon seçilmelidir" });
     }
 
     const hareketMiktari = Number(miktar);
 
-    if (Number.isNaN(hareketMiktari) || hareketMiktari <= 0) {
-      connection.release();
+    if (!Number.isFinite(hareketMiktari) || hareketMiktari <= 0) {
       return res.status(400).json({ hata: "Miktar sıfırdan büyük olmalıdır" });
     }
 
     await connection.beginTransaction();
 
     const [varyantRows] = await connection.query(
-      "SELECT miktar FROM urun_varyantlari WHERE id = ?",
+      "SELECT id FROM urun_varyantlari WHERE id = ?",
       [varyant_id],
     );
 
     if (!varyantRows.length) {
       await connection.rollback();
-      connection.release();
       return res.status(404).json({ hata: "Varyant bulunamadı" });
     }
 
+    const [lokasyonRows] = await connection.query(
+      "SELECT id FROM lokasyonlar WHERE id = ? AND aktif = TRUE",
+      [lokasyon_id],
+    );
+
+    if (!lokasyonRows.length) {
+      await connection.rollback();
+      return res.status(404).json({ hata: "Lokasyon bulunamadı" });
+    }
+
     if (tip === "cikis") {
-      const [lokasyonRows] = await connection.query(
+      const [stokRows] = await connection.query(
         `SELECT miktar FROM varyant_lokasyon
          WHERE varyant_id = ? AND lokasyon_id = ? FOR UPDATE`,
         [varyant_id, lokasyon_id],
       );
 
-      const lokasyondaki = lokasyonRows.length
-        ? Number(lokasyonRows[0].miktar)
-        : 0;
+      const lokasyondaki = stokRows.length ? Number(stokRows[0].miktar) : 0;
 
       if (lokasyondaki < hareketMiktari) {
         await connection.rollback();
-        connection.release();
         return res.status(400).json({
           hata: `Bu lokasyonda yeterli stok yok (mevcut ${lokasyondaki.toFixed(0)})`,
         });
@@ -148,7 +151,7 @@ const ekle = async (req, res, next) => {
         tip,
         sebep || "manuel",
         hareketMiktari,
-        aciklama,
+        aciklama || null,
         req.kullanici.id,
       ],
     );
@@ -169,21 +172,29 @@ const ekle = async (req, res, next) => {
         "UPDATE urun_varyantlari SET miktar = miktar - ? WHERE id = ?",
         [hareketMiktari, varyant_id],
       );
-      await connection.query(
+
+      const [dususSonuc] = await connection.query(
         `UPDATE varyant_lokasyon SET miktar = miktar - ?
-         WHERE varyant_id = ? AND lokasyon_id = ?`,
-        [hareketMiktari, varyant_id, lokasyon_id],
+         WHERE varyant_id = ? AND lokasyon_id = ? AND miktar >= ?`,
+        [hareketMiktari, varyant_id, lokasyon_id, hareketMiktari],
       );
+
+      if (dususSonuc.affectedRows === 0) {
+        await connection.rollback();
+        return res.status(409).json({
+          hata: "Stok bu sırada değişmiş, işlem geri alındı. Tekrar deneyin.",
+        });
+      }
     }
 
     await connection.commit();
-    connection.release();
 
     res.status(201).json({ mesaj: "Stok hareketi kaydedildi" });
   } catch (err) {
-    await connection.rollback();
-    connection.release();
+    await connection.rollback().catch(() => {});
     next(err);
+  } finally {
+    connection.release();
   }
 };
 
