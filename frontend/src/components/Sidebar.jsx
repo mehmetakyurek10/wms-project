@@ -8,6 +8,7 @@ import {
   ArrowLeftRight,
   ClipboardCheck,
   Map as MapIcon,
+  MapPin,
   Truck,
   ShoppingCart,
   Building2,
@@ -28,6 +29,8 @@ const ROL_ADLARI = {
 };
 
 function menuGruplari(kullanici) {
+  const yonetici = kullanici?.rol === "admin";
+
   return [
     {
       baslik: null,
@@ -73,8 +76,11 @@ function menuGruplari(kullanici) {
       baslik: "Tanımlar",
       linkler: [
         { to: "/kategoriler", ikon: Tags, ad: "Kategoriler" },
-        ...(kullanici?.rol === "admin"
-          ? [{ to: "/kullanicilar", ikon: Users, ad: "Kullanıcılar" }]
+        ...(yonetici
+          ? [
+              { to: "/kullanicilar", ikon: Users, ad: "Kullanıcılar" },
+              { to: "/lokasyon-yonetimi", ikon: MapPin, ad: "Lokasyonlar" },
+            ]
           : []),
       ],
     },

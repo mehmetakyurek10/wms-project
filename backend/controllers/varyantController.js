@@ -212,7 +212,8 @@ const varyantLokasyonlari = async (req, res, next) => {
   try {
     const { id } = req.params;
     const [rows] = await pool.query(
-      `SELECT vl.lokasyon_id, vl.miktar, l.kod, l.ad, l.tip
+      `SELECT vl.lokasyon_id, vl.miktar,
+              l.kod, l.ad, l.tip, l.blok, l.sira, l.derinlik, l.kat
        FROM varyant_lokasyon vl
        JOIN lokasyonlar l ON vl.lokasyon_id = l.id
        WHERE vl.varyant_id = ? AND vl.miktar > 0

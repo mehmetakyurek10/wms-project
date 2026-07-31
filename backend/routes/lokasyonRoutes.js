@@ -4,6 +4,12 @@ const lokasyonController = require("../controllers/lokasyonController");
 const dogrula = require("../middleware/auth");
 const izinVer = require("../middleware/izinVer");
 
+router.get(
+  "/tutarlilik",
+  dogrula,
+  izinVer("admin"),
+  lokasyonController.tutarlilik,
+);
 router.get("/", lokasyonController.listele);
 router.get("/:id/stok", lokasyonController.stok);
 router.post("/", dogrula, lokasyonController.ekle);

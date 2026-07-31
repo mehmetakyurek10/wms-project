@@ -282,4 +282,32 @@ const blokOlustur = async (req, res, next) => {
   }
 };
 
-module.exports = { listele, stok, ekle, guncelle, sil, blokOlustur };
+const tutarlilik = async (req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      `SELECT v.id AS varyant_id, u.ad AS urun_adi, v.boy, v.ambalaj_tipi,
+              v.miktar AS toplam,
+              COALESCE(SUM(vl.miktar), 0) AS lokasyon_toplami,
+              v.miktar - COALESCE(SUM(vl.miktar), 0) AS fark
+       FROM urun_varyantlari v
+       JOIN urunler u ON v.urun_id = u.id
+       LEFT JOIN varyant_lokasyon vl ON vl.varyant_id = v.id
+       GROUP BY v.id
+       HAVING fark <> 0
+       ORDER BY ABS(fark) DESC`,
+    );
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = {
+  listele,
+  stok,
+  ekle,
+  guncelle,
+  sil,
+  blokOlustur,
+  tutarlilik,
+};

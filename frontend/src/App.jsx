@@ -16,6 +16,7 @@ import Musteriler from "./pages/Musteriler";
 import SatisSiparisleri from "./pages/SatisSiparisleri";
 import Sayim from "./pages/Sayim";
 import DepoHaritasi from "./pages/DepoHaritası";
+import LokasyonYonetimi from "./pages/LokasyonYonetimi";
 
 function App() {
   useEffect(() => {
@@ -38,6 +39,7 @@ function App() {
             <Route path="/satis-siparisleri" element={<SatisSiparisleri />} />
             <Route path="/kullanicilar" element={<Kullanicilar />} />
             <Route path="/sayim" element={<Sayim />} />
+            <Route path="/lokasyon-yonetimi" element={<LokasyonYonetimi />} />
             <Route path="/depo-haritasi" element={<DepoHaritasi />} />
             <Route path="/tedarikciler" element={<Tedarikciler />} />
             <Route path="/stok-hareketleri" element={<StokHareketleri />} />
