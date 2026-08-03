@@ -1,22 +1,40 @@
 const pool = require("../config/db");
+const { yerelTarih, ertesiGun, gecerliGunMu } = require("../utils/tarih");
 
 function tarihAraligi(req) {
-  const bugun = new Date().toISOString().slice(0, 10);
-  const baslangic = (req.query.baslangic || bugun) + " 00:00:00";
-  const bitis = (req.query.bitis || bugun) + " 23:59:59";
-  return [baslangic, bitis];
+  const bugun = yerelTarih();
+  const baslangicGunu = req.query.baslangic ?? bugun;
+  const bitisGunu = req.query.bitis ?? bugun;
+
+  if (!gecerliGunMu(baslangicGunu) || !gecerliGunMu(bitisGunu)) {
+    return { hata: "Tarih biçimi YYYY-AA-GG olmalı" };
+  }
+  if (baslangicGunu > bitisGunu) {
+    return { hata: "Başlangıç tarihi bitiş tarihinden sonra olamaz" };
+  }
+
+  return {
+    baslangicGunu,
+    bitisGunu,
+    altSinir: `${baslangicGunu} 00:00:00`,
+    ustSinir: `${ertesiGun(bitisGunu)} 00:00:00`,
+  };
 }
 
 const gunluk = async (req, res, next) => {
   try {
-    const [baslangic, bitis] = tarihAraligi(req);
+    const aralik = tarihAraligi(req);
+    if (aralik.hata) {
+      return res.status(400).json({ hata: aralik.hata });
+    }
+    const { baslangicGunu, bitisGunu, altSinir, ustSinir } = aralik;
 
     const [ozet] = await pool.query(
       `SELECT tip, COUNT(*) AS islem_sayisi, COALESCE(SUM(miktar), 0) AS toplam_miktar
        FROM stok_hareketleri
-       WHERE tarih BETWEEN ? AND ?
+       WHERE tarih >= ? AND tarih < ?
        GROUP BY tip`,
-      [baslangic, bitis],
+      [altSinir, ustSinir],
     );
 
     const [kullanicilar] = await pool.query(
@@ -27,10 +45,10 @@ const gunluk = async (req, res, next) => {
               SUM(CASE WHEN sh.tip = 'duzeltme' THEN 1 ELSE 0 END) AS duzeltme
        FROM stok_hareketleri sh
        LEFT JOIN kullanicilar k ON sh.olusturan_kullanici_id = k.id
-       WHERE sh.tarih BETWEEN ? AND ?
+       WHERE sh.tarih >= ? AND sh.tarih < ?
        GROUP BY sh.olusturan_kullanici_id, k.ad
        ORDER BY islem_sayisi DESC`,
-      [baslangic, bitis],
+      [altSinir, ustSinir],
     );
 
     const [kalemler] = await pool.query(
@@ -41,23 +59,23 @@ const gunluk = async (req, res, next) => {
        FROM stok_hareketleri sh
        JOIN urun_varyantlari v ON sh.varyant_id = v.id
        JOIN urunler u ON v.urun_id = u.id
-       WHERE sh.tarih BETWEEN ? AND ?
+       WHERE sh.tarih >= ? AND sh.tarih < ?
        GROUP BY sh.varyant_id, u.ad, v.boy, v.ambalaj_tipi, v.ambalaj_kg
        ORDER BY hareket_sayisi DESC
        LIMIT 10`,
-      [baslangic, bitis],
+      [altSinir, ustSinir],
     );
 
     const [siparis] = await pool.query(
       `SELECT COUNT(*) AS adet, COALESCE(SUM(toplam_tutar), 0) AS tutar
        FROM satinalma_siparisleri
-       WHERE siparis_tarihi BETWEEN ? AND ?`,
-      [baslangic, bitis],
+       WHERE siparis_tarihi >= ? AND siparis_tarihi < ?`,
+      [altSinir, ustSinir],
     );
 
     res.json({
-      baslangic,
-      bitis,
+      baslangic: baslangicGunu,
+      bitis: bitisGunu,
       ozet,
       kullanicilar,
       kalemler,

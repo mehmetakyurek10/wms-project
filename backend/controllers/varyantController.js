@@ -1,5 +1,11 @@
 const pool = require("../config/db");
 
+function toPalletCount(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number) || number <= 0) return null;
+  return Math.round(number);
+}
+
 const listele = async (req, res, next) => {
   try {
     const { urun_id, kategori_id, ara, aktif, sadece_dusuk, sayfa, limit } =
@@ -88,6 +94,7 @@ const ekle = async (req, res, next) => {
       boy,
       ambalaj_tipi,
       ambalaj_kg,
+      paletteki_adet,
       barkod,
       miktar,
       kritik_seviye,
@@ -100,13 +107,14 @@ const ekle = async (req, res, next) => {
 
     const [result] = await pool.query(
       `INSERT INTO urun_varyantlari
-       (urun_id, boy, ambalaj_tipi, ambalaj_kg, barkod, miktar, kritik_seviye, birim_fiyat)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (urun_id, boy, ambalaj_tipi, ambalaj_kg, paletteki_adet, barkod, miktar, kritik_seviye, birim_fiyat)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         urun_id,
         boy,
         ambalaj_tipi || "kova",
         ambalaj_kg || 10,
+        toPalletCount(paletteki_adet),
         barkod || null,
         miktar || 0,
         kritik_seviye || 0,
@@ -132,6 +140,7 @@ const guncelle = async (req, res, next) => {
       boy,
       ambalaj_tipi,
       ambalaj_kg,
+      paletteki_adet,
       barkod,
       kritik_seviye,
       birim_fiyat,
@@ -140,12 +149,14 @@ const guncelle = async (req, res, next) => {
 
     const [sonuc] = await pool.query(
       `UPDATE urun_varyantlari
-       SET boy=?, ambalaj_tipi=?, ambalaj_kg=?, barkod=?, kritik_seviye=?, birim_fiyat=?, aktif=?
+       SET boy=?, ambalaj_tipi=?, ambalaj_kg=?, paletteki_adet=?, barkod=?,
+           kritik_seviye=?, birim_fiyat=?, aktif=?
        WHERE id=?`,
       [
         boy,
         ambalaj_tipi,
         ambalaj_kg,
+        toPalletCount(paletteki_adet),
         barkod || null,
         kritik_seviye,
         birim_fiyat,
@@ -212,11 +223,11 @@ const varyantLokasyonlari = async (req, res, next) => {
   try {
     const { id } = req.params;
     const [rows] = await pool.query(
-      `SELECT vl.lokasyon_id, vl.miktar,
+      `SELECT sb.lokasyon_id, sb.miktar, sb.tip AS birim_tipi, sb.kod AS birim_kodu,
               l.kod, l.ad, l.tip, l.blok, l.sira, l.derinlik, l.kat
-       FROM varyant_lokasyon vl
-       JOIN lokasyonlar l ON vl.lokasyon_id = l.id
-       WHERE vl.varyant_id = ? AND vl.miktar > 0
+       FROM stok_birimleri sb
+       JOIN lokasyonlar l ON sb.lokasyon_id = l.id
+       WHERE sb.varyant_id = ? AND sb.miktar > 0
        ORDER BY l.kod`,
       [id],
     );

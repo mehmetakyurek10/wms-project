@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
+const pool = require("../config/db");
 
-const dogrula = (req, res, next) => {
+const dogrula = async (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -11,12 +12,33 @@ const dogrula = (req, res, next) => {
 
   const token = authHeader.split(" ")[1];
 
+  let payload;
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    payload = jwt.verify(token, process.env.JWT_SECRET);
+  } catch (err) {
+    return res.status(401).json({ hata: "Geçersiz veya süresi dolmuş token" });
+  }
+
+  try {
+    const [rows] = await pool.query(
+      "SELECT token_surumu FROM kullanicilar WHERE id = ?",
+      [payload.id],
+    );
+
+    if (!rows.length) {
+      return res.status(401).json({ hata: "Kullanıcı bulunamadı" });
+    }
+
+    if (rows[0].token_surumu !== payload.tv) {
+      return res
+        .status(401)
+        .json({ hata: "Oturumunuz sonlandırıldı, tekrar giriş yapın" });
+    }
+
     req.kullanici = payload;
     next();
   } catch (err) {
-    return res.status(401).json({ hata: "Geçersiz veya süresi dolmuş token" });
+    next(err);
   }
 };
 

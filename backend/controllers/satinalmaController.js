@@ -173,10 +173,17 @@ const teslimAl = async (req, res, next) => {
       );
 
       await connection.query(
-        `INSERT INTO varyant_lokasyon (varyant_id, lokasyon_id, miktar)
-         VALUES (?, ?, ?)
+        `INSERT INTO stok_birimleri
+         (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
+         VALUES ('dokme', ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE miktar = miktar + ?`,
-        [kalem.varyant_id, lokasyon_id, kalem.miktar, kalem.miktar],
+        [
+          kalem.varyant_id,
+          lokasyon_id,
+          kalem.miktar,
+          req.kullanici.id,
+          kalem.miktar,
+        ],
       );
 
       await connection.query(

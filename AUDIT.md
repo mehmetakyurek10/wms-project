@@ -754,6 +754,43 @@ https://github.com/advisories/GHSA-mh99-v99m-4gvg
 
 ---
 
+#### Karar — 2026-08-03 · `react-router` için **kabul edilen risk**
+
+Raporun açık bıraktığı "hangi sürüm yamalı" sorusu araştırıldı ve advisory sayfası doğrudan okundu:
+
+| | |
+|---|---|
+| Advisory | GHSA-qwww-vcr4-c8h2 · High · CVSS 7.1 · CWE-352 (CSRF) |
+| Etkilenen aralık | `react-router >= 7.12.0, < 8.3.0` |
+| Yamalı sürüm | `8.3.0` |
+| Kurulu sürüm | `react-router-dom@7.18.1` → `react-router@7.18.1` |
+
+**Advisory'nin kendi notu:** *"This only affects your application if you are using the unstable RSC APIs."*
+
+Bu proje `BrowserRouter` ile saf istemci tarafı SPA olarak çalışıyor; RSC API'leri, server action'lar veya `unstable_` önekli hiçbir arayüz kullanılmıyor. **Savunmasız kod yolu bu uygulamada hiç çalıştırılmıyor.**
+
+Düzeltme seçenekleri ve neden reddedildikleri:
+
+1. **`npm audit fix --force`** — `react-router-dom`'u `7.11.0`'a *düşürür* (7 sürüm geriye, kırıcı değişiklik). Sömürülemeyen bir açık için çalışan bir uygulamayı geriletmek net zarar.
+2. **`react-router-dom@7.18.2`** — npm'deki en güncel sürüm, ama hâlâ etkilenen aralıkta. Açığı kapatmaz.
+3. **`react-router@8.3.0`** — açığı gerçekten kapatan tek seçenek. Ancak v8'de `react-router-dom` paketi kaldırılmış (npm'de 7.18.2'de donmuş durumda); geçiş, tüm yönlendirme import'larının elle değiştirilmesini gerektiren major sürüm göçü.
+
+**Karar:** Risk kabul edildi. Şu an sürüm yükseltilmiyor.
+
+**Gerekçe:** Sömürülebilirlik sıfıra yakın (savunmasız kod yolu hiç çağrılmıyor), düzeltme maliyeti major sürüm göçü, ve bu bir iç ağda çalışan depo uygulaması.
+
+**Yeniden değerlendirme koşulları** — aşağıdakilerden biri olursa bu karar geçersizdir:
+
+- Projede RSC veya server action kullanılmaya başlanırsa
+- Uygulama internete açık bir adrese deploy edilirse
+- `react-router` için RSC dışı kod yollarını da etkileyen yeni bir advisory çıkarsa
+
+**Genel ders:** `npm audit` bağımlılık ağacındaki *sürüm numaralarına* bakar, o kodun *kullanılıp kullanılmadığına* bakmaz. Yüksek skoru görüp refleksle `--force` çalıştırmak, çalışan bir projeyi kırmanın en hızlı yoludur. Doğru sıra: advisory'i aç → "Affected versions" ve açıklama notunu oku → kendi kod tabanınla eşleşiyor mu bak → ancak ondan sonra karar ver.
+
+> **Backend notu:** Raporda geçen `brace-expansion` bulgusu, bağımlılıklar güncel sürümlere çözüldüğünde görünmüyor (`npm audit` → 0 açık). Bu paket zaten `nodemon` üzerinden gelen bir geliştirme bağımlılığıydı, production çalışma zamanına dahil değil. `backend/` içinde `npm audit fix` çalıştırılıp lock dosyası tazelenerek kapatılmalı.
+
+---
+
 ### F-29 — Girdi doğrulama şeması yok · **Orta**
 
 **Ne:** Doğrulama tamamen elle ve tutarsız. Örnekler:

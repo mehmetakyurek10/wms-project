@@ -42,6 +42,8 @@ function Varyantlar() {
     boy: "",
     ambalaj_tipi: "kova",
     ambalaj_kg: 10,
+    paletteki_adet: "",
+    barkod: "",
     barkod: "",
     miktar: 0,
     birim: "adet",
@@ -128,6 +130,7 @@ function Varyantlar() {
         boy: form.boy,
         ambalaj_tipi: form.ambalaj_tipi,
         ambalaj_kg: form.ambalaj_kg,
+        paletteki_adet: form.paletteki_adet,
         barkod: form.barkod,
         miktar: miktarAdet,
         kritik_seviye: form.kritik_seviye,
@@ -147,6 +150,7 @@ function Varyantlar() {
       boy: v.boy,
       ambalaj_tipi: v.ambalaj_tipi,
       ambalaj_kg: v.ambalaj_kg,
+      paletteki_adet: v.paletteki_adet ?? "",
       barkod: v.barkod || "",
       kritik_seviye: v.kritik_seviye,
       birim_fiyat: v.birim_fiyat,
@@ -239,6 +243,19 @@ function Varyantlar() {
             type="number"
             step="0.1"
             value={form.ambalaj_kg}
+            onChange={handleChange}
+          />
+        </div>
+
+        <div className="form-alan">
+          <label>Palette kaç adet</label>
+          <input
+            name="paletteki_adet"
+            type="number"
+            step="1"
+            min="1"
+            placeholder="Bilinmiyorsa boş"
+            value={form.paletteki_adet}
             onChange={handleChange}
           />
         </div>
@@ -386,6 +403,7 @@ function Varyantlar() {
                 <th>Ürün</th>
                 <th>Boy</th>
                 <th>Ambalaj</th>
+                <th>Palet adedi</th>
                 <th>Stok (adet)</th>
                 <th>Toplam kg</th>
                 <th>Kritik (adet)</th>
@@ -422,6 +440,21 @@ function Varyantlar() {
                         <option value="kova">Kova</option>
                         <option value="teneke">Teneke</option>
                       </select>
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="1"
+                        step="1"
+                        placeholder="—"
+                        value={duzenlemeForm.paletteki_adet}
+                        onChange={(e) =>
+                          setDuzenlemeForm({
+                            ...duzenlemeForm,
+                            paletteki_adet: e.target.value,
+                          })
+                        }
+                      />
                     </td>
                     <td>{Number(v.miktar).toFixed(0)}</td>
                     <td>
@@ -477,6 +510,7 @@ function Varyantlar() {
                     <td>
                       {Number(v.ambalaj_kg)} kg {v.ambalaj_tipi}
                     </td>
+                    <td>{v.paletteki_adet ?? "—"}</td>
                     <td>{Number(v.miktar).toFixed(0)}</td>
                     <td>
                       {(Number(v.miktar) * Number(v.ambalaj_kg)).toFixed(0)} kg

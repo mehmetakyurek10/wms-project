@@ -179,10 +179,10 @@ const teslimEt = async (req, res, next) => {
 
     for (const ihtiyac of sirali) {
       const [lokasyonStoklari] = await connection.query(
-        `SELECT vl.lokasyon_id, vl.miktar
-         FROM varyant_lokasyon vl
-         WHERE vl.varyant_id = ? AND vl.miktar > 0
-         ORDER BY vl.lokasyon_id
+        `SELECT sb.lokasyon_id, sb.miktar
+         FROM stok_birimleri sb
+         WHERE sb.tip = 'dokme' AND sb.varyant_id = ? AND sb.miktar > 0
+         ORDER BY sb.lokasyon_id
          FOR UPDATE`,
         [ihtiyac.varyant_id],
       );
@@ -219,8 +219,8 @@ const teslimEt = async (req, res, next) => {
 
     for (const tahsis of tahsisPlani) {
       await connection.query(
-        `UPDATE varyant_lokasyon SET miktar = miktar - ?
-         WHERE varyant_id = ? AND lokasyon_id = ?`,
+        `UPDATE stok_birimleri SET miktar = miktar - ?
+         WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id = ?`,
         [tahsis.miktar, tahsis.varyant_id, tahsis.lokasyon_id],
       );
 

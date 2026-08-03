@@ -72,8 +72,9 @@ const kaydet = async (req, res, next) => {
       const sayilan = sayimlar.get(varyantId);
 
       const [stokRows] = await connection.query(
-        `SELECT miktar FROM varyant_lokasyon
-         WHERE varyant_id = ? AND lokasyon_id = ? FOR UPDATE`,
+        `SELECT miktar FROM stok_birimleri
+         WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id = ?
+         FOR UPDATE`,
         [varyantId, lokasyon_id],
       );
 
@@ -97,10 +98,11 @@ const kaydet = async (req, res, next) => {
       );
 
       await connection.query(
-        `INSERT INTO varyant_lokasyon (varyant_id, lokasyon_id, miktar)
-         VALUES (?, ?, ?)
+        `INSERT INTO stok_birimleri
+         (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
+         VALUES ('dokme', ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE miktar = ?`,
-        [varyantId, lokasyon_id, sayilan, sayilan],
+        [varyantId, lokasyon_id, sayilan, req.kullanici.id, sayilan],
       );
 
       await connection.query(

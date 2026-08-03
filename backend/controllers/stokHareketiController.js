@@ -126,8 +126,9 @@ const ekle = async (req, res, next) => {
 
     if (tip === "cikis") {
       const [stokRows] = await connection.query(
-        `SELECT miktar FROM varyant_lokasyon
-         WHERE varyant_id = ? AND lokasyon_id = ? FOR UPDATE`,
+        `SELECT miktar FROM stok_birimleri
+         WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id = ?
+         FOR UPDATE`,
         [varyant_id, lokasyon_id],
       );
 
@@ -162,10 +163,17 @@ const ekle = async (req, res, next) => {
         [hareketMiktari, varyant_id],
       );
       await connection.query(
-        `INSERT INTO varyant_lokasyon (varyant_id, lokasyon_id, miktar)
-         VALUES (?, ?, ?)
+        `INSERT INTO stok_birimleri
+         (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
+         VALUES ('dokme', ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE miktar = miktar + ?`,
-        [varyant_id, lokasyon_id, hareketMiktari, hareketMiktari],
+        [
+          varyant_id,
+          lokasyon_id,
+          hareketMiktari,
+          req.kullanici.id,
+          hareketMiktari,
+        ],
       );
     } else {
       await connection.query(
@@ -174,8 +182,9 @@ const ekle = async (req, res, next) => {
       );
 
       const [dususSonuc] = await connection.query(
-        `UPDATE varyant_lokasyon SET miktar = miktar - ?
-         WHERE varyant_id = ? AND lokasyon_id = ? AND miktar >= ?`,
+        `UPDATE stok_birimleri SET miktar = miktar - ?
+         WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id = ?
+           AND miktar >= ?`,
         [hareketMiktari, varyant_id, lokasyon_id, hareketMiktari],
       );
 

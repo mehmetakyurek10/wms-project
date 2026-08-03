@@ -17,6 +17,8 @@ import SatisSiparisleri from "./pages/SatisSiparisleri";
 import Sayim from "./pages/Sayim";
 import DepoHaritasi from "./pages/DepoHaritası";
 import LokasyonYonetimi from "./pages/LokasyonYonetimi";
+import ChangePassword from "./pages/ChangePassword";
+import SystemHealth from "./pages/SystemHealth";
 
 function App() {
   useEffect(() => {
@@ -43,6 +45,8 @@ function App() {
             <Route path="/depo-haritasi" element={<DepoHaritasi />} />
             <Route path="/tedarikciler" element={<Tedarikciler />} />
             <Route path="/stok-hareketleri" element={<StokHareketleri />} />
+            <Route path="/sifre-degistir" element={<ChangePassword />} />
+            <Route path="/sistem-sagligi" element={<SystemHealth />} />
             <Route
               path="/satinalma-siparisleri"
               element={<SatinalmaSiparisleri />}

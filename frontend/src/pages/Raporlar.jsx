@@ -7,12 +7,11 @@ import {
 } from "lucide-react";
 import { gunlukRapor } from "../api/raporApi";
 import Etiket from "../components/Etiket";
-
-const bugun = () => new Date().toISOString().slice(0, 10);
+import { yerelTarih } from "../utils/tarih";
 
 function Raporlar() {
-  const [baslangic, setBaslangic] = useState(bugun());
-  const [bitis, setBitis] = useState(bugun());
+  const [baslangic, setBaslangic] = useState(yerelTarih());
+  const [bitis, setBitis] = useState(yerelTarih());
   const [rapor, setRapor] = useState(null);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
@@ -100,8 +99,8 @@ function Raporlar() {
           type="button"
           className="ikincil"
           onClick={() => {
-            setBaslangic(bugun());
-            setBitis(bugun());
+            setBaslangic(yerelTarih());
+            setBitis(yerelTarih());
           }}
         >
           Bugün

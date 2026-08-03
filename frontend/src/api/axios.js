@@ -1,8 +1,14 @@
 import axios from "axios";
 
-const api = axios.create({
-  baseURL: "http://localhost:3000",
-});
+const baseURL = import.meta.env.VITE_API_URL;
+
+if (!baseURL) {
+  throw new Error(
+    "VITE_API_URL tanımlı değil. frontend/.env dosyasını .env.example'a bakarak oluşturun.",
+  );
+}
+
+const api = axios.create({ baseURL });
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");

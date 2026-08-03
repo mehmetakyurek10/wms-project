@@ -7,10 +7,10 @@ const listele = async (req, res, next) => {
     const [rows] = await pool.query(
       `SELECT l.id, l.kod, l.ad, l.tip, l.blok, l.sira, l.derinlik, l.kat,
               l.satir, l.kolon, l.satir_span, l.kolon_span, l.kapasite, l.aktif,
-              COALESCE(SUM(vl.miktar), 0) AS toplam_miktar,
-              COUNT(CASE WHEN vl.miktar > 0 THEN 1 END) AS kalem_sayisi
+              COALESCE(SUM(sb.miktar), 0) AS toplam_miktar,
+              COUNT(CASE WHEN sb.miktar > 0 THEN 1 END) AS kalem_sayisi
        FROM lokasyonlar l
-       LEFT JOIN varyant_lokasyon vl ON vl.lokasyon_id = l.id
+       LEFT JOIN stok_birimleri sb ON sb.lokasyon_id = l.id
        GROUP BY l.id
        ORDER BY l.satir, l.kolon`,
     );
@@ -24,12 +24,12 @@ const stok = async (req, res, next) => {
   try {
     const { id } = req.params;
     const [rows] = await pool.query(
-      `SELECT vl.id, vl.miktar, vl.varyant_id,
+      `SELECT sb.id, sb.miktar, sb.varyant_id, sb.tip AS birim_tipi, sb.kod AS birim_kodu,
               u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg, v.barkod
-       FROM varyant_lokasyon vl
-       JOIN urun_varyantlari v ON vl.varyant_id = v.id
+       FROM stok_birimleri sb
+       JOIN urun_varyantlari v ON sb.varyant_id = v.id
        JOIN urunler u ON v.urun_id = u.id
-       WHERE vl.lokasyon_id = ? AND vl.miktar > 0
+       WHERE sb.lokasyon_id = ? AND sb.miktar > 0
        ORDER BY u.ad, v.boy`,
       [id],
     );
@@ -152,7 +152,7 @@ const sil = async (req, res, next) => {
     await connection.beginTransaction();
 
     const [stokSayim] = await connection.query(
-      "SELECT COALESCE(SUM(miktar), 0) AS toplam FROM varyant_lokasyon WHERE lokasyon_id = ?",
+      "SELECT COALESCE(SUM(miktar), 0) AS toplam FROM stok_birimleri WHERE lokasyon_id = ?",
       [id],
     );
 
@@ -175,10 +175,9 @@ const sil = async (req, res, next) => {
       });
     }
 
-    await connection.query(
-      "DELETE FROM varyant_lokasyon WHERE lokasyon_id = ?",
-      [id],
-    );
+    await connection.query("DELETE FROM stok_birimleri WHERE lokasyon_id = ?", [
+      id,
+    ]);
 
     const [sonuc] = await connection.query(
       "DELETE FROM lokasyonlar WHERE id = ?",
@@ -321,11 +320,11 @@ const tutarlilik = async (req, res, next) => {
     const [rows] = await pool.query(
       `SELECT v.id AS varyant_id, u.ad AS urun_adi, v.boy, v.ambalaj_tipi,
               v.miktar AS toplam,
-              COALESCE(SUM(vl.miktar), 0) AS lokasyon_toplami,
-              v.miktar - COALESCE(SUM(vl.miktar), 0) AS fark
+              COALESCE(SUM(sb.miktar), 0) AS lokasyon_toplami,
+              v.miktar - COALESCE(SUM(sb.miktar), 0) AS fark
        FROM urun_varyantlari v
        JOIN urunler u ON v.urun_id = u.id
-       LEFT JOIN varyant_lokasyon vl ON vl.varyant_id = v.id
+       LEFT JOIN stok_birimleri sb ON sb.varyant_id = v.id
        GROUP BY v.id
        HAVING fark <> 0
        ORDER BY ABS(fark) DESC`,

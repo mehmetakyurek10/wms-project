@@ -16,9 +16,11 @@ import {
   FileBarChart,
   Tags,
   Users,
+  Activity,
   Sun,
   Moon,
   LogOut,
+  KeyRound,
   Menu,
   X,
 } from "lucide-react";
@@ -80,6 +82,7 @@ function menuGruplari(kullanici) {
           ? [
               { to: "/kullanicilar", ikon: Users, ad: "Kullanıcılar" },
               { to: "/lokasyon-yonetimi", ikon: MapPin, ad: "Lokasyonlar" },
+              { to: "/sistem-sagligi", ikon: Activity, ad: "Sistem Sağlığı" },
             ]
           : []),
       ],
@@ -165,6 +168,13 @@ function Sidebar() {
             </div>
           )}
           <div className="yan-aksiyon">
+            <button
+              className="ikincil ikon-btn"
+              onClick={() => navigate("/sifre-degistir")}
+              title="Şifre Değiştir"
+            >
+              <KeyRound size={15} />
+            </button>
             <button
               className="ikincil ikon-btn"
               onClick={temaDegistir}

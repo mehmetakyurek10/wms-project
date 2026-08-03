@@ -52,7 +52,7 @@ const girisYap = async (req, res, next) => {
     }
 
     const [rows] = await pool.query(
-      "SELECT id, ad, email, sifre_hash, rol, aktif FROM kullanicilar WHERE email = ?",
+      "SELECT id, ad, email, sifre_hash, rol, aktif, token_surumu FROM kullanicilar WHERE email = ?",
       [email],
     );
 
@@ -74,7 +74,7 @@ const girisYap = async (req, res, next) => {
     }
 
     const token = jwt.sign(
-      { id: kullanici.id, rol: kullanici.rol },
+      { id: kullanici.id, rol: kullanici.rol, tv: kullanici.token_surumu },
       process.env.JWT_SECRET,
       { expiresIn: "8h" },
     );
