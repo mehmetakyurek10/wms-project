@@ -1,8 +1,22 @@
 const pool = require("../config/db");
+const { buildPagination } = require("../utils/pagination");
 
 const listele = async (req, res, next) => {
   try {
-    const [rows] = await pool.query("SELECT * FROM tedarikciler");
+    const { limit, offset } = buildPagination(req.query);
+
+    const [sayim] = await pool.query(
+      "SELECT COUNT(*) AS toplam FROM tedarikciler",
+    );
+    res.set("X-Toplam-Kayit", sayim[0].toplam);
+
+    const [rows] = await pool.query(
+      `SELECT id, ad, yetkili_kisi, telefon, email, adres
+       FROM tedarikciler
+       ORDER BY ad
+       LIMIT ? OFFSET ?`,
+      [limit, offset],
+    );
     res.json(rows);
   } catch (err) {
     next(err);

@@ -14,6 +14,8 @@ import Fis from "../components/Fis";
 import TeslimAlModal from "../components/TeslimAlModal";
 import { useToast } from "../context/ToastContext";
 
+const SAYFA_BOYUTU = 20;
+
 function SatinalmaSiparisleri() {
   const bildir = useToast();
   const [siparisler, setSiparisler] = useState([]);
@@ -23,6 +25,9 @@ function SatinalmaSiparisleri() {
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
   const [teslimAlinacak, setTeslimAlinacak] = useState(null);
+
+  const [sayfa, setSayfa] = useState(1);
+  const [toplam, setToplam] = useState(0);
 
   const [acikDetay, setAcikDetay] = useState(null);
   const [detayKalemler, setDetayKalemler] = useState([]);
@@ -36,30 +41,46 @@ function SatinalmaSiparisleri() {
     { varyant_id: "", miktar: "", birim: "adet", birim_fiyat: "" },
   ]);
 
-  const veriGetir = async () => {
+  const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
+
+  const tanimlariYukle = async () => {
     try {
-      const [siparisRes, tedarikciRes, varyantRes, lokasyonRes] =
-        await Promise.all([
-          siparisleriGetir(),
-          tedarikcileriGetir(),
-          varyantlariGetir(),
-          lokasyonlariGetir(),
-        ]);
-      setSiparisler(siparisRes.data);
+      const [tedarikciRes, varyantRes, lokasyonRes] = await Promise.all([
+        tedarikcileriGetir(),
+        varyantlariGetir(),
+        lokasyonlariGetir(),
+      ]);
       setTedarikciler(tedarikciRes.data);
       setVaryantlar(varyantRes.data);
       setLokasyonlar(lokasyonRes.data.filter((l) => l.aktif));
       setTedarikciId((mevcut) => mevcut || tedarikciRes.data[0]?.id || "");
     } catch (err) {
-      setHata("Veriler yüklenemedi");
+      setHata("Tanımlar yüklenemedi");
+    }
+  };
+
+  const siparisleriYukle = async () => {
+    try {
+      const response = await siparisleriGetir({
+        sayfa,
+        limit: SAYFA_BOYUTU,
+      });
+      setSiparisler(response.data);
+      setToplam(parseInt(response.headers["x-toplam-kayit"], 10) || 0);
+    } catch (err) {
+      setHata("Siparişler yüklenemedi");
     } finally {
       setYukleniyor(false);
     }
   };
 
   useEffect(() => {
-    veriGetir();
+    tanimlariYukle();
   }, []);
+
+  useEffect(() => {
+    siparisleriYukle();
+  }, [sayfa]);
 
   const kalemHesapla = (kalem) => {
     const varyant = varyantlar.find(
@@ -151,7 +172,11 @@ function SatinalmaSiparisleri() {
         { varyant_id: "", miktar: "", birim: "adet", birim_fiyat: "" },
       ]);
       bildir("Alım siparişi oluşturuldu");
-      veriGetir();
+      if (sayfa === 1) {
+        siparisleriYukle();
+      } else {
+        setSayfa(1);
+      }
     } catch (err) {
       bildir(err.response?.data?.hata || "Sipariş oluşturulamadı", "hata");
     }
@@ -163,7 +188,7 @@ function SatinalmaSiparisleri() {
     try {
       await siparisTeslimAl(id, { lokasyon_id: lokasyonId });
       bildir("Sipariş teslim alındı, stoklar güncellendi");
-      veriGetir();
+      siparisleriYukle();
     } catch (err) {
       bildir(err.response?.data?.hata || "Teslim alınamadı", "hata");
     }
@@ -293,116 +318,140 @@ function SatinalmaSiparisleri() {
       {siparisler.length === 0 ? (
         <div className="bos-durum">Henüz alım siparişi yok.</div>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th></th>
-              <th>#</th>
-              <th>Tedarikçi</th>
-              <th>Durum</th>
-              <th>Toplam Tutar</th>
-              <th>İşlem</th>
-            </tr>
-          </thead>
-          <tbody>
-            {siparisler.map((s) => (
-              <Fragment key={s.id}>
-                <tr>
-                  <td>
-                    <button
-                      className="ikincil ikon-btn"
-                      onClick={() => detayAc(s.id)}
-                      title="Kalemleri göster"
-                    >
-                      {acikDetay === s.id ? (
-                        <ChevronDown size={15} />
-                      ) : (
-                        <ChevronRight size={15} />
-                      )}
-                    </button>
-                  </td>
-                  <td>{s.id}</td>
-                  <td>{s.tedarikci_adi}</td>
-                  <td>
-                    <Etiket deger={s.durum} />
-                  </td>
-                  <td>{Number(s.toplam_tutar).toLocaleString("tr-TR")} ₺</td>
-                  <td>
-                    {s.durum !== "teslim_alindi" && s.durum !== "iptal" && (
-                      <button onClick={() => setTeslimAlinacak(s)}>
-                        Teslim Al
+        <>
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th>#</th>
+                <th>Tedarikçi</th>
+                <th>Durum</th>
+                <th>Toplam Tutar</th>
+                <th>İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              {siparisler.map((s) => (
+                <Fragment key={s.id}>
+                  <tr>
+                    <td>
+                      <button
+                        className="ikincil ikon-btn"
+                        onClick={() => detayAc(s.id)}
+                        title="Kalemleri göster"
+                      >
+                        {acikDetay === s.id ? (
+                          <ChevronDown size={15} />
+                        ) : (
+                          <ChevronRight size={15} />
+                        )}
                       </button>
-                    )}
-                    <button
-                      className="ikincil ikon-btn"
-                      onClick={() => fisAc(s)}
-                      title="Fiş"
-                    >
-                      <Receipt size={15} />
-                    </button>
-                  </td>
-                </tr>
-
-                {acikDetay === s.id && (
-                  <tr className="detay-satiri">
-                    <td colSpan={6}>
-                      {detayYukleniyor ? (
-                        <div className="yukleniyor-kutu">
-                          <div className="spinner" />
-                        </div>
-                      ) : detayKalemler.length === 0 ? (
-                        <div className="bos-durum">Bu siparişte kalem yok.</div>
-                      ) : (
-                        <table className="ic-tablo">
-                          <thead>
-                            <tr>
-                              <th>Ürün</th>
-                              <th>Varyant</th>
-                              <th>Miktar</th>
-                              <th>Toplam kg</th>
-                              <th>Birim Fiyat</th>
-                              <th>Tutar</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {detayKalemler.map((k) => (
-                              <tr key={k.id}>
-                                <td>{k.urun_adi}</td>
-                                <td>
-                                  {k.boy} · {Number(k.ambalaj_kg)}kg{" "}
-                                  {k.ambalaj_tipi}
-                                </td>
-                                <td>{Number(k.miktar).toFixed(0)} adet</td>
-                                <td>
-                                  {(
-                                    Number(k.miktar) * Number(k.ambalaj_kg)
-                                  ).toFixed(0)}{" "}
-                                  kg
-                                </td>
-                                <td>
-                                  {Number(k.birim_fiyat).toLocaleString(
-                                    "tr-TR",
-                                  )}{" "}
-                                  ₺
-                                </td>
-                                <td>
-                                  {(
-                                    Number(k.miktar) * Number(k.birim_fiyat)
-                                  ).toLocaleString("tr-TR")}{" "}
-                                  ₺
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                    </td>
+                    <td>{s.id}</td>
+                    <td>{s.tedarikci_adi}</td>
+                    <td>
+                      <Etiket deger={s.durum} />
+                    </td>
+                    <td>{Number(s.toplam_tutar).toLocaleString("tr-TR")} ₺</td>
+                    <td>
+                      {s.durum !== "teslim_alindi" && s.durum !== "iptal" && (
+                        <button onClick={() => setTeslimAlinacak(s)}>
+                          Teslim Al
+                        </button>
                       )}
+                      <button
+                        className="ikincil ikon-btn"
+                        onClick={() => fisAc(s)}
+                        title="Fiş"
+                      >
+                        <Receipt size={15} />
+                      </button>
                     </td>
                   </tr>
-                )}
-              </Fragment>
-            ))}
-          </tbody>
-        </table>
+
+                  {acikDetay === s.id && (
+                    <tr className="detay-satiri">
+                      <td colSpan={6}>
+                        {detayYukleniyor ? (
+                          <div className="yukleniyor-kutu">
+                            <div className="spinner" />
+                          </div>
+                        ) : detayKalemler.length === 0 ? (
+                          <div className="bos-durum">
+                            Bu siparişte kalem yok.
+                          </div>
+                        ) : (
+                          <table className="ic-tablo">
+                            <thead>
+                              <tr>
+                                <th>Ürün</th>
+                                <th>Varyant</th>
+                                <th>Miktar</th>
+                                <th>Toplam kg</th>
+                                <th>Birim Fiyat</th>
+                                <th>Tutar</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {detayKalemler.map((k) => (
+                                <tr key={k.id}>
+                                  <td>{k.urun_adi}</td>
+                                  <td>
+                                    {k.boy} · {Number(k.ambalaj_kg)}kg{" "}
+                                    {k.ambalaj_tipi}
+                                  </td>
+                                  <td>{Number(k.miktar).toFixed(0)} adet</td>
+                                  <td>
+                                    {(
+                                      Number(k.miktar) * Number(k.ambalaj_kg)
+                                    ).toFixed(0)}{" "}
+                                    kg
+                                  </td>
+                                  <td>
+                                    {Number(k.birim_fiyat).toLocaleString(
+                                      "tr-TR",
+                                    )}{" "}
+                                    ₺
+                                  </td>
+                                  <td>
+                                    {(
+                                      Number(k.miktar) * Number(k.birim_fiyat)
+                                    ).toLocaleString("tr-TR")}{" "}
+                                    ₺
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+
+          {toplam > SAYFA_BOYUTU && (
+            <div className="sayfalama">
+              <button
+                onClick={() => setSayfa(sayfa - 1)}
+                disabled={sayfa === 1}
+              >
+                Önceki
+              </button>
+              <span>
+                Sayfa {sayfa} / {toplamSayfa} · Toplam {toplam} kayıt
+              </span>
+              <button
+                onClick={() => setSayfa(sayfa + 1)}
+                disabled={sayfa >= toplamSayfa}
+              >
+                Sonraki
+              </button>
+            </div>
+          )}
+        </>
       )}
 
       <TeslimAlModal

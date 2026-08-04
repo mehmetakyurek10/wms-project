@@ -32,6 +32,9 @@ const gunEtiketi = (gun) => {
 
 const sayiBicimle = (deger) => Number(deger).toLocaleString("tr-TR");
 
+const basliktanSayi = (response) =>
+  parseInt(response.headers["x-toplam-kayit"], 10) || 0;
+
 function Panel() {
   const [veri, setVeri] = useState({
     urun: 0,
@@ -52,24 +55,22 @@ function Panel() {
           varyantRes,
           dusukRes,
           tedarikciRes,
-          siparisRes,
+          bekleyenRes,
           grafikRes,
         ] = await Promise.all([
           urunleriGetir(),
           varyantlariGetir(),
           dusukStokGetir(),
-          tedarikcileriGetir(),
-          siparisleriGetir(),
+          tedarikcileriGetir({ limit: 1 }),
+          siparisleriGetir({ bekleyen: 1, limit: 1 }),
           panelGrafikleri(),
         ]);
         setVeri({
           urun: urunRes.data.length,
           varyant: varyantRes.data.length,
           dusukStok: dusukRes.data.length,
-          tedarikci: tedarikciRes.data.length,
-          bekleyen: siparisRes.data.filter(
-            (s) => s.durum !== "teslim_alindi" && s.durum !== "iptal",
-          ).length,
+          tedarikci: basliktanSayi(tedarikciRes),
+          bekleyen: basliktanSayi(bekleyenRes),
         });
         setDusukListe(dusukRes.data);
         setGrafik(grafikRes.data);

@@ -43,7 +43,6 @@ function Varyantlar() {
     ambalaj_tipi: "kova",
     ambalaj_kg: 10,
     barkod: "",
-    barkod: "",
     miktar: 0,
     birim: "adet",
     kritik_seviye: 0,
@@ -424,21 +423,6 @@ function Varyantlar() {
                         <option value="teneke">Teneke</option>
                       </select>
                     </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="1"
-                        step="1"
-                        placeholder="—"
-                        value={duzenlemeForm.paletteki_adet}
-                        onChange={(e) =>
-                          setDuzenlemeForm({
-                            ...duzenlemeForm,
-                            paletteki_adet: e.target.value,
-                          })
-                        }
-                      />
-                    </td>
                     <td>{Number(v.miktar).toFixed(0)}</td>
                     <td>
                       {(Number(v.miktar) * Number(v.ambalaj_kg)).toFixed(0)} kg
@@ -493,7 +477,6 @@ function Varyantlar() {
                     <td>
                       {Number(v.ambalaj_kg)} kg {v.ambalaj_tipi}
                     </td>
-                    <td>{v.paletteki_adet ?? "—"}</td>
                     <td>{Number(v.miktar).toFixed(0)}</td>
                     <td>
                       {(Number(v.miktar) * Number(v.ambalaj_kg)).toFixed(0)} kg
@@ -538,6 +521,15 @@ function Varyantlar() {
           )}
         </>
       )}
+
+      <OnayModal
+        acik={silinecek !== null}
+        baslik="Stok kalemini sil"
+        mesaj={`${silinecek?.urun_adi} · ${silinecek?.boy} kalemi silinecek.`}
+        onayMetni="Sil"
+        onayla={silOnayla}
+        iptal={() => setSilinecek(null)}
+      />
     </div>
   );
 }

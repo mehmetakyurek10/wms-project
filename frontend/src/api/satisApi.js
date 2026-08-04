@@ -1,6 +1,7 @@
 import api from "./axios";
 
-export const satislariGetir = () => api.get("/satis-siparisleri");
+export const satislariGetir = (params) =>
+  api.get("/satis-siparisleri", { params });
 export const satisDetay = (id) => api.get(`/satis-siparisleri/${id}/kalemler`);
 export const satisOlustur = (data) => api.post("/satis-siparisleri", data);
 export const satisTeslimEt = (id, data) =>

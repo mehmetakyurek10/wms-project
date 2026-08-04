@@ -1,8 +1,16 @@
 const pool = require("../config/db");
+const { buildPagination } = require("../utils/pagination");
 const yuvarla = (sayi) => Math.round(sayi * 100) / 100;
 
 const listele = async (req, res, next) => {
   try {
+    const { limit, offset } = buildPagination(req.query);
+
+    const [sayim] = await pool.query(
+      "SELECT COUNT(*) AS toplam FROM satis_siparisleri",
+    );
+    res.set("X-Toplam-Kayit", sayim[0].toplam);
+
     const [siparisler] = await pool.query(
       `SELECT s.id, s.durum, s.siparis_tarihi, s.teslim_tarihi, s.toplam_tutar,
               m.ad AS musteri_adi, m.telefon AS musteri_telefon,
@@ -10,7 +18,9 @@ const listele = async (req, res, next) => {
        FROM satis_siparisleri s
        JOIN musteriler m ON s.musteri_id = m.id
        LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
-       ORDER BY s.siparis_tarihi DESC`,
+       ORDER BY s.siparis_tarihi DESC, s.id DESC
+       LIMIT ? OFFSET ?`,
+      [limit, offset],
     );
     res.json(siparisler);
   } catch (err) {

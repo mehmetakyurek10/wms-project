@@ -5,6 +5,69 @@
 **Yöntem:** Statik kod incelemesi (tüm controller / route / middleware dosyaları satır satır okundu), `npm audit`, git geçmişi taraması. Uygulama **çalıştırılmadı**, veritabanına bağlanılmadı.
 
 > **Önemli kısıt:** Repoda hiçbir şema (DDL), migration veya seed dosyası yok. Tablo tanımları, yabancı anahtarlar, `UNIQUE` kısıtları, `CHECK` kısıtları ve indeksler **doğrulanamadı**. Aşağıda şemaya dair her çıkarım yalnızca uygulama kodundaki ipuçlarına (`ER_DUP_ENTRY` yakalamaları, `ON DUPLICATE KEY UPDATE` kullanımı, kolon adları) dayanmaktadır ve "Doğrulanamayanlar" bölümünde ayrıca listelenmiştir.
+>
+> **Not:** Bu kısıt artık geçerli değil. `backend/db/schema.sql` repoya alındı ve güncel tutuluyor (bkz. Uygulama Durumu).
+
+---
+
+## 0. Uygulama Durumu — 4 Ağustos 2026
+
+Rapor 31 Temmuz'da yazıldı. Aşağıdaki tablo, 31 Temmuz – 4 Ağustos arasında yapılan çalışmanın sonucudur. Raporun geri kalanı **değiştirilmedi** — özgün hâliyle duruyor ki neyin nasıl bulunduğu izlenebilsin.
+
+### Durum tablosu
+
+| ID | Başlık | Durum | Not |
+|---|---|---|---|
+| F-01 | Açık kayıt ucu → yetki yükseltme | ✅ Kapandı | `kayitKorumasi.js` — kullanıcı tablosu boşken açık, sonrasında admin gerekli |
+| F-02 | Kimlik doğrulaması olmayan okuma uçları | ✅ Kapandı | `routes/index.js`'te `router.use(dogrula)` — varsayılan korumalı |
+| F-03 | Satınalma teslim alma çift işlenebiliyor | ✅ Kapandı, **doğrulandı** | `FOR UPDATE` + koşullu `UPDATE`; paralel `curl` ile test edildi (200 → 210, 220 değil) |
+| F-04 | Satış teslim etme çift işlenebiliyor | ✅ Kapandı | Aynı kalıp |
+| F-05 | Satınalma siparişi oluşturmada transaction yok | ✅ Kapandı | |
+| F-06 | Pasif kullanıcı giriş yapabiliyor | ✅ Kapandı | `girisYap` artık `aktif` kontrol ediyor |
+| F-07 | Brute-force koruması yok | ✅ Kapandı | `express-rate-limit`, 15 dk / 10 deneme |
+| F-08 | CORS tüm kaynaklara açık | ✅ Kapandı | `config.corsOrigin` beyaz listesi |
+| F-09 | Hata mesajı sızıntısı | ✅ Kapandı | `hataYonetici.js` üretimde detay vermiyor |
+| F-10 | Güvenlik header'ları / gövde sınırı yok | ✅ Kapandı | `helmet`, `express.json({ limit: "200kb" })` |
+| F-11 | Çift kayıtlı stok → kaçınılmaz drift | ✅ Yapısal sebep kaldırıldı | `varyant_lokasyon` düşürüldü, yerine `stok_birimleri` — dağılım tek kaynakta. `urun_varyantlari.miktar` hâlâ ayrı bir toplam olarak duruyor (aşağıya bkz.) |
+| F-12 | Satış teslimde deadlock riski | ✅ Kapandı | Kilitler her yerde sabit ölçüte göre sıralı alınıyor |
+| F-13 | Rezervasyon / tahsis mekanizması yok | ❌ Açık | Sipariş oluşturmak hâlâ stoğu bloke etmiyor |
+| F-14 | Sipariş iptali transaction'sız | ✅ Fiilen kapandı | Tek ifadeli koşullu `UPDATE`, atomik. Yalnızca `beklemede` sipariş iptal edilebiliyor, o da stoğa dokunmamış oluyor |
+| F-15 | İdempotanlık anahtarı yok | ❌ Açık | Koşullu `UPDATE`'ler çift işlemeyi engelliyor ama gerçek idempotanlık anahtarı yok |
+| F-16 | Bağlantı sızıntısı riski | ✅ Kapandı | Tüm işlem kullanan denetleyicilerde `try/finally` |
+| F-17 | Sayfalanmayan listeler, `SELECT *` | ⚠️ Kısmen | Varyant, stok hareketleri, transfer, stok birimleri sayfalanıyor. Müşteriler, tedarikçiler, satış ve satınalma siparişleri hâlâ sayfalanmıyor |
+| F-18 | Döngü içinde tek tek `INSERT` | ⚠️ Kısmen | `blokOlustur` toplu `INSERT`'e geçti. `satinalmaController.teslimAl` kalem döngüsü duruyor |
+| F-19 | Bağlantı havuzu yapılandırılmamış | ✅ Kapandı | `connectionLimit: 20`, `queueLimit: 50`, `enableKeepAlive` |
+| F-20 | Kısmi kullanıcı güncellemesi patlıyor | ✅ Kapandı | Beyaz listeli dinamik `SET` |
+| F-21 | Şema ve migration yönetimi yok | ⚠️ Kısmen | `backend/db/schema.sql` repoda ve güncel. Versiyonlanmış migration altyapısı hâlâ yok |
+| F-22 | Sıfır test | ❌ Açık | **Raporun en büyük açık maddesi.** Her şey elle `curl` ve arayüz üzerinden doğrulandı |
+| F-23 | Servis katmanı yok | ❌ Açık | SQL + iş kuralı + HTTP hâlâ aynı fonksiyonda |
+| F-24 | Token saklama ve oturum yönetimi | ⚠️ Kısmen | `kullanicilar.token_surumu` eklendi; şifre değişince tüm oturumlar geçersiz oluyor. Token hâlâ `localStorage`'da |
+| F-25 | Ortam ayrımı yok | ✅ Kapandı | `VITE_API_URL`; tanımsızsa uygulama açılışta duruyor |
+| F-26 | `/test-db` ucu sızdırıyor | ✅ Kapandı | `/saglik` — DB hatası sızdırmıyor |
+| F-27 | `.env.example` eksik, env doğrulaması yok | ✅ Kapandı | `config/env.js` başlangıçta doğruluyor ve gerekirse süreci sonlandırıyor |
+| F-28 | Bağımlılık güvenlik açıkları | ✅ Kapandı | Backend `npm audit` → 0 açık. Frontend `react-router` bulgusu gerekçeli **kabul edilen risk** (bkz. F-28 bölümü) |
+| F-29 | Girdi doğrulama şeması yok | ❌ Açık | Doğrulama her denetleyicide elle. Tarih biçimi ve miktar kontrolleri eklendi ama şema tabanlı değil |
+| F-30 | Gözlemlenebilirlik ve operasyon | ⚠️ Kısmen | `/saglik` (liveness) ve `/sistem/kontroller` (veri bütünlüğü) var. Graceful shutdown ve yapılandırılmış log yok |
+| F-31 | Frontend kod kalitesi | ❌ Açık | `index.css` hâlâ tek dosya; bazı `catch` blokları hatayı yutuyor |
+
+**Özet:** 31 bulgunun **19'u tamamen kapandı**, **6'sı kısmen**, **6'sı açık.** Kritik ve yüksek önemli güvenlik bulgularının tamamı kapandı.
+
+### Raporda olmayan, sonradan bulunan ve düzeltilen
+
+| Bulgu | Durum |
+|---|---|
+| **Saat dilimi karışıklığı** — rapor tarih aralığı UTC ile hesaplanıyor, kayıtlar yerel saatle tutuluyordu. Gece 00:00–03:00 arası girilen hareketler bir önceki güne düşüyordu | ✅ `utils/tarih.js`, yarı açık aralık, biçim doğrulaması |
+| **Sayım varyant bazlıydı** — aynı lokasyonda aynı üründen iki palet varsa ikisi tek satır sayılıyordu | ✅ Sayım birim bazlı hale getirildi |
+| **`paletteki_adet` yanlış model** — palet başına adet sabit varsayılmıştı; gerçekte palet palet değişiyor. Kapasite kontrolü sahte uyarı üretiyordu | ✅ Kolon kaldırıldı, kapasite `COUNT(*) WHERE tip='palet'` ile hesaplanıyor |
+
+### Rapor kapsamı dışında eklenen yetenekler
+
+- **Palet (LPN) modeli.** Her fiziksel taşıma birimi kendi kaydı: `stok_birimleri` (`tip='palet'` kodlu, `tip='dokme'` kodsuz). Palet başına miktar sabit değil, her palet kendi sayısını taşıyor. Bu, F-11'in yapısal çözümü oldu.
+- **Barkod ile palet sorgulama.** `GET /stok-birimleri/kod/:kod`. Okuyucu klavye gibi çalıştığı için ek entegrasyon gerekmiyor — rapordaki 5.3 maddesinin temeli atıldı.
+- **Birim bazlı toplama.** Satış teslim edilirken hangi paletten/dökmeden kaç adet çıkacağını kullanıcı seçiyor; sunucu toplamı siparişle birebir doğruluyor.
+- **Şifre değiştirme + oturum sonlandırma.** `token_surumu` ile diğer cihazların oturumu düşüyor.
+- **Sistem sağlığı ekranı.** Stok sapması, negatif stok, pasif lokasyonda stok, kapasite aşımı — dört kontrol, admin'e kapalı bir sayfada.
+- **Panel grafikleri.** Son 14 gün giriş/çıkış, en çok hareket gören 10 kalem, bölgelere göre dağılım.
 
 ---
 
@@ -949,3 +1012,65 @@ Aşağıdaki maddeler **statik inceleme ile kesinleştirilemedi**. Bunlar bulgu 
 ## 7. Bugün yapılacak üç şey
 
 Bugün üç şey yapılacaksa: **birincisi**, `POST /auth/kayit` ucundan `rol` alanını kaldırıp ucu kapatmak ve `routes/index.js`'te `/auth` dışındaki tüm router'ları global `dogrula` arkasına almak — bu iki dosyada toplam beş satırlık değişiklik, sistemin "yetkilendirmesi var" ile "yetkilendirmesi gerçekten çalışıyor" arasındaki farkı kapatıyor ve müşteri kişisel verilerinin anonim erişime açık olmasını sonlandırıyor. **İkincisi**, `satinalmaController.teslimAl` ve `satisController.teslimEt` içindeki sipariş `SELECT`'lerini `beginTransaction()` sonrasına taşıyıp `FOR UPDATE` eklemek — yine birkaç satır, ama bugünden itibaren her çift tıklamanın veya ağ retry'ının sessizce stok bozmasını engelliyor; bu hatanın maliyeti zamanla birikiyor ve geriye dönük düzeltilmesi neredeyse imkânsız. **Üçüncüsü**, `mysqldump --no-data --routines` ile mevcut şemayı repoya almak — çünkü şu anda bu sistemin veri modeli yalnızca çalışan bir MySQL sunucusunun içinde yaşıyor; o sunucu kaybolursa proje kurtarılamaz ve bu, listedeki en ucuz ama en yüksek getirili sigorta.
+
+> **4 Ağustos notu:** Bu üç maddenin üçü de yapıldı.
+
+---
+
+## 8. Bundan sonra ne yapılabilir
+
+31 Temmuz raporundaki bulguların çoğu kapandı ve palet modeliyle sistem gerçek bir WMS'e yaklaştı. Bundan sonrası için sıra önerisi aşağıda. Sıralama önem × maliyet dengesine göre; yukarıdan aşağı gitmek mantıklı.
+
+### 8.1 Teslimden önce — küçük ama eksikliği göze batar
+
+**README yazılması.** Repoda hiç yok. Kurulum adımları, ortam değişkenleri, veritabanı kurulumu, `npm run dev`. Projeyi ilk kez açan biri şu an nereden başlayacağını bilemez. Yarım saatlik iş, teslimde ilk bakılan yer.
+
+**Graceful shutdown.** `SIGTERM` alındığında yeni istek kabul etmeyi bırakıp açık işlemlerin bitmesini beklemek ve havuzu kapatmak. Şu an süreç öldürüldüğünde yarım kalan bir transaction varsa MySQL zaman aşımına bırakılıyor. Yirmi satır.
+
+**Kalan listelerin sayfalanması (F-17).** Müşteriler, tedarikçiler, satış ve satınalma siparişleri hâlâ tek seferde çekiliyor. Sayfalama kalıbı projede zaten dört yerde var, kopyalanacak.
+
+**"Hazırlanıyor" durumu.** `satis_siparisleri.durum` enum'unda var ama hiçbir kod yazmıyor. Sipariş satırına elle "Hazırlamaya Başla" / "Geri Al" butonu koymak, hangi siparişin toplanmakta olduğunu görünür kılar. Otomatik kilit yapılmamalı — bırakma yolu olmayan kilit takılı sipariş üretir.
+
+### 8.2 Sistemi sağlamlaştıran — orta vade
+
+**Test altyapısı (F-22).** Raporun en büyük açık maddesi ve bugün eklenen her şey elle doğrulandı. Node'un yerleşik test runner'ı + `supertest` yeterli. İlk yazılacak test şu olmalı:
+
+> Bir dizi giriş / çıkış / transfer / paletleme / satış / sayım işleminden sonra
+> `SUM(stok_birimleri.miktar) == urun_varyantlari.miktar`
+
+Bu tek değişmez testi, bugün elle kovaladığımız sapma sınıfının tamamını yakalar. Palet modeline geçerken beş ayrı denetleyicide miktar düşme mantığı değişti; her seferinde Sistem Sağlığı ekranını elle yenileyip sapmaya baktık. Bu testle o kontrol otomatikleşir.
+
+**`urun_varyantlari.miktar`'ın kaldırılması (F-11'in kalanı).** Dağılım artık tek kaynakta ama toplam hâlâ ayrı bir kolonda tutuluyor ve her işlemde ayrıca güncelleniyor. Kaldırılıp `SUM(stok_birimleri.miktar)` ile hesaplanırsa sapma matematiksel olarak imkânsız hale gelir. Bedeli: `listele`, `dusukStok` ve panel sorgularının `GROUP BY`'a geçmesi ve `stok_birimleri(varyant_id)` indeksinin önem kazanması. Test altyapısı kurulduktan **sonra** yapılmalı.
+
+**Rezervasyon / tahsis (F-13).** Sipariş oluşturmak stoğu hâlâ bloke etmiyor; aynı 100 kova üç ayrı siparişe satılabiliyor, sorun teslim anında çıkıyor. `stok_birimleri`'ne `rezerve_miktar` kolonu ya da ayrı bir `stok_rezervasyonlari` tablosu. Palet modeli bunu kolaylaştırdı — rezervasyon artık birim düzeyinde yapılabilir.
+
+**Şema tabanlı girdi doğrulama (F-29).** Her denetleyicide elle yazılan `Number.isFinite` / `typeof` kontrolleri yerine `zod` benzeri bir katman. Doğrulama kodu yarıya iner ve hata mesajları tutarlı hale gelir.
+
+**Versiyonlanmış migration (F-21'in kalanı).** `schema.sql` bir anlık görüntü, değişiklik geçmişi tutmuyor. Bu hafta içinde altı `ALTER TABLE` elle çalıştırıldı ve hiçbiri repoda kayıtlı değil. `db/migrations/001_....sql` gibi sıralı dosyalar ve hangi migration'ın uygulandığını tutan bir tablo yeterli.
+
+**Token saklama (F-24'ün kalanı).** Şifre değişince oturum sonlandırma eklendi ama token hâlâ `localStorage`'da, yani XSS ile okunabilir. `httpOnly` cookie'ye geçiş doğru adım; CSRF koruması gerektirir.
+
+### 8.3 Ürün yetenekleri — uzun vade
+
+**Palet etiketi basma.** Palet kodu üretiliyor ama etiket basılmıyor. Yazdırılabilir bir barkod etiketi (Code128 ya da QR) `Fis` bileşenindeki yazdırma kalıbıyla aynı mantıkta yapılabilir. Barkod okuyucu geldiğinde döngü tamamlanır: etiket bas → yapıştır → okut → bul.
+
+**Parti / lot takibi ve FEFO.** Zeytinde raf ömrü var; şu an hangi partinin ne zaman geldiği kaydedilmiyor. `stok_birimleri`'ne `parti_no` ve `son_kullanma_tarihi` eklemek doğal yol — palet zaten fiziksel bir birim olduğu için parti bilgisi tam oraya oturuyor. Tahsis sırası `ORDER BY son_kullanma_tarihi` olur. **Bu, palet modeline geçilmiş olması sayesinde artık ucuz bir iş.**
+
+**Toplama listesi (pick list).** Toplama ekranı birim seçtiriyor ama yazdırılabilir bir liste üretmiyor. Lokasyon koordinatları (`satir`, `kolon`, `blok`, `sira`) zaten var; toplama sırası depo içinde yürüme mesafesine göre sıralanabilir.
+
+**Excel dışa aktarma.** Stok listesi, hareket dökümü, sayım sonucu. Muhasebeye veri aktarımı için pratikte en çok istenen şey.
+
+**Kategori ayrımı.** "Yeşil Zeytin" / "Siyah Zeytin" ayrımı hâlâ yapılmadı — kod işi değil, veri işi.
+
+**Döngüsel sayım (cycle counting).** Tüm depoyu yılda bir kez saymak yerine her gün birkaç lokasyon saymak. Sayım altyapısı hazır; eksik olan sadece "bugün hangi lokasyonlar sayılacak" listesini üreten mantık.
+
+**Çok depolu yapı.** Şu an tek depo varsayılıyor. İkinci bir depo açılırsa `lokasyonlar`'a `depo_id` eklenmesi ve tüm sorgulara depo filtresi girmesi gerekir. Erken yapılırsa maliyeti düşük, geç kalınırsa her sorguya dokunmak gerekir.
+
+### 8.4 Bilinçli olarak yapılmayanlar
+
+Bunlar unutulmuş değil, tartışılıp ertelenmiş kararlar:
+
+- **`react-router` sürüm yükseltmesi** — sömürülemeyen bir açık için major göç maliyetine değmez (bkz. F-28 kararı). İptal koşulları orada yazılı.
+- **Otomatik tahsis kuralı (FIFO / en büyükten)** — teslimde hangi birimden çıkılacağına sistem değil kullanıcı karar veriyor. Müşteriye göre değişen bir tercih olduğu için bilinçli seçim.
+- **Mal kabulde palet oluşturma** — gelen mal dökme iniyor, paletleme ayrı adım. Gerçek akışa daha yakın: mal önce yere iner, sonra istiflenir.
+- **Docker** — tek makinede geliştirilen, tek veritabanı kullanan bir projede fayda değil sürtünme getiriyor. Deploy aşamasında yeniden değerlendirilecek.

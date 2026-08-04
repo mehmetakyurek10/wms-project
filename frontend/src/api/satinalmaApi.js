@@ -1,6 +1,7 @@
 import api from "./axios";
 
-export const siparisleriGetir = () => api.get("/satinalma-siparisleri");
+export const siparisleriGetir = (params) =>
+  api.get("/satinalma-siparisleri", { params });
 export const siparisOlustur = (data) =>
   api.post("/satinalma-siparisleri", data);
 export const siparisTeslimAl = (id, data) =>

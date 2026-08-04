@@ -1,13 +1,28 @@
 const pool = require("../config/db");
+const { buildPagination } = require("../utils/pagination");
 
 const listele = async (req, res, next) => {
   try {
+    const { limit, offset } = buildPagination(req.query);
+
+    const kosul =
+      req.query.bekleyen === "1"
+        ? " WHERE s.durum NOT IN ('teslim_alindi','iptal')"
+        : "";
+
+    const [sayim] = await pool.query(
+      `SELECT COUNT(*) AS toplam FROM satinalma_siparisleri s${kosul}`,
+    );
+    res.set("X-Toplam-Kayit", sayim[0].toplam);
+
     const [siparisler] = await pool.query(
       `SELECT s.id, s.durum, s.siparis_tarihi, s.teslim_tarihi, s.toplam_tutar,
               t.ad AS tedarikci_adi, t.telefon AS tedarikci_telefon
        FROM satinalma_siparisleri s
-       JOIN tedarikciler t ON s.tedarikci_id = t.id
-       ORDER BY s.siparis_tarihi DESC`,
+       JOIN tedarikciler t ON s.tedarikci_id = t.id${kosul}
+       ORDER BY s.siparis_tarihi DESC, s.id DESC
+       LIMIT ? OFFSET ?`,
+      [limit, offset],
     );
     res.json(siparisler);
   } catch (err) {
@@ -162,43 +177,74 @@ const teslimAl = async (req, res, next) => {
     }
 
     const [kalemler] = await connection.query(
-      "SELECT * FROM satinalma_siparis_kalemleri WHERE siparis_id = ? ORDER BY varyant_id",
+      `SELECT varyant_id, miktar FROM satinalma_siparis_kalemleri
+       WHERE siparis_id = ? ORDER BY varyant_id`,
       [id],
     );
 
+    if (!kalemler.length) {
+      await connection.rollback();
+      return res.status(400).json({ hata: "Bu siparişte kalem yok" });
+    }
+
+    const varyantToplamlari = new Map();
+
     for (const kalem of kalemler) {
-      await connection.query(
-        "UPDATE urun_varyantlari SET miktar = miktar + ? WHERE id = ?",
-        [kalem.miktar, kalem.varyant_id],
-      );
-
-      await connection.query(
-        `INSERT INTO stok_birimleri
-         (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
-         VALUES ('dokme', ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE miktar = miktar + ?`,
-        [
-          kalem.varyant_id,
-          lokasyon_id,
-          kalem.miktar,
-          req.kullanici.id,
-          kalem.miktar,
-        ],
-      );
-
-      await connection.query(
-        `INSERT INTO stok_hareketleri
-         (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
-         VALUES (?, ?, 'giris', 'satinalma', ?, ?, ?)`,
-        [
-          kalem.varyant_id,
-          lokasyon_id,
-          kalem.miktar,
-          `Satınalma siparişi #${id} teslim alındı`,
-          req.kullanici.id,
-        ],
+      const onceki = varyantToplamlari.get(kalem.varyant_id) || 0;
+      varyantToplamlari.set(
+        kalem.varyant_id,
+        Math.round((onceki + Number(kalem.miktar)) * 100) / 100,
       );
     }
+
+    const varyantIdleri = [...varyantToplamlari.keys()].sort((a, b) => a - b);
+
+    const caseParcalari = varyantIdleri.map(() => "WHEN ? THEN ?").join(" ");
+    const caseDegerleri = [];
+    for (const varyantId of varyantIdleri) {
+      caseDegerleri.push(varyantId, varyantToplamlari.get(varyantId));
+    }
+
+    await connection.query(
+      `UPDATE urun_varyantlari
+       SET miktar = miktar + CASE id ${caseParcalari} ELSE 0 END
+       WHERE id IN (?)`,
+      [...caseDegerleri, varyantIdleri],
+    );
+
+    const birimSatirlari = varyantIdleri.map((varyantId) => [
+      "dokme",
+      varyantId,
+      lokasyon_id,
+      varyantToplamlari.get(varyantId),
+      req.kullanici.id,
+    ]);
+
+    await connection.query(
+      `INSERT INTO stok_birimleri
+       (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
+       VALUES ?
+       AS yeni
+       ON DUPLICATE KEY UPDATE miktar = stok_birimleri.miktar + yeni.miktar`,
+      [birimSatirlari],
+    );
+
+    const hareketSatirlari = kalemler.map((kalem) => [
+      kalem.varyant_id,
+      lokasyon_id,
+      "giris",
+      "satinalma",
+      Number(kalem.miktar),
+      `Satınalma siparişi #${id} teslim alındı`,
+      req.kullanici.id,
+    ]);
+
+    await connection.query(
+      `INSERT INTO stok_hareketleri
+       (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
+       VALUES ?`,
+      [hareketSatirlari],
+    );
 
     const [durumSonuc] = await connection.query(
       `UPDATE satinalma_siparisleri

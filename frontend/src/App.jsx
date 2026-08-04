@@ -15,7 +15,7 @@ import Raporlar from "./pages/Raporlar";
 import Musteriler from "./pages/Musteriler";
 import SatisSiparisleri from "./pages/SatisSiparisleri";
 import Sayim from "./pages/Sayim";
-import DepoHaritasi from "./pages/DepoHaritası";
+import DepoHaritasi from "./pages/DepoHaritasi";
 import LokasyonYonetimi from "./pages/LokasyonYonetimi";
 import ChangePassword from "./pages/ChangePassword";
 import SystemHealth from "./pages/SystemHealth";
