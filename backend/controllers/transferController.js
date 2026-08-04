@@ -38,27 +38,29 @@ const listele = async (req, res, next) => {
 const olustur = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
-    const {
-      varyant_id,
-      kaynak_lokasyon_id,
-      hedef_lokasyon_id,
-      miktar,
-      aciklama,
-    } = req.body;
+    const { birim_id, hedef_lokasyon_id, miktar, aciklama } = req.body;
 
-    const tasinacak = Number(miktar);
-    const kaynakId = Number(kaynak_lokasyon_id);
+    const birimId = Number(birim_id);
     const hedefId = Number(hedef_lokasyon_id);
 
-    if (!varyant_id || !kaynakId || !hedefId) {
+    if (!Number.isInteger(birimId) || !Number.isInteger(hedefId)) {
       return res
         .status(400)
-        .json({ hata: "Varyant, kaynak ve hedef lokasyon zorunludur" });
+        .json({ hata: "Taşınacak birim ve hedef lokasyon zorunludur" });
     }
 
-    if (!Number.isFinite(tasinacak) || tasinacak <= 0) {
-      return res.status(400).json({ hata: "Miktar sıfırdan büyük olmalıdır" });
+    const [birimRows] = await connection.query(
+      `SELECT id, tip, kod, varyant_id, lokasyon_id, miktar
+       FROM stok_birimleri WHERE id = ?`,
+      [birimId],
+    );
+
+    if (!birimRows.length) {
+      return res.status(404).json({ hata: "Stok birimi bulunamadı" });
     }
+
+    const birim = birimRows[0];
+    const kaynakId = Number(birim.lokasyon_id);
 
     if (kaynakId === hedefId) {
       return res
@@ -68,77 +70,122 @@ const olustur = async (req, res, next) => {
 
     await connection.beginTransaction();
 
-    const [lokasyonRows] = await connection.query(
-      "SELECT id FROM lokasyonlar WHERE id IN (?, ?) AND aktif = TRUE",
-      [kaynakId, hedefId],
+    const [hedefRows] = await connection.query(
+      "SELECT id FROM lokasyonlar WHERE id = ? AND aktif = TRUE",
+      [hedefId],
     );
 
-    if (lokasyonRows.length !== 2) {
+    if (!hedefRows.length) {
       await connection.rollback();
-      return res
-        .status(404)
-        .json({ hata: "Kaynak ya da hedef lokasyon bulunamadı" });
+      return res.status(404).json({ hata: "Hedef lokasyon bulunamadı" });
     }
 
-    const [kilitliRows] = await connection.query(
-      `SELECT lokasyon_id, miktar FROM stok_birimleri
-       WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id IN (?, ?)
-       ORDER BY lokasyon_id
-       FOR UPDATE`,
-      [varyant_id, kaynakId, hedefId],
-    );
+    let tasinan;
 
-    const kaynakSatiri = kilitliRows.find(
-      (r) => Number(r.lokasyon_id) === kaynakId,
-    );
-    const kaynaktaki = kaynakSatiri ? Number(kaynakSatiri.miktar) : 0;
+    if (birim.tip === "palet") {
+      const [kilitli] = await connection.query(
+        "SELECT id, lokasyon_id, miktar FROM stok_birimleri WHERE id = ? FOR UPDATE",
+        [birimId],
+      );
 
-    if (kaynaktaki < tasinacak) {
-      await connection.rollback();
-      return res.status(400).json({
-        hata: `Kaynak lokasyonda yeterli stok yok (mevcut ${kaynaktaki.toFixed(0)})`,
-      });
+      if (!kilitli.length) {
+        await connection.rollback();
+        return res.status(404).json({ hata: "Palet bulunamadı" });
+      }
+
+      tasinan = Number(kilitli[0].miktar);
+
+      const [sonuc] = await connection.query(
+        `UPDATE stok_birimleri SET lokasyon_id = ?
+         WHERE id = ? AND lokasyon_id = ?`,
+        [hedefId, birimId, kaynakId],
+      );
+
+      if (sonuc.affectedRows === 0) {
+        await connection.rollback();
+        return res.status(409).json({
+          hata: "Palet bu sırada taşınmış, işlem geri alındı. Tekrar deneyin.",
+        });
+      }
+    } else {
+      tasinan = Number(miktar);
+
+      if (!Number.isFinite(tasinan) || tasinan <= 0) {
+        await connection.rollback();
+        return res
+          .status(400)
+          .json({ hata: "Miktar sıfırdan büyük olmalıdır" });
+      }
+
+      const [kilitliRows] = await connection.query(
+        `SELECT lokasyon_id, miktar FROM stok_birimleri
+         WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id IN (?, ?)
+         ORDER BY lokasyon_id
+         FOR UPDATE`,
+        [birim.varyant_id, kaynakId, hedefId],
+      );
+
+      const kaynakSatiri = kilitliRows.find(
+        (r) => Number(r.lokasyon_id) === kaynakId,
+      );
+      const kaynaktaki = kaynakSatiri ? Number(kaynakSatiri.miktar) : 0;
+
+      if (kaynaktaki < tasinan) {
+        await connection.rollback();
+        return res.status(400).json({
+          hata: `Kaynak lokasyonda yeterli stok yok (mevcut ${kaynaktaki.toFixed(0)})`,
+        });
+      }
+
+      const [dususSonuc] = await connection.query(
+        `UPDATE stok_birimleri SET miktar = miktar - ?
+         WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id = ?
+           AND miktar >= ?`,
+        [tasinan, birim.varyant_id, kaynakId, tasinan],
+      );
+
+      if (dususSonuc.affectedRows === 0) {
+        await connection.rollback();
+        return res.status(409).json({
+          hata: "Stok bu sırada değişmiş, transfer geri alındı. Tekrar deneyin.",
+        });
+      }
+
+      await connection.query(
+        `DELETE FROM stok_birimleri
+         WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id = ? AND miktar = 0`,
+        [birim.varyant_id, kaynakId],
+      );
+
+      await connection.query(
+        `INSERT INTO stok_birimleri
+         (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
+         VALUES ('dokme', ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE miktar = miktar + ?`,
+        [birim.varyant_id, hedefId, tasinan, req.kullanici.id, tasinan],
+      );
     }
 
-    const [dususSonuc] = await connection.query(
-      `UPDATE stok_birimleri SET miktar = miktar - ?
-       WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id = ?
-         AND miktar >= ?`,
-      [tasinacak, varyant_id, kaynakId, tasinacak],
-    );
-
-    if (dususSonuc.affectedRows === 0) {
-      await connection.rollback();
-      return res.status(409).json({
-        hata: "Stok bu sırada değişmiş, transfer geri alındı. Tekrar deneyin.",
-      });
-    }
-
-    await connection.query(
-      `INSERT INTO stok_birimleri
-       (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
-       VALUES ('dokme', ?, ?, ?, ?)
-       ON DUPLICATE KEY UPDATE miktar = miktar + ?`,
-      [varyant_id, hedefId, tasinacak, req.kullanici.id, tasinacak],
-    );
+    const not =
+      birim.tip === "palet"
+        ? `${birim.kod} paleti taşındı${aciklama ? ` · ${aciklama}` : ""}`
+        : aciklama || null;
 
     await connection.query(
       `INSERT INTO transferler
        (varyant_id, kaynak_lokasyon_id, hedef_lokasyon_id, miktar, aciklama, olusturan_kullanici_id)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        varyant_id,
-        kaynakId,
-        hedefId,
-        tasinacak,
-        aciklama || null,
-        req.kullanici.id,
-      ],
+      [birim.varyant_id, kaynakId, hedefId, tasinan, not, req.kullanici.id],
     );
 
     await connection.commit();
 
-    res.status(201).json({ mesaj: "Transfer tamamlandı" });
+    res.status(201).json({
+      mesaj:
+        birim.tip === "palet"
+          ? `${birim.kod} paleti taşındı`
+          : "Transfer tamamlandı",
+    });
   } catch (err) {
     await connection.rollback().catch(() => {});
     next(err);

@@ -20,6 +20,7 @@ function TransferModal({
 
   if (!acik || !stokSatiri) return null;
 
+  const palet = stokSatiri.birim_tipi === "palet";
   const mevcut = Number(stokSatiri.miktar);
   const hedefler = lokasyonlar.filter((l) => l.id !== kaynak.id && l.aktif);
   const secilenHedef = hedefler.find((l) => l.id === Number(hedefId));
@@ -29,13 +30,12 @@ function TransferModal({
     setGonderiliyor(true);
     try {
       await transferYap({
-        varyant_id: stokSatiri.varyant_id,
-        kaynak_lokasyon_id: kaynak.id,
+        birim_id: stokSatiri.id,
         hedef_lokasyon_id: hedefId,
-        miktar: Number(miktar),
+        miktar: palet ? undefined : Number(miktar),
         aciklama,
       });
-      bildir("Transfer tamamlandı");
+      bildir(palet ? "Palet taşındı" : "Transfer tamamlandı");
       setHedefId("");
       setMiktar("");
       setAciklama("");
@@ -53,11 +53,13 @@ function TransferModal({
         className="modal transfer-modal"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3>Stok Transferi</h3>
+        <h3>{palet ? "Palet Taşı" : "Stok Transferi"}</h3>
 
         <div className="transfer-ozet">
           <div>
-            <span className="kucuk-not">Ürün</span>
+            <span className="kucuk-not">
+              {palet ? `Palet ${stokSatiri.birim_kodu}` : "Ürün"}
+            </span>
             <strong>
               {stokSatiri.urun_adi} · {stokSatiri.boy} ·{" "}
               {Number(stokSatiri.ambalaj_kg)}kg {stokSatiri.ambalaj_tipi}
@@ -81,18 +83,24 @@ function TransferModal({
             />
           </div>
 
-          <div className="form-alan">
-            <label>Miktar (adet) · mevcut {mevcut.toFixed(0)}</label>
-            <input
-              type="number"
-              step="0.01"
-              min="0.01"
-              max={mevcut}
-              value={miktar}
-              onChange={(e) => setMiktar(e.target.value)}
-              required
-            />
-          </div>
+          {palet ? (
+            <p className="kucuk-not">
+              Palet bütün olarak taşınacak · {mevcut.toFixed(0)} adet
+            </p>
+          ) : (
+            <div className="form-alan">
+              <label>Miktar (adet) · mevcut {mevcut.toFixed(0)}</label>
+              <input
+                type="number"
+                step="0.01"
+                min="0.01"
+                max={mevcut}
+                value={miktar}
+                onChange={(e) => setMiktar(e.target.value)}
+                required
+              />
+            </div>
+          )}
 
           <div className="form-alan">
             <label>Açıklama</label>

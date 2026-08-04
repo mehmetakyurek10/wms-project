@@ -66,8 +66,12 @@ function Sayim() {
 
     const varyantId = parseInt(eklenecekVaryant, 10);
 
-    if (satirlar.some((s) => s.varyant_id === varyantId)) {
-      bildir("Bu varyant zaten listede", "hata");
+    if (
+      satirlar.some(
+        (s) => s.varyant_id === varyantId && s.birim_tipi !== "palet",
+      )
+    ) {
+      bildir("Bu ürünün dökme satırı zaten listede", "hata");
       return;
     }
 
@@ -78,6 +82,8 @@ function Sayim() {
       {
         id: `yeni-${varyantId}`,
         varyant_id: varyantId,
+        birim_tipi: "dokme",
+        birim_kodu: null,
         urun_adi: varyant.urun_adi,
         boy: varyant.boy,
         ambalaj_tipi: varyant.ambalaj_tipi,
@@ -89,7 +95,7 @@ function Sayim() {
   };
 
   const sayilanAdet = (satir) => {
-    const girilen = sayimlar[satir.varyant_id];
+    const girilen = sayimlar[satir.id];
     if (girilen === undefined || girilen === "") return null;
     const sayi = Number(girilen);
     if (Number.isNaN(sayi) || sayi < 0) return null;
@@ -110,10 +116,14 @@ function Sayim() {
       const response = await sayimKaydet({
         lokasyon_id: lokasyonId,
         aciklama,
-        kalemler: girilenKalemler.map((kalem) => ({
-          varyant_id: kalem.satir.varyant_id,
-          sayilan_miktar: kalem.sayilan,
-        })),
+        kalemler: girilenKalemler.map((kalem) =>
+          typeof kalem.satir.id === "number"
+            ? { birim_id: kalem.satir.id, sayilan_miktar: kalem.sayilan }
+            : {
+                varyant_id: kalem.satir.varyant_id,
+                sayilan_miktar: kalem.sayilan,
+              },
+        ),
       });
       bildir(response.data.mesaj);
       setSayimlar({});
@@ -181,7 +191,7 @@ function Sayim() {
         <>
           <div className="filtre-cubugu">
             <div className="form-alan">
-              <label>Listede olmayan varyant ekle</label>
+              <label>Listede olmayan ürün ekle (dökme)</label>
               <select
                 value={eklenecekVaryant}
                 onChange={(e) => setEklenecekVaryant(e.target.value)}
@@ -214,6 +224,7 @@ function Sayim() {
               <table>
                 <thead>
                   <tr>
+                    <th>Birim</th>
                     <th>Ürün</th>
                     <th>Varyant</th>
                     <th>Sistemde (adet)</th>
@@ -229,6 +240,15 @@ function Sayim() {
 
                     return (
                       <tr key={s.id}>
+                        <td>
+                          {s.birim_tipi === "palet" ? (
+                            <span className="etiket etiket-mavi">
+                              {s.birim_kodu}
+                            </span>
+                          ) : (
+                            <span className="etiket etiket-gri">Dökme</span>
+                          )}
+                        </td>
                         <td>{s.urun_adi}</td>
                         <td>
                           {s.boy} · {Number(s.ambalaj_kg)}kg {s.ambalaj_tipi}
@@ -240,11 +260,11 @@ function Sayim() {
                             step="0.01"
                             min="0"
                             placeholder="-"
-                            value={sayimlar[s.varyant_id] ?? ""}
+                            value={sayimlar[s.id] ?? ""}
                             onChange={(e) =>
                               setSayimlar({
                                 ...sayimlar,
-                                [s.varyant_id]: e.target.value,
+                                [s.id]: e.target.value,
                               })
                             }
                           />
@@ -271,8 +291,8 @@ function Sayim() {
 
               <div className="sayim-alt">
                 <span className="kucuk-not">
-                  {girilenKalemler.length} kalem sayıldı ·{" "}
-                  {farkliKalemler.length} kalemde fark var
+                  {girilenKalemler.length} birim sayıldı ·{" "}
+                  {farkliKalemler.length} birimde fark var
                 </span>
                 <button
                   onClick={() => setOnayAcik(true)}
@@ -291,8 +311,8 @@ function Sayim() {
         baslik="Sayımı kaydet"
         mesaj={
           farkliKalemler.length === 0
-            ? `${girilenKalemler.length} kalem sayıldı, hiçbirinde fark yok. Kayıt oluşturulmayacak.`
-            : `${secilenLokasyon?.kod} lokasyonunda ${farkliKalemler.length} kalemde fark tespit edildi. Onaylarsan bu lokasyondaki stoklar sayılan değerlere güncellenecek.`
+            ? `${girilenKalemler.length} birim sayıldı, hiçbirinde fark yok. Kayıt oluşturulmayacak.`
+            : `${secilenLokasyon?.kod} lokasyonunda ${farkliKalemler.length} birimde fark tespit edildi. Onaylarsan bu birimlerin miktarları sayılan değerlere güncellenecek.`
         }
         onayMetni="Kaydet"
         onayla={kaydet}

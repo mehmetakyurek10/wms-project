@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
-import { X, Layers, MoveRight } from "lucide-react";
+import { X, Layers, MoveRight, Package2 } from "lucide-react";
 import { lokasyonlariGetir, lokasyonStok } from "../api/lokasyonApi";
+import { palletize } from "../api/stockUnitApi";
+import { useToast } from "../context/ToastContext";
 import Etiket from "../components/Etiket";
 import TransferModal from "../components/TransferModal";
 
@@ -23,6 +25,7 @@ function dolulukSinifi(lokasyon) {
 }
 
 function DepoHaritasi() {
+  const bildir = useToast();
   const [lokasyonlar, setLokasyonlar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
@@ -33,6 +36,10 @@ function DepoHaritasi() {
   const [stokYukleniyor, setStokYukleniyor] = useState(false);
 
   const [transferSatiri, setTransferSatiri] = useState(null);
+
+  const [paletlenenId, setPaletlenenId] = useState(null);
+  const [paletForm, setPaletForm] = useState({ kod: "", miktar: "" });
+  const [paletKaydediliyor, setPaletKaydediliyor] = useState(false);
 
   const veriGetir = async () => {
     try {
@@ -69,6 +76,7 @@ function DepoHaritasi() {
     }
     setSecili(lokasyon);
     setSeciliStok([]);
+    setPaletlenenId(null);
     stokGetir(lokasyon.id);
   };
 
@@ -78,6 +86,45 @@ function DepoHaritasi() {
     if (secili && yeniListe) {
       setSecili(yeniListe.find((l) => l.id === secili.id) || null);
       stokGetir(secili.id);
+    }
+  };
+
+  const paletlemeyeBasla = (satir) => {
+    setPaletlenenId(satir.id);
+    setPaletForm({ kod: "", miktar: satir.miktar });
+  };
+
+  const paletlemeKaydet = async (satir) => {
+    const miktar = Number(paletForm.miktar);
+
+    if (!paletForm.kod.trim()) {
+      bildir("Palet kodu girilmelidir", "hata");
+      return;
+    }
+    if (!Number.isFinite(miktar) || miktar <= 0) {
+      bildir("Miktar sıfırdan büyük olmalıdır", "hata");
+      return;
+    }
+
+    setPaletKaydediliyor(true);
+    try {
+      await palletize({
+        varyant_id: satir.varyant_id,
+        lokasyon_id: secili.id,
+        miktar,
+        kod: paletForm.kod.trim(),
+      });
+      bildir("Palet oluşturuldu");
+      setPaletlenenId(null);
+      const yeniListe = await veriGetir();
+      if (yeniListe) {
+        setSecili(yeniListe.find((l) => l.id === secili.id) || null);
+      }
+      stokGetir(secili.id);
+    } catch (err) {
+      bildir(err.response?.data?.hata || "Palet oluşturulamadı", "hata");
+    } finally {
+      setPaletKaydediliyor(false);
     }
   };
 
@@ -241,6 +288,7 @@ function DepoHaritasi() {
             <table>
               <thead>
                 <tr>
+                  <th>Birim</th>
                   <th>Ürün</th>
                   <th>Varyant</th>
                   <th>Miktar (adet)</th>
@@ -249,23 +297,92 @@ function DepoHaritasi() {
                 </tr>
               </thead>
               <tbody>
-                {seciliStok.map((s) => (
-                  <tr key={s.id}>
-                    <td>{s.urun_adi}</td>
-                    <td>
-                      {s.boy} · {Number(s.ambalaj_kg)}kg {s.ambalaj_tipi}
-                    </td>
-                    <td>{Number(s.miktar).toFixed(0)}</td>
-                    <td>
-                      {(Number(s.miktar) * Number(s.ambalaj_kg)).toFixed(0)} kg
-                    </td>
-                    <td>
-                      <button onClick={() => setTransferSatiri(s)}>
-                        <MoveRight size={14} /> Taşı
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {seciliStok.map((s) =>
+                  paletlenenId === s.id ? (
+                    <tr key={s.id}>
+                      <td>
+                        <input
+                          value={paletForm.kod}
+                          onChange={(e) =>
+                            setPaletForm({
+                              ...paletForm,
+                              kod: e.target.value,
+                            })
+                          }
+                          placeholder="Palet kodu"
+                          autoFocus
+                        />
+                      </td>
+                      <td>{s.urun_adi}</td>
+                      <td>
+                        {s.boy} · {Number(s.ambalaj_kg)}kg {s.ambalaj_tipi}
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={paletForm.miktar}
+                          onChange={(e) =>
+                            setPaletForm({
+                              ...paletForm,
+                              miktar: e.target.value,
+                            })
+                          }
+                        />
+                      </td>
+                      <td>—</td>
+                      <td>
+                        <button
+                          onClick={() => paletlemeKaydet(s)}
+                          disabled={paletKaydediliyor}
+                        >
+                          {paletKaydediliyor ? "Kaydediliyor..." : "Kaydet"}
+                        </button>
+                        <button
+                          className="ikincil"
+                          onClick={() => setPaletlenenId(null)}
+                        >
+                          İptal
+                        </button>
+                      </td>
+                    </tr>
+                  ) : (
+                    <tr key={s.id}>
+                      <td>
+                        {s.birim_tipi === "palet" ? (
+                          <span className="etiket etiket-mavi">
+                            {s.birim_kodu}
+                          </span>
+                        ) : (
+                          <span className="etiket etiket-gri">Dökme</span>
+                        )}
+                      </td>
+                      <td>{s.urun_adi}</td>
+                      <td>
+                        {s.boy} · {Number(s.ambalaj_kg)}kg {s.ambalaj_tipi}
+                      </td>
+                      <td>{Number(s.miktar).toFixed(0)}</td>
+                      <td>
+                        {(Number(s.miktar) * Number(s.ambalaj_kg)).toFixed(0)}{" "}
+                        kg
+                      </td>
+                      <td>
+                        <button onClick={() => setTransferSatiri(s)}>
+                          <MoveRight size={14} /> Taşı
+                        </button>
+                        {s.birim_tipi === "dokme" && (
+                          <button
+                            className="ikincil"
+                            onClick={() => paletlemeyeBasla(s)}
+                          >
+                            <Package2 size={14} /> Paletle
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ),
+                )}
               </tbody>
             </table>
           )}

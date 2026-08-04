@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const yuvarla = (sayi) => Math.round(sayi * 100) / 100;
 
 const listele = async (req, res, next) => {
   try {
@@ -123,6 +124,38 @@ const teslimEt = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
     const { id } = req.params;
+    const { tahsisler } = req.body;
+
+    if (!Array.isArray(tahsisler) || !tahsisler.length) {
+      return res
+        .status(400)
+        .json({ hata: "Hangi birimlerden çıkılacağı seçilmelidir" });
+    }
+
+    const istekler = new Map();
+
+    for (const tahsis of tahsisler) {
+      const birimId = Number(tahsis.birim_id);
+      const miktar = Number(tahsis.miktar);
+
+      if (!Number.isInteger(birimId) || birimId <= 0) {
+        return res.status(400).json({ hata: "Geçersiz stok birimi" });
+      }
+      if (!Number.isFinite(miktar) || miktar <= 0) {
+        return res
+          .status(400)
+          .json({ hata: "Miktar sıfırdan büyük olmalıdır" });
+      }
+      if (istekler.has(birimId)) {
+        return res.status(400).json({
+          hata: `Aynı birim listede birden fazla kez var (id: ${birimId})`,
+        });
+      }
+
+      istekler.set(birimId, miktar);
+    }
+
+    const birimIdleri = [...istekler.keys()].sort((a, b) => a - b);
 
     await connection.beginTransaction();
 
@@ -155,78 +188,100 @@ const teslimEt = async (req, res, next) => {
       [id],
     );
 
-    const varyantIhtiyaci = new Map();
+    const gereken = new Map();
 
     for (const kalem of kalemler) {
-      const mevcut = varyantIhtiyaci.get(kalem.varyant_id);
-      if (mevcut) {
-        mevcut.gereken += Number(kalem.miktar);
+      const onceki = gereken.get(kalem.varyant_id);
+      if (onceki) {
+        onceki.miktar = yuvarla(onceki.miktar + Number(kalem.miktar));
       } else {
-        varyantIhtiyaci.set(kalem.varyant_id, {
-          varyant_id: kalem.varyant_id,
+        gereken.set(kalem.varyant_id, {
+          miktar: yuvarla(Number(kalem.miktar)),
           urun_adi: kalem.urun_adi,
           boy: kalem.boy,
-          gereken: Number(kalem.miktar),
         });
       }
     }
 
-    const sirali = [...varyantIhtiyaci.values()].sort(
-      (a, b) => a.varyant_id - b.varyant_id,
+    const [birimRows] = await connection.query(
+      `SELECT id, tip, kod, varyant_id, lokasyon_id, miktar
+       FROM stok_birimleri
+       WHERE id IN (?)
+       ORDER BY id
+       FOR UPDATE`,
+      [birimIdleri],
     );
 
-    const tahsisPlani = [];
+    if (birimRows.length !== birimIdleri.length) {
+      const bulunanlar = new Set(birimRows.map((b) => b.id));
+      const eksik = birimIdleri.filter((bid) => !bulunanlar.has(bid));
+      await connection.rollback();
+      return res
+        .status(404)
+        .json({ hata: `Stok birimi bulunamadı (id: ${eksik.join(", ")})` });
+    }
 
-    for (const ihtiyac of sirali) {
-      const [lokasyonStoklari] = await connection.query(
-        `SELECT sb.lokasyon_id, sb.miktar
-         FROM stok_birimleri sb
-         WHERE sb.tip = 'dokme' AND sb.varyant_id = ? AND sb.miktar > 0
-         ORDER BY sb.lokasyon_id
-         FOR UPDATE`,
-        [ihtiyac.varyant_id],
-      );
+    const verilen = new Map();
 
-      const toplamMevcut = lokasyonStoklari.reduce(
-        (toplam, satir) => toplam + Number(satir.miktar),
-        0,
-      );
+    for (const birim of birimRows) {
+      const istenen = istekler.get(birim.id);
 
-      if (toplamMevcut < ihtiyac.gereken) {
+      if (Number(birim.miktar) < istenen) {
         await connection.rollback();
         return res.status(400).json({
-          hata: `Yetersiz stok: ${ihtiyac.urun_adi} (${ihtiyac.boy}) — mevcut ${toplamMevcut.toFixed(0)}, gereken ${ihtiyac.gereken.toFixed(0)}`,
+          hata: `${birim.kod || "Dökme"} biriminde yeterli stok yok (mevcut ${Number(birim.miktar).toFixed(0)}, istenen ${istenen.toFixed(0)})`,
         });
       }
 
-      const tahsisSirasi = [...lokasyonStoklari].sort(
-        (a, b) => Number(b.miktar) - Number(a.miktar),
+      verilen.set(
+        birim.varyant_id,
+        yuvarla((verilen.get(birim.varyant_id) || 0) + istenen),
       );
+    }
 
-      let kalan = ihtiyac.gereken;
-
-      for (const satir of tahsisSirasi) {
-        if (kalan <= 0) break;
-        const alinacak = Math.min(kalan, Number(satir.miktar));
-        tahsisPlani.push({
-          varyant_id: ihtiyac.varyant_id,
-          lokasyon_id: satir.lokasyon_id,
-          miktar: alinacak,
+    for (const [varyantId, bilgi] of gereken) {
+      const secilen = verilen.get(varyantId) || 0;
+      if (secilen !== bilgi.miktar) {
+        await connection.rollback();
+        return res.status(400).json({
+          hata: `${bilgi.urun_adi} (${bilgi.boy}) için seçilen miktar siparişle uyuşmuyor — sipariş ${bilgi.miktar.toFixed(0)}, seçilen ${secilen.toFixed(0)}`,
         });
-        kalan -= alinacak;
       }
     }
 
-    for (const tahsis of tahsisPlani) {
-      await connection.query(
+    for (const varyantId of verilen.keys()) {
+      if (!gereken.has(varyantId)) {
+        await connection.rollback();
+        return res
+          .status(400)
+          .json({ hata: "Siparişte olmayan bir ürün için birim seçilmiş" });
+      }
+    }
+
+    for (const birim of birimRows) {
+      const dusulecek = istekler.get(birim.id);
+
+      const [dususSonuc] = await connection.query(
         `UPDATE stok_birimleri SET miktar = miktar - ?
-         WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id = ?`,
-        [tahsis.miktar, tahsis.varyant_id, tahsis.lokasyon_id],
+         WHERE id = ? AND miktar >= ?`,
+        [dusulecek, birim.id, dusulecek],
+      );
+
+      if (dususSonuc.affectedRows === 0) {
+        await connection.rollback();
+        return res.status(409).json({
+          hata: "Stok bu sırada değişmiş, işlem geri alındı. Tekrar deneyin.",
+        });
+      }
+
+      await connection.query(
+        "DELETE FROM stok_birimleri WHERE id = ? AND miktar = 0",
+        [birim.id],
       );
 
       await connection.query(
         "UPDATE urun_varyantlari SET miktar = miktar - ? WHERE id = ?",
-        [tahsis.miktar, tahsis.varyant_id],
+        [dusulecek, birim.varyant_id],
       );
 
       await connection.query(
@@ -234,10 +289,10 @@ const teslimEt = async (req, res, next) => {
          (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
          VALUES (?, ?, 'cikis', 'satis', ?, ?, ?)`,
         [
-          tahsis.varyant_id,
-          tahsis.lokasyon_id,
-          tahsis.miktar,
-          `Satış siparişi #${id} teslim edildi`,
+          birim.varyant_id,
+          birim.lokasyon_id,
+          dusulecek,
+          `Satış siparişi #${id} teslim edildi${birim.kod ? ` · ${birim.kod}` : ""}`,
           req.kullanici.id,
         ],
       );
@@ -260,7 +315,7 @@ const teslimEt = async (req, res, next) => {
     await connection.commit();
 
     res.json({
-      mesaj: `Sipariş teslim edildi, ${tahsisPlani.length} lokasyondan stok düşüldü`,
+      mesaj: `Sipariş teslim edildi, ${birimRows.length} birimden stok düşüldü`,
     });
   } catch (err) {
     await connection.rollback().catch(() => {});

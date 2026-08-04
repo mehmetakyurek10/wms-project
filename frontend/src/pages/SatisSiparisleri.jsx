@@ -13,6 +13,7 @@ import Etiket from "../components/Etiket";
 import Fis from "../components/Fis";
 import { useToast } from "../context/ToastContext";
 import OnayModal from "../components/OnayModal";
+import PickingModal from "../components/PickingModal";
 
 function SatisSiparisleri() {
   const bildir = useToast();
@@ -22,6 +23,7 @@ function SatisSiparisleri() {
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
   const [teslimEdilecek, setTeslimEdilecek] = useState(null);
+  const [teslimKalemler, setTeslimKalemler] = useState([]);
   const [iptalEdilecek, setIptalEdilecek] = useState(null);
 
   const [acikDetay, setAcikDetay] = useState(null);
@@ -166,16 +168,20 @@ function SatisSiparisleri() {
     }
   };
 
-  const teslimEtOnayla = async () => {
-    const id = teslimEdilecek.id;
-    setTeslimEdilecek(null);
+  const teslimeBasla = async (siparis) => {
     try {
-      await satisTeslimEt(id);
-      bildir("Sipariş teslim edildi, stoklar düşüldü");
-      veriGetir();
+      const response = await satisDetay(siparis.id);
+      setTeslimKalemler(response.data);
+      setTeslimEdilecek(siparis);
     } catch (err) {
-      bildir(err.response?.data?.hata || "Teslim edilemedi", "hata");
+      bildir("Sipariş kalemleri yüklenemedi", "hata");
     }
+  };
+
+  const teslimTamamlandi = () => {
+    setTeslimEdilecek(null);
+    setTeslimKalemler([]);
+    veriGetir();
   };
 
   const iptalOnayla = async () => {
@@ -357,7 +363,7 @@ function SatisSiparisleri() {
                   <td>
                     {s.durum !== "teslim_edildi" && s.durum !== "iptal" && (
                       <>
-                        <button onClick={() => setTeslimEdilecek(s)}>
+                        <button onClick={() => teslimeBasla(s)}>
                           Teslim Et
                         </button>
                         <button
@@ -440,13 +446,15 @@ function SatisSiparisleri() {
         </table>
       )}
 
-      <OnayModal
+      <PickingModal
         acik={teslimEdilecek !== null}
-        baslik="Siparişi teslim et"
-        mesaj={`#${teslimEdilecek?.id} numaralı siparişin kalemleri stoktan düşülecek.`}
-        onayMetni="Teslim Et"
-        onayla={teslimEtOnayla}
-        iptal={() => setTeslimEdilecek(null)}
+        siparis={teslimEdilecek}
+        kalemler={teslimKalemler}
+        kapat={() => {
+          setTeslimEdilecek(null);
+          setTeslimKalemler([]);
+        }}
+        tamamlandi={teslimTamamlandi}
       />
 
       <OnayModal

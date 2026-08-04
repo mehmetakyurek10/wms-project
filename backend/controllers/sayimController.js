@@ -1,11 +1,15 @@
 const pool = require("../config/db");
 
+const yuvarla = (sayi) => Math.round(sayi * 100) / 100;
+
 const kaydet = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
     const { lokasyon_id, kalemler, aciklama } = req.body;
 
-    if (!lokasyon_id) {
+    const lokasyonId = Number(lokasyon_id);
+
+    if (!Number.isInteger(lokasyonId) || lokasyonId <= 0) {
       return res
         .status(400)
         .json({ hata: "Sayım yapılacak lokasyon seçilmelidir" });
@@ -15,36 +19,46 @@ const kaydet = async (req, res, next) => {
       return res.status(400).json({ hata: "Sayılacak kalem gönderilmedi" });
     }
 
-    const sayimlar = new Map();
+    const birimSayimlari = new Map();
+    const varyantSayimlari = new Map();
 
     for (const kalem of kalemler) {
-      const varyantId = Number(kalem.varyant_id);
       const sayilan = Number(kalem.sayilan_miktar);
-
-      if (!Number.isInteger(varyantId) || varyantId <= 0) {
-        return res.status(400).json({ hata: "Geçersiz varyant" });
-      }
 
       if (!Number.isFinite(sayilan) || sayilan < 0) {
         return res.status(400).json({ hata: "Sayılan miktar geçersiz" });
       }
 
-      if (sayimlar.has(varyantId)) {
+      const birimId = Number(kalem.birim_id);
+
+      if (Number.isInteger(birimId) && birimId > 0) {
+        if (birimSayimlari.has(birimId)) {
+          return res.status(400).json({
+            hata: `Aynı birim listede birden fazla kez var (id: ${birimId})`,
+          });
+        }
+        birimSayimlari.set(birimId, yuvarla(sayilan));
+        continue;
+      }
+
+      const varyantId = Number(kalem.varyant_id);
+
+      if (!Number.isInteger(varyantId) || varyantId <= 0) {
+        return res.status(400).json({ hata: "Geçersiz kalem" });
+      }
+      if (varyantSayimlari.has(varyantId)) {
         return res.status(400).json({
           hata: `Aynı varyant listede birden fazla kez var (id: ${varyantId})`,
         });
       }
-
-      sayimlar.set(varyantId, sayilan);
+      varyantSayimlari.set(varyantId, yuvarla(sayilan));
     }
-
-    const varyantIdleri = [...sayimlar.keys()].sort((a, b) => a - b);
 
     await connection.beginTransaction();
 
     const [lokasyonRows] = await connection.query(
       "SELECT id FROM lokasyonlar WHERE id = ? AND aktif = TRUE",
-      [lokasyon_id],
+      [lokasyonId],
     );
 
     if (!lokasyonRows.length) {
@@ -52,72 +66,152 @@ const kaydet = async (req, res, next) => {
       return res.status(404).json({ hata: "Lokasyon bulunamadı" });
     }
 
-    const [varyantRows] = await connection.query(
-      "SELECT id FROM urun_varyantlari WHERE id IN (?)",
-      [varyantIdleri],
+    const [mevcutBirimler] = await connection.query(
+      `SELECT id, tip, kod, varyant_id, miktar
+       FROM stok_birimleri
+       WHERE lokasyon_id = ?
+       ORDER BY id
+       FOR UPDATE`,
+      [lokasyonId],
     );
 
-    if (varyantRows.length !== varyantIdleri.length) {
-      const bulunanlar = new Set(varyantRows.map((r) => r.id));
-      const eksik = varyantIdleri.filter((id) => !bulunanlar.has(id));
-      await connection.rollback();
-      return res
-        .status(404)
-        .json({ hata: `Varyant bulunamadı (id: ${eksik.join(", ")})` });
+    const birimHaritasi = new Map(mevcutBirimler.map((b) => [b.id, b]));
+
+    for (const birimId of birimSayimlari.keys()) {
+      if (!birimHaritasi.has(birimId)) {
+        await connection.rollback();
+        return res.status(404).json({
+          hata: `Bu lokasyonda ${birimId} numaralı stok birimi yok`,
+        });
+      }
+    }
+
+    for (const varyantId of varyantSayimlari.keys()) {
+      const cakisan = mevcutBirimler.find(
+        (b) =>
+          b.tip === "dokme" &&
+          b.varyant_id === varyantId &&
+          birimSayimlari.has(b.id),
+      );
+      if (cakisan) {
+        await connection.rollback();
+        return res.status(400).json({
+          hata: "Aynı ürünün dökme stoğu hem birim hem varyant olarak sayılmış",
+        });
+      }
+    }
+
+    const varyantIdleri = [...varyantSayimlari.keys()].sort((a, b) => a - b);
+
+    if (varyantIdleri.length) {
+      const [varyantRows] = await connection.query(
+        "SELECT id FROM urun_varyantlari WHERE id IN (?)",
+        [varyantIdleri],
+      );
+
+      if (varyantRows.length !== varyantIdleri.length) {
+        const bulunanlar = new Set(varyantRows.map((r) => r.id));
+        const eksik = varyantIdleri.filter((vid) => !bulunanlar.has(vid));
+        await connection.rollback();
+        return res
+          .status(404)
+          .json({ hata: `Varyant bulunamadı (id: ${eksik.join(", ")})` });
+      }
     }
 
     const sonuclar = [];
 
-    for (const varyantId of varyantIdleri) {
-      const sayilan = sayimlar.get(varyantId);
-
-      const [stokRows] = await connection.query(
-        `SELECT miktar FROM stok_birimleri
-         WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id = ?
-         FOR UPDATE`,
-        [varyantId, lokasyon_id],
-      );
-
-      const mevcut = stokRows.length ? Number(stokRows[0].miktar) : 0;
-      const fark = sayilan - mevcut;
-
-      if (fark === 0) continue;
-
+    const hareketYaz = async (varyantId, fark, etiket) => {
       await connection.query(
         `INSERT INTO stok_hareketleri
          (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
          VALUES (?, ?, ?, 'sayim', ?, ?, ?)`,
         [
           varyantId,
-          lokasyon_id,
+          lokasyonId,
           fark > 0 ? "giris" : "cikis",
           Math.abs(fark),
-          aciklama || "Stok sayımı",
+          `${aciklama || "Stok sayımı"}${etiket ? ` · ${etiket}` : ""}`,
           req.kullanici.id,
         ],
-      );
-
-      await connection.query(
-        `INSERT INTO stok_birimleri
-         (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
-         VALUES ('dokme', ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE miktar = ?`,
-        [varyantId, lokasyon_id, sayilan, req.kullanici.id, sayilan],
       );
 
       await connection.query(
         "UPDATE urun_varyantlari SET miktar = miktar + ? WHERE id = ?",
         [fark, varyantId],
       );
+    };
 
-      sonuclar.push({ varyant_id: varyantId, mevcut, sayilan, fark });
+    for (const birimId of [...birimSayimlari.keys()].sort((a, b) => a - b)) {
+      const birim = birimHaritasi.get(birimId);
+      const sayilan = birimSayimlari.get(birimId);
+      const mevcut = yuvarla(Number(birim.miktar));
+      const fark = yuvarla(sayilan - mevcut);
+
+      if (fark === 0) continue;
+
+      await connection.query(
+        "UPDATE stok_birimleri SET miktar = ? WHERE id = ?",
+        [sayilan, birimId],
+      );
+
+      await connection.query(
+        "DELETE FROM stok_birimleri WHERE id = ? AND miktar = 0",
+        [birimId],
+      );
+
+      await hareketYaz(birim.varyant_id, fark, birim.kod || "Dökme");
+
+      sonuclar.push({
+        birim_id: birimId,
+        kod: birim.kod,
+        varyant_id: birim.varyant_id,
+        mevcut,
+        sayilan,
+        fark,
+      });
+    }
+
+    for (const varyantId of varyantIdleri) {
+      const sayilan = varyantSayimlari.get(varyantId);
+      const dokme = mevcutBirimler.find(
+        (b) => b.tip === "dokme" && b.varyant_id === varyantId,
+      );
+      const mevcut = dokme ? yuvarla(Number(dokme.miktar)) : 0;
+      const fark = yuvarla(sayilan - mevcut);
+
+      if (fark === 0) continue;
+
+      await connection.query(
+        `INSERT INTO stok_birimleri
+         (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
+         VALUES ('dokme', ?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE miktar = ?`,
+        [varyantId, lokasyonId, sayilan, req.kullanici.id, sayilan],
+      );
+
+      await connection.query(
+        `DELETE FROM stok_birimleri
+         WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id = ? AND miktar = 0`,
+        [varyantId, lokasyonId],
+      );
+
+      await hareketYaz(varyantId, fark, "Dökme");
+
+      sonuclar.push({
+        varyant_id: varyantId,
+        kod: null,
+        mevcut,
+        sayilan,
+        fark,
+      });
     }
 
     await connection.commit();
 
     res.json({
       mesaj: sonuclar.length
-        ? `${sonuclar.length} kalemde düzeltme yapıldı`
+        ? `${sonuclar.length} birimde düzeltme yapıldı`
         : "Fark bulunamadı, stoklar zaten doğru",
       sonuclar,
     });

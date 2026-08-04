@@ -30,6 +30,7 @@ CREATE TABLE `kullanicilar` (
   `rol` enum('admin','depo_sorumlusu') NOT NULL DEFAULT 'depo_sorumlusu',
   `olusturulma_tarihi` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   `aktif` tinyint(1) NOT NULL DEFAULT '1',
+  `token_surumu` int NOT NULL DEFAULT '1',
   PRIMARY KEY (`id`),
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
@@ -118,7 +119,7 @@ CREATE TABLE `satis_siparis_kalemleri` (
   KEY `varyant_id` (`varyant_id`),
   CONSTRAINT `satis_siparis_kalemleri_ibfk_1` FOREIGN KEY (`siparis_id`) REFERENCES `satis_siparisleri` (`id`),
   CONSTRAINT `satis_siparis_kalemleri_ibfk_2` FOREIGN KEY (`varyant_id`) REFERENCES `urun_varyantlari` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `satis_siparisleri`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -136,7 +137,31 @@ CREATE TABLE `satis_siparisleri` (
   KEY `olusturan_kullanici_id` (`olusturan_kullanici_id`),
   CONSTRAINT `satis_siparisleri_ibfk_1` FOREIGN KEY (`musteri_id`) REFERENCES `musteriler` (`id`),
   CONSTRAINT `satis_siparisleri_ibfk_2` FOREIGN KEY (`olusturan_kullanici_id`) REFERENCES `kullanicilar` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+DROP TABLE IF EXISTS `stok_birimleri`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `stok_birimleri` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `tip` enum('palet','dokme') NOT NULL DEFAULT 'palet',
+  `kod` varchar(30) DEFAULT NULL,
+  `varyant_id` int NOT NULL,
+  `lokasyon_id` int NOT NULL,
+  `miktar` decimal(12,2) NOT NULL DEFAULT '0.00',
+  `olusturan_kullanici_id` int DEFAULT NULL,
+  `olusturulma_tarihi` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `dokme_anahtar` varchar(50) GENERATED ALWAYS AS ((case when (`tip` = _utf8mb4'dokme') then concat(`varyant_id`,_utf8mb4'-',`lokasyon_id`) end)) STORED,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `kod_tek` (`kod`),
+  UNIQUE KEY `dokme_tek` (`dokme_anahtar`),
+  KEY `idx_varyant` (`varyant_id`),
+  KEY `idx_lokasyon` (`lokasyon_id`),
+  KEY `fk_birim_kullanici` (`olusturan_kullanici_id`),
+  CONSTRAINT `fk_birim_kullanici` FOREIGN KEY (`olusturan_kullanici_id`) REFERENCES `kullanicilar` (`id`),
+  CONSTRAINT `fk_birim_lokasyon` FOREIGN KEY (`lokasyon_id`) REFERENCES `lokasyonlar` (`id`),
+  CONSTRAINT `fk_birim_varyant` FOREIGN KEY (`varyant_id`) REFERENCES `urun_varyantlari` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `stok_hareketleri`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -158,7 +183,7 @@ CREATE TABLE `stok_hareketleri` (
   CONSTRAINT `fk_hareket_kullanici` FOREIGN KEY (`olusturan_kullanici_id`) REFERENCES `kullanicilar` (`id`),
   CONSTRAINT `fk_hareket_lokasyon` FOREIGN KEY (`lokasyon_id`) REFERENCES `lokasyonlar` (`id`),
   CONSTRAINT `fk_hareket_varyant` FOREIGN KEY (`varyant_id`) REFERENCES `urun_varyantlari` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `tedarikciler`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -194,7 +219,7 @@ CREATE TABLE `transferler` (
   CONSTRAINT `transferler_ibfk_2` FOREIGN KEY (`kaynak_lokasyon_id`) REFERENCES `lokasyonlar` (`id`),
   CONSTRAINT `transferler_ibfk_3` FOREIGN KEY (`hedef_lokasyon_id`) REFERENCES `lokasyonlar` (`id`),
   CONSTRAINT `transferler_ibfk_4` FOREIGN KEY (`olusturan_kullanici_id`) REFERENCES `kullanicilar` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 DROP TABLE IF EXISTS `urun_varyantlari`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
@@ -229,21 +254,6 @@ CREATE TABLE `urunler` (
   KEY `fk_urun_kategori` (`kategori_id`),
   CONSTRAINT `fk_urun_kategori` FOREIGN KEY (`kategori_id`) REFERENCES `kategoriler` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `varyant_lokasyon`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `varyant_lokasyon` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `varyant_id` int NOT NULL,
-  `lokasyon_id` int NOT NULL,
-  `miktar` decimal(12,2) NOT NULL DEFAULT '0.00',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `varyant_lokasyon_tek` (`varyant_id`,`lokasyon_id`),
-  KEY `lokasyon_id` (`lokasyon_id`),
-  CONSTRAINT `varyant_lokasyon_ibfk_1` FOREIGN KEY (`varyant_id`) REFERENCES `urun_varyantlari` (`id`),
-  CONSTRAINT `varyant_lokasyon_ibfk_2` FOREIGN KEY (`lokasyon_id`) REFERENCES `lokasyonlar` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 

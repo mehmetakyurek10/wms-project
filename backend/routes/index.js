@@ -7,9 +7,9 @@ router.use("/auth", require("./authRoutes"));
 router.use(dogrula);
 
 router.use("/hesap", require("./passwordRoutes"));
-router.use("/hesap", require("./passwordRoutes"));
 router.use("/sistem", require("./healthRoutes"));
-router.use("/urunler", require("./urunRoutes"));
+router.use("/panel", require("./dashboardRoutes"));
+router.use("/stok-birimleri", require("./stockUnitRoutes"));
 router.use("/urunler", require("./urunRoutes"));
 router.use("/kategoriler", require("./kategoriRoutes"));
 router.use("/varyantlar", require("./varyantRoutes"));

@@ -4,8 +4,9 @@ import {
   stokHareketleriniGetir,
   stokHareketiEkle,
 } from "../api/stokHareketleri";
-import { varyantlariGetir, varyantLokasyonlariGetir } from "../api/varyantApi";
+import { varyantlariGetir } from "../api/varyantApi";
 import { lokasyonlariGetir } from "../api/lokasyonApi";
+import { getStockUnits } from "../api/stockUnitApi";
 import Etiket from "../components/Etiket";
 import LokasyonSecici from "../components/LokasyonSecici";
 import { useToast } from "../context/ToastContext";
@@ -25,7 +26,7 @@ function StokHareketleri() {
   const [hareketler, setHareketler] = useState([]);
   const [varyantlar, setVaryantlar] = useState([]);
   const [lokasyonlar, setLokasyonlar] = useState([]);
-  const [varyantLokasyonlari, setVaryantLokasyonlari] = useState([]);
+  const [birimler, setBirimler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
 
@@ -36,6 +37,7 @@ function StokHareketleri() {
   const [form, setForm] = useState({
     varyant_id: "",
     lokasyon_id: "",
+    birim_id: "",
     tip: "giris",
     sebep: "manuel",
     miktar: "",
@@ -88,12 +90,12 @@ function StokHareketleri() {
 
   useEffect(() => {
     if (form.tip !== "cikis" || !form.varyant_id) {
-      setVaryantLokasyonlari([]);
+      setBirimler([]);
       return;
     }
-    varyantLokasyonlariGetir(form.varyant_id)
-      .then((res) => setVaryantLokasyonlari(res.data))
-      .catch(() => setVaryantLokasyonlari([]));
+    getStockUnits({ varyant_id: form.varyant_id })
+      .then((res) => setBirimler(res.data.filter((b) => Number(b.miktar) > 0)))
+      .catch(() => setBirimler([]));
   }, [form.varyant_id, form.tip]);
 
   const filtreDegisti = (e) => {
@@ -114,6 +116,7 @@ function StokHareketleri() {
     const yeniForm = { ...form, [e.target.name]: e.target.value };
     if (e.target.name === "varyant_id" || e.target.name === "tip") {
       yeniForm.lokasyon_id = "";
+      yeniForm.birim_id = "";
     }
     setForm(yeniForm);
   };
@@ -124,12 +127,13 @@ function StokHareketleri() {
       await stokHareketiEkle({
         varyant_id: form.varyant_id,
         lokasyon_id: form.lokasyon_id,
+        birim_id: form.birim_id,
         tip: form.tip,
         sebep: form.sebep,
         miktar: miktarAdet,
         aciklama: form.aciklama,
       });
-      setForm({ ...form, miktar: "", aciklama: "" });
+      setForm({ ...form, miktar: "", aciklama: "", birim_id: "" });
       bildir("Stok hareketi kaydedildi");
       hareketleriYukle();
       tanimlariYukle();
@@ -148,7 +152,6 @@ function StokHareketleri() {
   if (hata) return <p className="hata-metni">{hata}</p>;
 
   const cikisModu = form.tip === "cikis";
-  const secilebilirLokasyonlar = cikisModu ? varyantLokasyonlari : lokasyonlar;
 
   return (
     <div>
@@ -181,21 +184,38 @@ function StokHareketleri() {
           </select>
         </div>
 
-        <div className="form-alan">
-          <label>{cikisModu ? "Nereden" : "Nereye"}</label>
-          <LokasyonSecici
-            ad="lokasyon_id"
-            deger={form.lokasyon_id}
-            degisti={handleChange}
-            lokasyonlar={secilebilirLokasyonlar}
-            bosMetin={
-              cikisModu && varyantLokasyonlari.length === 0
-                ? "Bu varyantın stoğu yok"
-                : "Seçiniz"
-            }
-            zorunlu
-          />
-        </div>
+        {cikisModu ? (
+          <div className="form-alan">
+            <label>Hangi birimden</label>
+            <select
+              name="birim_id"
+              value={form.birim_id}
+              onChange={handleChange}
+              required
+            >
+              <option value="">
+                {birimler.length === 0 ? "Bu varyantın stoğu yok" : "Seçiniz"}
+              </option>
+              {birimler.map((b) => (
+                <option key={b.id} value={b.id}>
+                  {b.tip === "palet" ? b.kod : "Dökme"} · {b.lokasyon_kod} ·{" "}
+                  {Number(b.miktar).toFixed(0)} adet
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div className="form-alan">
+            <label>Nereye</label>
+            <LokasyonSecici
+              ad="lokasyon_id"
+              deger={form.lokasyon_id}
+              degisti={handleChange}
+              lokasyonlar={lokasyonlar}
+              zorunlu
+            />
+          </div>
+        )}
 
         <div className="form-alan">
           <label>Sebep</label>

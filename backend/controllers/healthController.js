@@ -42,17 +42,16 @@ const INACTIVE_LOCATION_QUERY = `
 
 const OVER_CAPACITY_QUERY = `
   SELECT l.kod AS lokasyon_kodu,
+         l.ad AS lokasyon_adi,
          l.kapasite,
-         ROUND(SUM(sb.miktar / v.paletteki_adet), 2) AS palet_sayisi,
-         ROUND(SUM(sb.miktar / v.paletteki_adet) - l.kapasite, 2) AS asim
+         COUNT(*) AS palet_sayisi,
+         COUNT(*) - l.kapasite AS asim
   FROM stok_birimleri sb
   JOIN lokasyonlar l ON sb.lokasyon_id = l.id
-  JOIN urun_varyantlari v ON sb.varyant_id = v.id
-  WHERE sb.miktar > 0
-    AND v.paletteki_adet IS NOT NULL
-    AND v.paletteki_adet > 0
+  WHERE sb.tip = 'palet'
+    AND sb.miktar > 0
     AND l.kapasite > 0
-  GROUP BY l.id, l.kod, l.kapasite
+  GROUP BY l.id, l.kod, l.ad, l.kapasite
   HAVING palet_sayisi > l.kapasite
   ORDER BY asim DESC
 `;
@@ -118,11 +117,12 @@ const checks = async (req, res, next) => {
         ad: "Kapasite Aşımı",
         seviye: "uyari",
         aciklama:
-          "Lokasyondaki mal, tanımlı palet kapasitesini aşıyor. Palet adedi tanımsız varyantlar hesaba katılmaz.",
+          "Lokasyondaki palet sayısı tanımlı kapasiteyi aşıyor. Kapasitesi tanımsız (0) olan alanlar hesaba katılmaz.",
         kolonlar: [
           { key: "lokasyon_kodu", label: "Lokasyon" },
-          { key: "kapasite", label: "Kapasite (palet)" },
-          { key: "palet_sayisi", label: "Mevcut (palet)" },
+          { key: "lokasyon_adi", label: "Ad" },
+          { key: "kapasite", label: "Kapasite" },
+          { key: "palet_sayisi", label: "Palet" },
           { key: "asim", label: "Aşım" },
         ],
         satirlar: overCapacity[0],
