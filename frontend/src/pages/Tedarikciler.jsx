@@ -29,7 +29,7 @@ function Tedarikciler() {
       const response = await tedarikcileriGetir();
       setTedarikciler(response.data);
     } catch (err) {
-      setHata("Tedarikçiler yüklenemedi");
+      setHata(err.response?.data?.hata || "Tedarikçiler yüklenemedi");
     } finally {
       setYukleniyor(false);
     }

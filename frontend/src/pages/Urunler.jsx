@@ -34,7 +34,7 @@ function Urunler() {
       setToplam(parseInt(urunRes.headers["x-toplam-kayit"], 10) || 0);
       setKategoriler(kategoriRes.data);
     } catch (err) {
-      setHata("Ürünler yüklenemedi");
+      setHata(err.response?.data?.hata || "Ürünler yüklenemedi");
     } finally {
       setYukleniyor(false);
     }

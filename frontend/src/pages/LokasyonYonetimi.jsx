@@ -70,7 +70,7 @@ function LokasyonYonetimi() {
       setLokasyonlar(lokasyonRes.data);
       setSapmalar(tutarlilikRes.data);
     } catch (err) {
-      setHata("Veriler yüklenemedi");
+      setHata(err.response?.data?.hata || "Veriler yüklenemedi");
     } finally {
       setYukleniyor(false);
     }

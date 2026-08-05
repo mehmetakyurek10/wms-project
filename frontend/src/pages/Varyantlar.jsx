@@ -62,7 +62,7 @@ function Varyantlar() {
       setUrunler(urunRes.data);
       setKategoriler(kategoriRes.data);
     } catch (err) {
-      setHata("Tanımlar yüklenemedi");
+      setHata(err.response?.data?.hata || "Tanımlar yüklenemedi");
     }
   };
 
@@ -77,7 +77,7 @@ function Varyantlar() {
       setVaryantlar(response.data);
       setToplam(parseInt(response.headers["x-toplam-kayit"], 10) || 0);
     } catch (err) {
-      setHata("Varyantlar yüklenemedi");
+      setHata(err.response?.data?.hata || "Varyantlar yüklenemedi");
     } finally {
       setYukleniyor(false);
     }

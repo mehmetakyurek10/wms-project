@@ -22,7 +22,7 @@ function Raporlar() {
       setRapor(response.data);
       setHata("");
     } catch (err) {
-      setHata("Rapor yüklenemedi");
+      setHata(err.response?.data?.hata || "Rapor yüklenemedi");
     } finally {
       setYukleniyor(false);
     }

@@ -25,7 +25,7 @@ function Kullanicilar() {
       const response = await kullanicilariGetir();
       setKullanicilar(response.data);
     } catch (err) {
-      setHata("Kullanıcılar yüklenemedi");
+      setHata(err.response?.data?.hata || "Kullanıcılar yüklenemedi");
     } finally {
       setYukleniyor(false);
     }

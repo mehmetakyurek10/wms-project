@@ -47,7 +47,7 @@ function DepoHaritasi() {
       setLokasyonlar(response.data);
       return response.data;
     } catch (err) {
-      setHata("Lokasyonlar yüklenemedi");
+      setHata(err.response?.data?.hata || "Lokasyonlar yüklenemedi");
     } finally {
       setYukleniyor(false);
     }

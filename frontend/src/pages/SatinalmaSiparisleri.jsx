@@ -55,7 +55,7 @@ function SatinalmaSiparisleri() {
       setLokasyonlar(lokasyonRes.data.filter((l) => l.aktif));
       setTedarikciId((mevcut) => mevcut || tedarikciRes.data[0]?.id || "");
     } catch (err) {
-      setHata("Tanımlar yüklenemedi");
+      setHata(err.response?.data?.hata || "Tanımlar yüklenemedi");
     }
   };
 
@@ -68,7 +68,7 @@ function SatinalmaSiparisleri() {
       setSiparisler(response.data);
       setToplam(parseInt(response.headers["x-toplam-kayit"], 10) || 0);
     } catch (err) {
-      setHata("Siparişler yüklenemedi");
+      setHata(err.response?.data?.hata || "Siparişler yüklenemedi");
     } finally {
       setYukleniyor(false);
     }
@@ -121,7 +121,7 @@ function SatinalmaSiparisleri() {
       const response = await siparisDetay(id);
       setDetayKalemler(response.data);
     } catch (err) {
-      bildir("Sipariş detayı yüklenemedi", "hata");
+      bildir(err.response?.data?.hata || "Sipariş detayı yüklenemedi", "hata");
     } finally {
       setDetayYukleniyor(false);
     }
@@ -133,7 +133,7 @@ function SatinalmaSiparisleri() {
       setFisKalemler(response.data);
       setFisSiparis(siparis);
     } catch (err) {
-      bildir("Fiş oluşturulamadı", "hata");
+      bildir(err.response?.data?.hata || "Fiş oluşturulamadı", "hata");
     }
   };
 

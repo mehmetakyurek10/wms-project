@@ -29,7 +29,7 @@ function Musteriler() {
       const response = await musterileriGetir();
       setMusteriler(response.data);
     } catch (err) {
-      setHata("Müşteriler yüklenemedi");
+      setHata(err.response?.data?.hata || "Müşteriler yüklenemedi");
     } finally {
       setYukleniyor(false);
     }

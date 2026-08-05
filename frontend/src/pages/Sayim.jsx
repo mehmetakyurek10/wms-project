@@ -32,7 +32,7 @@ function Sayim() {
       setLokasyonlar(lokasyonRes.data.filter((l) => l.aktif));
       setVaryantlar(varyantRes.data);
     } catch (err) {
-      setHata("Tanımlar yüklenemedi");
+      setHata(err.response?.data?.hata || "Tanımlar yüklenemedi");
     } finally {
       setYukleniyor(false);
     }
@@ -55,7 +55,7 @@ function Sayim() {
       const response = await lokasyonStok(id);
       setSatirlar(response.data);
     } catch (err) {
-      bildir("Lokasyon içeriği yüklenemedi", "hata");
+      bildir(err.response?.data?.hata || "Lokasyon içeriği yüklenemedi", "hata");
     } finally {
       setStokYukleniyor(false);
     }

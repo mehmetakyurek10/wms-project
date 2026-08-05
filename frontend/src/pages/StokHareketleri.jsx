@@ -60,7 +60,7 @@ function StokHareketleri() {
         f.varyant_id ? f : { ...f, varyant_id: varyantRes.data[0]?.id || "" },
       );
     } catch (err) {
-      setHata("Tanımlar yüklenemedi");
+      setHata(err.response?.data?.hata || "Tanımlar yüklenemedi");
     }
   };
 
@@ -74,7 +74,7 @@ function StokHareketleri() {
       setHareketler(response.data);
       setToplam(parseInt(response.headers["x-toplam-kayit"], 10) || 0);
     } catch (err) {
-      setHata("Hareketler yüklenemedi");
+      setHata(err.response?.data?.hata || "Hareketler yüklenemedi");
     } finally {
       setYukleniyor(false);
     }

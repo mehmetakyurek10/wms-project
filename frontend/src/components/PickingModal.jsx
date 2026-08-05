@@ -30,7 +30,7 @@ function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
         });
         setBirimler(harita);
       } catch (err) {
-        bildir("Stok birimleri yüklenemedi", "hata");
+        bildir(err.response?.data?.hata || "Stok birimleri yüklenemedi", "hata");
       } finally {
         setYukleniyor(false);
       }

@@ -54,7 +54,7 @@ function SatisSiparisleri() {
       setVaryantlar(varyantRes.data);
       setMusteriId((mevcut) => mevcut || musteriRes.data[0]?.id || "");
     } catch (err) {
-      setHata("Tanımlar yüklenemedi");
+      setHata(err.response?.data?.hata || "Tanımlar yüklenemedi");
     }
   };
 
@@ -67,7 +67,7 @@ function SatisSiparisleri() {
       setSiparisler(response.data);
       setToplam(parseInt(response.headers["x-toplam-kayit"], 10) || 0);
     } catch (err) {
-      setHata("Siparişler yüklenemedi");
+      setHata(err.response?.data?.hata || "Siparişler yüklenemedi");
     } finally {
       setYukleniyor(false);
     }
@@ -121,7 +121,7 @@ function SatisSiparisleri() {
       const response = await satisDetay(id);
       setDetayKalemler(response.data);
     } catch (err) {
-      bildir("Sipariş detayı yüklenemedi", "hata");
+      bildir(err.response?.data?.hata || "Sipariş detayı yüklenemedi", "hata");
     } finally {
       setDetayYukleniyor(false);
     }
@@ -133,7 +133,7 @@ function SatisSiparisleri() {
       setFisKalemler(response.data);
       setFisSiparis(siparis);
     } catch (err) {
-      bildir("Fiş oluşturulamadı", "hata");
+      bildir(err.response?.data?.hata || "Fiş oluşturulamadı", "hata");
     }
   };
 
@@ -199,7 +199,7 @@ function SatisSiparisleri() {
       setTeslimKalemler(response.data);
       setTeslimEdilecek(siparis);
     } catch (err) {
-      bildir("Sipariş kalemleri yüklenemedi", "hata");
+      bildir(err.response?.data?.hata || "Sipariş kalemleri yüklenemedi", "hata");
     }
   };
 
