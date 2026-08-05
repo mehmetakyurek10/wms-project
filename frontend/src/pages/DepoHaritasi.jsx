@@ -64,6 +64,10 @@ function DepoHaritasi() {
       setSeciliStok(response.data);
     } catch (err) {
       setSeciliStok([]);
+      bildir(
+        err.response?.data?.hata || "Lokasyon içeriği yüklenemedi",
+        "hata",
+      );
     } finally {
       setStokYukleniyor(false);
     }

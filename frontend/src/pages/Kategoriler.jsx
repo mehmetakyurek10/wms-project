@@ -20,7 +20,7 @@ function Kategoriler() {
       const response = await kategorileriGetir();
       setKategoriler(response.data);
     } catch (err) {
-      setHata("Kategoriler yüklenemedi");
+      setHata(err.response?.data?.hata || "Kategoriler yüklenemedi");
     } finally {
       setYukleniyor(false);
     }

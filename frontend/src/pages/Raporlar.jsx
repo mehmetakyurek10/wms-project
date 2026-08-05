@@ -6,7 +6,6 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { gunlukRapor } from "../api/raporApi";
-import Etiket from "../components/Etiket";
 import { yerelTarih } from "../utils/tarih";
 
 function Raporlar() {
