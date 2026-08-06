@@ -9,6 +9,7 @@ import {
 import { urunleriGetir } from "../api/urunApi";
 import { kategorileriGetir } from "../api/kategoriApi";
 import { useToast } from "../context/ToastContext";
+import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
 
 const SAYFA_BOYUTU = 20;
@@ -22,17 +23,11 @@ const BOS_FILTRE = {
 
 function Varyantlar() {
   const bildir = useToast();
-  const [varyantlar, setVaryantlar] = useState([]);
-  const [urunler, setUrunler] = useState([]);
-  const [kategoriler, setKategoriler] = useState([]);
-  const [yukleniyor, setYukleniyor] = useState(true);
-  const [hata, setHata] = useState("");
 
   const [arama, setArama] = useState("");
   const [aranan, setAranan] = useState("");
   const [filtre, setFiltre] = useState(BOS_FILTRE);
   const [sayfa, setSayfa] = useState(1);
-  const [toplam, setToplam] = useState(0);
 
   const [silinecek, setSilinecek] = useState(null);
   const [duzenlenenId, setDuzenlenenId] = useState(null);
@@ -50,43 +45,37 @@ function Varyantlar() {
     birim_fiyat: 0,
   });
 
-  const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
-  const filtreVar =
-    aranan !== "" || Object.values(filtre).some((deger) => deger !== "");
-
-  const tanimlariYukle = async () => {
-    try {
-      const [urunRes, kategoriRes] = await Promise.all([
-        urunleriGetir(),
-        kategorileriGetir(),
-      ]);
-      setUrunler(urunRes.data);
-      setKategoriler(kategoriRes.data);
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Tanımlar yüklenemedi");
-    }
-  };
-
-  const varyantlariYukle = async () => {
-    try {
-      const response = await varyantlariGetir({
+  const {
+    data: varyantlar,
+    total: toplam,
+    loading: yukleniyor,
+    error: hata,
+    refresh: varyantlariYukle,
+  } = useFetch(
+    () =>
+      varyantlariGetir({
         ...filtre,
         ara: aranan || undefined,
         sayfa,
         limit: SAYFA_BOYUTU,
-      });
-      setVaryantlar(response.data);
-      setToplam(parseInt(response.headers["x-toplam-kayit"], 10) || 0);
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Varyantlar yüklenemedi");
-    } finally {
-      setYukleniyor(false);
-    }
-  };
+      }),
+    [aranan, filtre, sayfa],
+    { initial: [], errorMessage: "Varyantlar yüklenemedi" },
+  );
 
-  useEffect(() => {
-    tanimlariYukle();
-  }, []);
+  const { data: urunler } = useFetch(() => urunleriGetir(), [], {
+    initial: [],
+    errorMessage: "Ürünler yüklenemedi",
+  });
+
+  const { data: kategoriler } = useFetch(() => kategorileriGetir(), [], {
+    initial: [],
+    errorMessage: "Kategoriler yüklenemedi",
+  });
+
+  const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
+  const filtreVar =
+    aranan !== "" || Object.values(filtre).some((deger) => deger !== "");
 
   useEffect(() => {
     const zamanlayici = setTimeout(() => {
@@ -95,10 +84,6 @@ function Varyantlar() {
     }, 400);
     return () => clearTimeout(zamanlayici);
   }, [arama]);
-
-  useEffect(() => {
-    varyantlariYukle();
-  }, [aranan, filtre, sayfa]);
 
   const filtreDegisti = (e) => {
     setFiltre({ ...filtre, [e.target.name]: e.target.value });

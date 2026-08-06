@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useState } from "react";
 import { ChevronDown, ChevronRight, Receipt } from "lucide-react";
 import {
   satislariGetir,
@@ -11,6 +11,7 @@ import { varyantlariGetir } from "../api/varyantApi";
 import Etiket from "../components/Etiket";
 import Fis from "../components/Fis";
 import { useToast } from "../context/ToastContext";
+import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
 import AllocationModal from "../components/AllocationModal";
 import DeliveryModal from "../components/DeliveryModal";
@@ -19,19 +20,13 @@ const SAYFA_BOYUTU = 20;
 
 function SatisSiparisleri() {
   const bildir = useToast();
-  const [siparisler, setSiparisler] = useState([]);
-  const [musteriler, setMusteriler] = useState([]);
-  const [varyantlar, setVaryantlar] = useState([]);
-  const [yukleniyor, setYukleniyor] = useState(true);
-  const [hata, setHata] = useState("");
+
+  const [sayfa, setSayfa] = useState(1);
   const [gonderiliyor, setGonderiliyor] = useState(false);
 
   const [tahsisAcik, setTahsisAcik] = useState(false);
   const [teslimEdilecek, setTeslimEdilecek] = useState(null);
   const [iptalEdilecek, setIptalEdilecek] = useState(null);
-
-  const [sayfa, setSayfa] = useState(1);
-  const [toplam, setToplam] = useState(0);
 
   const [acikDetay, setAcikDetay] = useState(null);
   const [detayKalemler, setDetayKalemler] = useState([]);
@@ -45,44 +40,32 @@ function SatisSiparisleri() {
     { varyant_id: "", miktar: "", birim: "adet", birim_fiyat: "" },
   ]);
 
+  const {
+    data: siparisler,
+    total: toplam,
+    loading: yukleniyor,
+    error: siparisHatasi,
+    refresh: siparisleriYukle,
+  } = useFetch(() => satislariGetir({ sayfa, limit: SAYFA_BOYUTU }), [sayfa], {
+    initial: [],
+    errorMessage: "Siparişler yüklenemedi",
+  });
+
+  const { data: musteriler, error: musteriHatasi } = useFetch(
+    () => musterileriGetir(),
+    [],
+    { initial: [], errorMessage: "Müşteriler yüklenemedi" },
+  );
+
+  const { data: varyantlar, refresh: varyantlariYenile } = useFetch(
+    () => varyantlariGetir(),
+    [],
+    { initial: [], errorMessage: "Varyantlar yüklenemedi" },
+  );
+
+  const hata = siparisHatasi || musteriHatasi;
   const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
-
-  const tanimlariYukle = async () => {
-    try {
-      const [musteriRes, varyantRes] = await Promise.all([
-        musterileriGetir(),
-        varyantlariGetir(),
-      ]);
-      setMusteriler(musteriRes.data);
-      setVaryantlar(varyantRes.data);
-      setMusteriId((mevcut) => mevcut || musteriRes.data[0]?.id || "");
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Tanımlar yüklenemedi");
-    }
-  };
-
-  const siparisleriYukle = async () => {
-    try {
-      const response = await satislariGetir({
-        sayfa,
-        limit: SAYFA_BOYUTU,
-      });
-      setSiparisler(response.data);
-      setToplam(parseInt(response.headers["x-toplam-kayit"], 10) || 0);
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Siparişler yüklenemedi");
-    } finally {
-      setYukleniyor(false);
-    }
-  };
-
-  useEffect(() => {
-    tanimlariYukle();
-  }, []);
-
-  useEffect(() => {
-    siparisleriYukle();
-  }, [sayfa]);
+  const secilenMusteriId = musteriId || musteriler[0]?.id || "";
 
   const kalemHesapla = (kalem) => {
     const varyant = varyantlar.find(
@@ -199,7 +182,7 @@ function SatisSiparisleri() {
     setGonderiliyor(true);
     try {
       await satisOlustur({
-        musteri_id: musteriId,
+        musteri_id: secilenMusteriId,
         kalemler: kalemler.map((kalem) => {
           const hesap = kalemHesapla(kalem);
           return {
@@ -230,6 +213,7 @@ function SatisSiparisleri() {
   const teslimTamamlandi = () => {
     setTeslimEdilecek(null);
     siparisleriYukle();
+    varyantlariYenile();
   };
 
   const iptalOnayla = async () => {
@@ -261,7 +245,7 @@ function SatisSiparisleri() {
         <div className="form-satir">
           <label>Müşteri</label>
           <select
-            value={musteriId}
+            value={secilenMusteriId}
             onChange={(e) => setMusteriId(e.target.value)}
             required
           >

@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
 import { RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getSystemChecks } from "../api/healthApi";
+import useFetch from "../hooks/useFetch";
 
 const LEVEL = {
   kritik: { sinif: "etiket etiket-kirmizi", metin: "Kritik" },
@@ -16,26 +16,11 @@ function formatValue(value) {
 }
 
 function SystemHealth() {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const response = await getSystemChecks();
-      setData(response.data);
-      setError("");
-    } catch (err) {
-      setError(err.response?.data?.hata || "Kontroller yüklenemedi");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    load();
-  }, []);
+  const { data, loading, fetching, error, refresh } = useFetch(
+    () => getSystemChecks(),
+    [],
+    { initial: null, errorMessage: "Kontroller yüklenemedi" },
+  );
 
   if (error) return <p className="hata-metni">{error}</p>;
 
@@ -55,9 +40,14 @@ function SystemHealth() {
       <h2>Sistem Sağlığı</h2>
 
       <div className="form-alan" style={{ marginBottom: "1rem" }}>
-        <button type="button" className="ikincil" onClick={load}>
+        <button
+          type="button"
+          className="ikincil"
+          onClick={refresh}
+          disabled={fetching}
+        >
           <RefreshCw size={15} />
-          Yeniden Çalıştır
+          {fetching ? "Çalıştırılıyor..." : "Yeniden Çalıştır"}
         </button>
       </div>
 

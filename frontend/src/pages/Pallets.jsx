@@ -2,44 +2,32 @@ import { useEffect, useState } from "react";
 import { ScanLine, Boxes, Search, X } from "lucide-react";
 import { getStockUnits, findPalletByCode } from "../api/stockUnitApi";
 import { useToast } from "../context/ToastContext";
+import useFetch from "../hooks/useFetch";
 
 const sayi = (deger) => Number(deger).toLocaleString("tr-TR");
 
 function Pallets() {
   const bildir = useToast();
-  const [pallets, setPallets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
   const [arama, setArama] = useState("");
   const [aranan, setAranan] = useState("");
-
   const [scanKod, setScanKod] = useState("");
   const [scanSonuc, setScanSonuc] = useState(null);
 
-  const load = async () => {
-    try {
-      const response = await getStockUnits({
-        tip: "palet",
-        ara: aranan || undefined,
-      });
-      setPallets(response.data);
-      setError("");
-    } catch (err) {
-      setError(err.response?.data?.hata || "Paletler yüklenemedi");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const {
+    data: pallets,
+    loading,
+    error,
+  } = useFetch(
+    () => getStockUnits({ tip: "palet", ara: aranan || undefined }),
+    [aranan],
+    { initial: [], errorMessage: "Paletler yüklenemedi" },
+  );
 
   useEffect(() => {
     const zamanlayici = setTimeout(() => setAranan(arama), 400);
     return () => clearTimeout(zamanlayici);
   }, [arama]);
-
-  useEffect(() => {
-    load();
-  }, [aranan]);
 
   const scan = async (e) => {
     e.preventDefault();

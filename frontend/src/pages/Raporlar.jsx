@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
@@ -7,30 +7,20 @@ import {
 } from "lucide-react";
 import { gunlukRapor } from "../api/raporApi";
 import { yerelTarih } from "../utils/tarih";
+import useFetch from "../hooks/useFetch";
 
 function Raporlar() {
   const [baslangic, setBaslangic] = useState(yerelTarih());
   const [bitis, setBitis] = useState(yerelTarih());
-  const [rapor, setRapor] = useState(null);
-  const [yukleniyor, setYukleniyor] = useState(true);
-  const [hata, setHata] = useState("");
 
-  const veriGetir = async () => {
-    setYukleniyor(true);
-    try {
-      const response = await gunlukRapor({ baslangic, bitis });
-      setRapor(response.data);
-      setHata("");
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Rapor yüklenemedi");
-    } finally {
-      setYukleniyor(false);
-    }
-  };
-
-  useEffect(() => {
-    veriGetir();
-  }, [baslangic, bitis]);
+  const {
+    data: rapor,
+    fetching: yukleniyor,
+    error: hata,
+  } = useFetch(() => gunlukRapor({ baslangic, bitis }), [baslangic, bitis], {
+    initial: null,
+    errorMessage: "Rapor yüklenemedi",
+  });
 
   const ozetBul = (tip) =>
     rapor?.ozet.find((o) => o.tip === tip) || {
@@ -106,7 +96,7 @@ function Raporlar() {
         </button>
       </form>
 
-      {yukleniyor ? (
+      {yukleniyor || !rapor ? (
         <div className="yukleniyor-kutu">
           <div className="spinner" />
           <span>Yükleniyor...</span>

@@ -1,35 +1,28 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   kategorileriGetir,
   kategoriEkle,
   kategoriSil,
 } from "../api/kategoriApi";
 import { useToast } from "../context/ToastContext";
+import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
 
 function Kategoriler() {
   const bildir = useToast();
-  const [kategoriler, setKategoriler] = useState([]);
-  const [yukleniyor, setYukleniyor] = useState(true);
-  const [hata, setHata] = useState("");
   const [ad, setAd] = useState("");
   const [silinecek, setSilinecek] = useState(null);
   const [gonderiliyor, setGonderiliyor] = useState(false);
 
-  const veriGetir = async () => {
-    try {
-      const response = await kategorileriGetir();
-      setKategoriler(response.data);
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Kategoriler yüklenemedi");
-    } finally {
-      setYukleniyor(false);
-    }
-  };
-
-  useEffect(() => {
-    veriGetir();
-  }, []);
+  const {
+    data: kategoriler,
+    loading: yukleniyor,
+    error: hata,
+    refresh: veriGetir,
+  } = useFetch(() => kategorileriGetir(), [], {
+    initial: [],
+    errorMessage: "Kategoriler yüklenemedi",
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault();

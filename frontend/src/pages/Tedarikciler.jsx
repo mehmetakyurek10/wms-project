@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   tedarikcileriGetir,
   tedarikciEkle,
@@ -6,13 +6,11 @@ import {
   tedarikciSil,
 } from "../api/tedarikciApi";
 import { useToast } from "../context/ToastContext";
+import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
 
 function Tedarikciler() {
   const bildir = useToast();
-  const [tedarikciler, setTedarikciler] = useState([]);
-  const [yukleniyor, setYukleniyor] = useState(true);
-  const [hata, setHata] = useState("");
   const [form, setForm] = useState({
     ad: "",
     yetkili_kisi: "",
@@ -25,20 +23,15 @@ function Tedarikciler() {
   const [silinecek, setSilinecek] = useState(null);
   const [gonderiliyor, setGonderiliyor] = useState(false);
 
-  const veriGetir = async () => {
-    try {
-      const response = await tedarikcileriGetir();
-      setTedarikciler(response.data);
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Tedarikçiler yüklenemedi");
-    } finally {
-      setYukleniyor(false);
-    }
-  };
-
-  useEffect(() => {
-    veriGetir();
-  }, []);
+  const {
+    data: tedarikciler,
+    loading: yukleniyor,
+    error: hata,
+    refresh: veriGetir,
+  } = useFetch(() => tedarikcileriGetir(), [], {
+    initial: [],
+    errorMessage: "Tedarikçiler yüklenemedi",
+  });
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });

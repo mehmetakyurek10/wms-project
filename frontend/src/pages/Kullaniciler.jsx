@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { kullanicilariGetir, kullaniciGuncelle } from "../api/kullaniciApi";
 import { kayitOl } from "../api/authApi";
 import { useToast } from "../context/ToastContext";
+import useFetch from "../hooks/useFetch";
 import Etiket from "../components/Etiket";
 
 function Kullanicilar() {
@@ -10,9 +11,7 @@ function Kullanicilar() {
   const mevcutKullanici = JSON.parse(
     localStorage.getItem("kullanici") || "null",
   );
-  const [kullanicilar, setKullanicilar] = useState([]);
-  const [yukleniyor, setYukleniyor] = useState(true);
-  const [hata, setHata] = useState("");
+
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [form, setForm] = useState({
     ad: "",
@@ -21,20 +20,15 @@ function Kullanicilar() {
     rol: "depo_sorumlusu",
   });
 
-  const veriGetir = async () => {
-    try {
-      const response = await kullanicilariGetir();
-      setKullanicilar(response.data);
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Kullanıcılar yüklenemedi");
-    } finally {
-      setYukleniyor(false);
-    }
-  };
-
-  useEffect(() => {
-    veriGetir();
-  }, []);
+  const {
+    data: kullanicilar,
+    loading: yukleniyor,
+    error: hata,
+    refresh: veriGetir,
+  } = useFetch(() => kullanicilariGetir(), [], {
+    initial: [],
+    errorMessage: "Kullanıcılar yüklenemedi",
+  });
 
   if (mevcutKullanici?.rol !== "admin") {
     return <Navigate to="/panel" />;

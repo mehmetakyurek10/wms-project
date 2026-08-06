@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   musterileriGetir,
   musteriEkle,
@@ -6,13 +6,11 @@ import {
   musteriSil,
 } from "../api/musteriApi";
 import { useToast } from "../context/ToastContext";
+import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
 
 function Musteriler() {
   const bildir = useToast();
-  const [musteriler, setMusteriler] = useState([]);
-  const [yukleniyor, setYukleniyor] = useState(true);
-  const [hata, setHata] = useState("");
   const [form, setForm] = useState({
     ad: "",
     yetkili_kisi: "",
@@ -25,20 +23,15 @@ function Musteriler() {
   const [silinecek, setSilinecek] = useState(null);
   const [gonderiliyor, setGonderiliyor] = useState(false);
 
-  const veriGetir = async () => {
-    try {
-      const response = await musterileriGetir();
-      setMusteriler(response.data);
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Müşteriler yüklenemedi");
-    } finally {
-      setYukleniyor(false);
-    }
-  };
-
-  useEffect(() => {
-    veriGetir();
-  }, []);
+  const {
+    data: musteriler,
+    loading: yukleniyor,
+    error: hata,
+    refresh: veriGetir,
+  } = useFetch(() => musterileriGetir(), [], {
+    initial: [],
+    errorMessage: "Müşteriler yüklenemedi",
+  });
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });

@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useState } from "react";
 import { ChevronDown, ChevronRight, Receipt } from "lucide-react";
 import {
   siparisleriGetir,
@@ -13,22 +13,16 @@ import Etiket from "../components/Etiket";
 import Fis from "../components/Fis";
 import TeslimAlModal from "../components/TeslimAlModal";
 import { useToast } from "../context/ToastContext";
+import useFetch from "../hooks/useFetch";
 
 const SAYFA_BOYUTU = 20;
 
 function SatinalmaSiparisleri() {
   const bildir = useToast();
-  const [siparisler, setSiparisler] = useState([]);
-  const [tedarikciler, setTedarikciler] = useState([]);
-  const [varyantlar, setVaryantlar] = useState([]);
-  const [lokasyonlar, setLokasyonlar] = useState([]);
-  const [yukleniyor, setYukleniyor] = useState(true);
-  const [hata, setHata] = useState("");
-  const [gonderiliyor, setGonderiliyor] = useState(false);
-  const [teslimAlinacak, setTeslimAlinacak] = useState(null);
 
   const [sayfa, setSayfa] = useState(1);
-  const [toplam, setToplam] = useState(0);
+  const [gonderiliyor, setGonderiliyor] = useState(false);
+  const [teslimAlinacak, setTeslimAlinacak] = useState(null);
 
   const [acikDetay, setAcikDetay] = useState(null);
   const [detayKalemler, setDetayKalemler] = useState([]);
@@ -42,46 +36,39 @@ function SatinalmaSiparisleri() {
     { varyant_id: "", miktar: "", birim: "adet", birim_fiyat: "" },
   ]);
 
+  const {
+    data: siparisler,
+    total: toplam,
+    loading: yukleniyor,
+    error: siparisHatasi,
+    refresh: siparisleriYukle,
+  } = useFetch(
+    () => siparisleriGetir({ sayfa, limit: SAYFA_BOYUTU }),
+    [sayfa],
+    { initial: [], errorMessage: "Siparişler yüklenemedi" },
+  );
+
+  const { data: tedarikciler, error: tedarikciHatasi } = useFetch(
+    () => tedarikcileriGetir(),
+    [],
+    { initial: [], errorMessage: "Tedarikçiler yüklenemedi" },
+  );
+
+  const { data: varyantlar, refresh: varyantlariYenile } = useFetch(
+    () => varyantlariGetir(),
+    [],
+    { initial: [], errorMessage: "Varyantlar yüklenemedi" },
+  );
+
+  const { data: tumLokasyonlar } = useFetch(() => lokasyonlariGetir(), [], {
+    initial: [],
+    errorMessage: "Lokasyonlar yüklenemedi",
+  });
+
+  const lokasyonlar = tumLokasyonlar.filter((l) => l.aktif);
+  const hata = siparisHatasi || tedarikciHatasi;
   const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
-
-  const tanimlariYukle = async () => {
-    try {
-      const [tedarikciRes, varyantRes, lokasyonRes] = await Promise.all([
-        tedarikcileriGetir(),
-        varyantlariGetir(),
-        lokasyonlariGetir(),
-      ]);
-      setTedarikciler(tedarikciRes.data);
-      setVaryantlar(varyantRes.data);
-      setLokasyonlar(lokasyonRes.data.filter((l) => l.aktif));
-      setTedarikciId((mevcut) => mevcut || tedarikciRes.data[0]?.id || "");
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Tanımlar yüklenemedi");
-    }
-  };
-
-  const siparisleriYukle = async () => {
-    try {
-      const response = await siparisleriGetir({
-        sayfa,
-        limit: SAYFA_BOYUTU,
-      });
-      setSiparisler(response.data);
-      setToplam(parseInt(response.headers["x-toplam-kayit"], 10) || 0);
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Siparişler yüklenemedi");
-    } finally {
-      setYukleniyor(false);
-    }
-  };
-
-  useEffect(() => {
-    tanimlariYukle();
-  }, []);
-
-  useEffect(() => {
-    siparisleriYukle();
-  }, [sayfa]);
+  const secilenTedarikciId = tedarikciId || tedarikciler[0]?.id || "";
 
   const kalemHesapla = (kalem) => {
     const varyant = varyantlar.find(
@@ -161,7 +148,7 @@ function SatinalmaSiparisleri() {
     setGonderiliyor(true);
     try {
       await siparisOlustur({
-        tedarikci_id: tedarikciId,
+        tedarikci_id: secilenTedarikciId,
         kalemler: kalemler.map((kalem) => {
           const hesap = kalemHesapla(kalem);
           return {
@@ -193,6 +180,7 @@ function SatinalmaSiparisleri() {
       bildir("Sipariş teslim alındı, stoklar güncellendi");
       setTeslimAlinacak(null);
       siparisleriYukle();
+      varyantlariYenile();
     } catch (err) {
       bildir(err.response?.data?.hata || "Teslim alınamadı", "hata");
     }
@@ -215,7 +203,7 @@ function SatinalmaSiparisleri() {
         <div className="form-satir">
           <label>Tedarikçi</label>
           <select
-            value={tedarikciId}
+            value={secilenTedarikciId}
             onChange={(e) => setTedarikciId(e.target.value)}
           >
             {tedarikciler.map((t) => (

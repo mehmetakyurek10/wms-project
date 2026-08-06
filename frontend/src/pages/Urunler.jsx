@@ -3,43 +3,41 @@ import { Search } from "lucide-react";
 import { urunleriGetir, urunEkle, urunGuncelle, urunSil } from "../api/urunApi";
 import { kategorileriGetir } from "../api/kategoriApi";
 import { useToast } from "../context/ToastContext";
+import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
 
 const SAYFA_BOYUTU = 10;
 
 function Urunler() {
   const bildir = useToast();
-  const [urunler, setUrunler] = useState([]);
-  const [kategoriler, setKategoriler] = useState([]);
-  const [yukleniyor, setYukleniyor] = useState(true);
-  const [hata, setHata] = useState("");
   const [arama, setArama] = useState("");
   const [aranan, setAranan] = useState("");
   const [sayfa, setSayfa] = useState(1);
-  const [toplam, setToplam] = useState(0);
   const [form, setForm] = useState({ ad: "", kategori_id: "" });
   const [duzenlenenId, setDuzenlenenId] = useState(null);
   const [duzenlemeForm, setDuzenlemeForm] = useState({});
   const [silinecek, setSilinecek] = useState(null);
   const [gonderiliyor, setGonderiliyor] = useState(false);
 
-  const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
+  const {
+    data: urunler,
+    total: toplam,
+    loading: yukleniyor,
+    error: hata,
+    refresh: urunleriYukle,
+  } = useFetch(
+    () =>
+      urunleriGetir({ ara: aranan || undefined, sayfa, limit: SAYFA_BOYUTU }),
+    [aranan, sayfa],
+    { initial: [], errorMessage: "Ürünler yüklenemedi" },
+  );
 
-  const veriGetir = async () => {
-    try {
-      const [urunRes, kategoriRes] = await Promise.all([
-        urunleriGetir({ ara: aranan || undefined, sayfa, limit: SAYFA_BOYUTU }),
-        kategorileriGetir(),
-      ]);
-      setUrunler(urunRes.data);
-      setToplam(parseInt(urunRes.headers["x-toplam-kayit"], 10) || 0);
-      setKategoriler(kategoriRes.data);
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Ürünler yüklenemedi");
-    } finally {
-      setYukleniyor(false);
-    }
-  };
+  const { data: kategoriler } = useFetch(() => kategorileriGetir(), [], {
+    initial: [],
+    errorMessage: "Kategoriler yüklenemedi",
+  });
+
+  const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
 
   useEffect(() => {
     const zamanlayici = setTimeout(() => {
@@ -48,10 +46,6 @@ function Urunler() {
     }, 400);
     return () => clearTimeout(zamanlayici);
   }, [arama]);
-
-  useEffect(() => {
-    veriGetir();
-  }, [aranan, sayfa]);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -65,7 +59,7 @@ function Urunler() {
       await urunEkle(form);
       setForm({ ad: "", kategori_id: "" });
       bildir("Ürün eklendi");
-      veriGetir();
+      urunleriYukle();
     } catch (err) {
       bildir(err.response?.data?.hata || "Ürün eklenemedi", "hata");
     } finally {
@@ -83,7 +77,7 @@ function Urunler() {
       await urunGuncelle(id, duzenlemeForm);
       setDuzenlenenId(null);
       bildir("Ürün güncellendi");
-      veriGetir();
+      urunleriYukle();
     } catch (err) {
       bildir(err.response?.data?.hata || "Güncellenemedi", "hata");
     }
@@ -98,7 +92,7 @@ function Urunler() {
       if (urunler.length === 1 && sayfa > 1) {
         setSayfa(sayfa - 1);
       } else {
-        veriGetir();
+        urunleriYukle();
       }
     } catch (err) {
       bildir(err.response?.data?.hata || "Silinemedi", "hata");

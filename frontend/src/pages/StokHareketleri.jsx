@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
 import {
   stokHareketleriniGetir,
@@ -10,6 +10,7 @@ import { getStockUnits } from "../api/stockUnitApi";
 import Etiket from "../components/Etiket";
 import LokasyonSecici from "../components/LokasyonSecici";
 import { useToast } from "../context/ToastContext";
+import useFetch from "../hooks/useFetch";
 
 const SAYFA_BOYUTU = 20;
 
@@ -23,17 +24,10 @@ const BOS_FILTRE = {
 
 function StokHareketleri() {
   const bildir = useToast();
-  const [hareketler, setHareketler] = useState([]);
-  const [varyantlar, setVaryantlar] = useState([]);
-  const [lokasyonlar, setLokasyonlar] = useState([]);
-  const [birimler, setBirimler] = useState([]);
-  const [yukleniyor, setYukleniyor] = useState(true);
-  const [hata, setHata] = useState("");
-  const [gonderiliyor, setGonderiliyor] = useState(false);
 
   const [filtre, setFiltre] = useState(BOS_FILTRE);
   const [sayfa, setSayfa] = useState(1);
-  const [toplam, setToplam] = useState(0);
+  const [gonderiliyor, setGonderiliyor] = useState(false);
 
   const [form, setForm] = useState({
     varyant_id: "",
@@ -46,58 +40,47 @@ function StokHareketleri() {
     aciklama: "",
   });
 
+  const {
+    data: hareketler,
+    total: toplam,
+    loading: yukleniyor,
+    error: hata,
+    refresh: hareketleriYukle,
+  } = useFetch(
+    () => stokHareketleriniGetir({ ...filtre, sayfa, limit: SAYFA_BOYUTU }),
+    [filtre, sayfa],
+    { initial: [], errorMessage: "Hareketler yüklenemedi" },
+  );
+
+  const { data: varyantlar, refresh: varyantlariYenile } = useFetch(
+    () => varyantlariGetir(),
+    [],
+    { initial: [], errorMessage: "Varyantlar yüklenemedi" },
+  );
+
+  const { data: tumLokasyonlar } = useFetch(() => lokasyonlariGetir(), [], {
+    initial: [],
+    errorMessage: "Lokasyonlar yüklenemedi",
+  });
+
+  const secilenVaryantId = form.varyant_id || varyantlar[0]?.id || "";
+
+  const { data: birimler, refresh: birimleriYenile } = useFetch(
+    () =>
+      form.tip === "cikis" && secilenVaryantId
+        ? getStockUnits({ varyant_id: secilenVaryantId })
+        : Promise.resolve({ data: [] }),
+    [form.tip, secilenVaryantId],
+    { initial: [], errorMessage: "Stok birimleri yüklenemedi" },
+  );
+
+  const lokasyonlar = tumLokasyonlar.filter((l) => l.aktif);
+  const secilebilirBirimler = birimler.filter(
+    (b) => Number(b.kullanilabilir) > 0,
+  );
+
   const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
   const filtreVar = Object.values(filtre).some((deger) => deger !== "");
-
-  const tanimlariYukle = async () => {
-    try {
-      const [varyantRes, lokasyonRes] = await Promise.all([
-        varyantlariGetir(),
-        lokasyonlariGetir(),
-      ]);
-      setVaryantlar(varyantRes.data);
-      setLokasyonlar(lokasyonRes.data.filter((l) => l.aktif));
-      setForm((f) =>
-        f.varyant_id ? f : { ...f, varyant_id: varyantRes.data[0]?.id || "" },
-      );
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Tanımlar yüklenemedi");
-    }
-  };
-
-  const hareketleriYukle = async () => {
-    try {
-      const response = await stokHareketleriniGetir({
-        ...filtre,
-        sayfa,
-        limit: SAYFA_BOYUTU,
-      });
-      setHareketler(response.data);
-      setToplam(parseInt(response.headers["x-toplam-kayit"], 10) || 0);
-    } catch (err) {
-      setHata(err.response?.data?.hata || "Hareketler yüklenemedi");
-    } finally {
-      setYukleniyor(false);
-    }
-  };
-
-  useEffect(() => {
-    tanimlariYukle();
-  }, []);
-
-  useEffect(() => {
-    hareketleriYukle();
-  }, [filtre, sayfa]);
-
-  useEffect(() => {
-    if (form.tip !== "cikis" || !form.varyant_id) {
-      setBirimler([]);
-      return;
-    }
-    getStockUnits({ varyant_id: form.varyant_id })
-      .then((res) => setBirimler(res.data.filter((b) => Number(b.miktar) > 0)))
-      .catch(() => setBirimler([]));
-  }, [form.varyant_id, form.tip]);
 
   const filtreDegisti = (e) => {
     setFiltre({ ...filtre, [e.target.name]: e.target.value });
@@ -105,7 +88,7 @@ function StokHareketleri() {
   };
 
   const secilenVaryant = varyantlar.find(
-    (v) => v.id === parseInt(form.varyant_id, 10),
+    (v) => v.id === parseInt(secilenVaryantId, 10),
   );
   const ambalajKg = Number(secilenVaryant?.ambalaj_kg) || 1;
   const miktarAdet =
@@ -128,7 +111,7 @@ function StokHareketleri() {
     setGonderiliyor(true);
     try {
       await stokHareketiEkle({
-        varyant_id: form.varyant_id,
+        varyant_id: secilenVaryantId,
         lokasyon_id: form.lokasyon_id,
         birim_id: form.birim_id,
         tip: form.tip,
@@ -139,7 +122,8 @@ function StokHareketleri() {
       setForm({ ...form, miktar: "", aciklama: "", birim_id: "" });
       bildir("Stok hareketi kaydedildi");
       hareketleriYukle();
-      tanimlariYukle();
+      varyantlariYenile();
+      birimleriYenile();
     } catch (err) {
       bildir(err.response?.data?.hata || "Hareket eklenemedi", "hata");
     } finally {
@@ -167,7 +151,7 @@ function StokHareketleri() {
           <label>Varyant</label>
           <select
             name="varyant_id"
-            value={form.varyant_id}
+            value={secilenVaryantId}
             onChange={handleChange}
             required
           >
@@ -199,12 +183,16 @@ function StokHareketleri() {
               required
             >
               <option value="">
-                {birimler.length === 0 ? "Bu varyantın stoğu yok" : "Seçiniz"}
+                {secilebilirBirimler.length === 0
+                  ? "Bu varyantın kullanılabilir stoğu yok"
+                  : "Seçiniz"}
               </option>
-              {birimler.map((b) => (
+              {secilebilirBirimler.map((b) => (
                 <option key={b.id} value={b.id}>
                   {b.tip === "palet" ? b.kod : "Dökme"} · {b.lokasyon_kod} ·{" "}
-                  {Number(b.miktar).toFixed(0)} adet
+                  {Number(b.kullanilabilir).toFixed(0)} adet
+                  {Number(b.rezerve) > 0 &&
+                    ` (${Number(b.miktar).toFixed(0)} mevcut)`}
                 </option>
               ))}
             </select>
