@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { reservedQuantity } = require("../utils/reservations");
 
 const list = async (req, res, next) => {
   try {
@@ -39,11 +40,18 @@ const list = async (req, res, next) => {
     const [rows] = await pool.query(
       `SELECT sb.id, sb.tip, sb.kod, sb.miktar, sb.olusturulma_tarihi,
               sb.varyant_id, sb.lokasyon_id,
+              COALESCE(r.rezerve, 0) AS rezerve,
+              sb.miktar - COALESCE(r.rezerve, 0) AS kullanilabilir,
               u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg,
               l.kod AS lokasyon_kod, l.ad AS lokasyon_adi,
               k.ad AS olusturan_adi
        ${govde}
        LEFT JOIN kullanicilar k ON sb.olusturan_kullanici_id = k.id
+       LEFT JOIN (
+         SELECT birim_id, SUM(miktar) AS rezerve
+         FROM stok_rezervasyonlari
+         GROUP BY birim_id
+       ) r ON r.birim_id = sb.id
        ${kosul}
        ORDER BY sb.tip, sb.kod, l.kod
        LIMIT 500`,
@@ -132,11 +140,15 @@ const palletize = async (req, res, next) => {
     );
 
     const mevcut = dokmeRows.length ? Number(dokmeRows[0].miktar) : 0;
+    const rezerve = dokmeRows.length
+      ? await reservedQuantity(connection, dokmeRows[0].id)
+      : 0;
+    const kullanilabilir = mevcut - rezerve;
 
-    if (mevcut < alinacak) {
+    if (kullanilabilir < alinacak) {
       await connection.rollback();
       return res.status(400).json({
-        hata: `Bu lokasyonda paletlenecek kadar dökme stok yok (mevcut ${mevcut.toFixed(0)})`,
+        hata: `Bu lokasyonda paletlenecek kadar serbest dökme stok yok (mevcut ${mevcut.toFixed(0)}, ${rezerve.toFixed(0)} adedi siparişlere ayrılmış)`,
       });
     }
 

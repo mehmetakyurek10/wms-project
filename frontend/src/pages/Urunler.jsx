@@ -21,6 +21,7 @@ function Urunler() {
   const [duzenlenenId, setDuzenlenenId] = useState(null);
   const [duzenlemeForm, setDuzenlemeForm] = useState({});
   const [silinecek, setSilinecek] = useState(null);
+  const [gonderiliyor, setGonderiliyor] = useState(false);
 
   const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
 
@@ -58,6 +59,8 @@ function Urunler() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (gonderiliyor) return;
+    setGonderiliyor(true);
     try {
       await urunEkle(form);
       setForm({ ad: "", kategori_id: "" });
@@ -65,6 +68,8 @@ function Urunler() {
       veriGetir();
     } catch (err) {
       bildir(err.response?.data?.hata || "Ürün eklenemedi", "hata");
+    } finally {
+      setGonderiliyor(false);
     }
   };
 
@@ -139,7 +144,9 @@ function Urunler() {
             ))}
           </select>
         </div>
-        <button type="submit">Ekle</button>
+        <button type="submit" disabled={gonderiliyor}>
+          {gonderiliyor ? "Ekleniyor..." : "Ekle"}
+        </button>
       </form>
 
       <div className="arama-kutusu">

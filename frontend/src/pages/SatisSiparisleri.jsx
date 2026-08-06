@@ -12,7 +12,8 @@ import Etiket from "../components/Etiket";
 import Fis from "../components/Fis";
 import { useToast } from "../context/ToastContext";
 import OnayModal from "../components/OnayModal";
-import PickingModal from "../components/PickingModal";
+import AllocationModal from "../components/AllocationModal";
+import DeliveryModal from "../components/DeliveryModal";
 
 const SAYFA_BOYUTU = 20;
 
@@ -23,8 +24,10 @@ function SatisSiparisleri() {
   const [varyantlar, setVaryantlar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
+  const [gonderiliyor, setGonderiliyor] = useState(false);
+
+  const [tahsisAcik, setTahsisAcik] = useState(false);
   const [teslimEdilecek, setTeslimEdilecek] = useState(null);
-  const [teslimKalemler, setTeslimKalemler] = useState([]);
   const [iptalEdilecek, setIptalEdilecek] = useState(null);
 
   const [sayfa, setSayfa] = useState(1);
@@ -94,6 +97,7 @@ function SatisSiparisleri() {
     const miktarKg = miktarAdet * ambalajKg;
 
     return {
+      varyant,
       ambalajKg,
       miktarAdet,
       miktarKg,
@@ -108,6 +112,20 @@ function SatisSiparisleri() {
     (toplam, kalem) => toplam + kalemHesapla(kalem).tutar,
     0,
   );
+
+  const tahsisKalemleri = kalemler
+    .filter((kalem) => kalem.varyant_id && Number(kalem.miktar) > 0)
+    .map((kalem) => {
+      const hesap = kalemHesapla(kalem);
+      return {
+        varyant_id: Number(kalem.varyant_id),
+        miktar: hesap.miktarAdet,
+        urun_adi: hesap.varyant?.urun_adi,
+        boy: hesap.varyant?.boy,
+        ambalaj_kg: hesap.varyant?.ambalaj_kg,
+        ambalaj_tipi: hesap.varyant?.ambalaj_tipi,
+      };
+    });
 
   const detayAc = async (id) => {
     if (acikDetay === id) {
@@ -165,8 +183,20 @@ function SatisSiparisleri() {
     setKalemler(kalemler.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
+
+    if (!tahsisKalemleri.length) {
+      bildir("En az bir kalem eklemelisiniz", "hata");
+      return;
+    }
+
+    setTahsisAcik(true);
+  };
+
+  const siparisiOlustur = async (tahsisler) => {
+    if (gonderiliyor) return;
+    setGonderiliyor(true);
     try {
       await satisOlustur({
         musteri_id: musteriId,
@@ -178,11 +208,13 @@ function SatisSiparisleri() {
             birim_fiyat: hesap.fiyatAdet,
           };
         }),
+        tahsisler,
       });
       setKalemler([
         { varyant_id: "", miktar: "", birim: "adet", birim_fiyat: "" },
       ]);
-      bildir("Satış siparişi oluşturuldu");
+      setTahsisAcik(false);
+      bildir("Satış siparişi oluşturuldu, stok ayrıldı");
       if (sayfa === 1) {
         siparisleriYukle();
       } else {
@@ -190,22 +222,13 @@ function SatisSiparisleri() {
       }
     } catch (err) {
       bildir(err.response?.data?.hata || "Sipariş oluşturulamadı", "hata");
-    }
-  };
-
-  const teslimeBasla = async (siparis) => {
-    try {
-      const response = await satisDetay(siparis.id);
-      setTeslimKalemler(response.data);
-      setTeslimEdilecek(siparis);
-    } catch (err) {
-      bildir(err.response?.data?.hata || "Sipariş kalemleri yüklenemedi", "hata");
+    } finally {
+      setGonderiliyor(false);
     }
   };
 
   const teslimTamamlandi = () => {
     setTeslimEdilecek(null);
-    setTeslimKalemler([]);
     siparisleriYukle();
   };
 
@@ -213,8 +236,8 @@ function SatisSiparisleri() {
     const id = iptalEdilecek.id;
     setIptalEdilecek(null);
     try {
-      await satisIptal(id);
-      bildir("Sipariş iptal edildi");
+      const response = await satisIptal(id);
+      bildir(response.data.mesaj);
       siparisleriYukle();
     } catch (err) {
       bildir(err.response?.data?.hata || "İptal edilemedi", "hata");
@@ -326,7 +349,7 @@ function SatisSiparisleri() {
                   {hesap.fiyatKg > 0 &&
                     ` · ${hesap.fiyatAdet.toFixed(2)} TL/adet · Tutar: ${hesap.tutar.toLocaleString("tr-TR")} ₺`}
                   {yetersiz &&
-                    ` — yetersiz stok (mevcut ${hesap.mevcutStok.toFixed(0)} adet)`}
+                    ` — toplam stoktan fazla (mevcut ${hesap.mevcutStok.toFixed(0)} adet)`}
                 </span>
               )}
             </div>
@@ -337,7 +360,7 @@ function SatisSiparisleri() {
           <button type="button" onClick={kalemEkle}>
             + Kalem Ekle
           </button>
-          <button type="submit">Siparişi Oluştur</button>
+          <button type="submit">Devam · Stok Ayır</button>
         </div>
 
         {genelToplam > 0 && (
@@ -389,7 +412,7 @@ function SatisSiparisleri() {
                     <td>
                       {s.durum !== "teslim_edildi" && s.durum !== "iptal" && (
                         <>
-                          <button onClick={() => teslimeBasla(s)}>
+                          <button onClick={() => setTeslimEdilecek(s)}>
                             Teslim Et
                           </button>
                           <button
@@ -495,21 +518,25 @@ function SatisSiparisleri() {
         </>
       )}
 
-      <PickingModal
+      <AllocationModal
+        acik={tahsisAcik}
+        kalemler={tahsisKalemleri}
+        gonderiliyor={gonderiliyor}
+        kapat={() => setTahsisAcik(false)}
+        tamamlandi={siparisiOlustur}
+      />
+
+      <DeliveryModal
         acik={teslimEdilecek !== null}
         siparis={teslimEdilecek}
-        kalemler={teslimKalemler}
-        kapat={() => {
-          setTeslimEdilecek(null);
-          setTeslimKalemler([]);
-        }}
+        kapat={() => setTeslimEdilecek(null)}
         tamamlandi={teslimTamamlandi}
       />
 
       <OnayModal
         acik={iptalEdilecek !== null}
         baslik="Siparişi iptal et"
-        mesaj={`#${iptalEdilecek?.id} numaralı sipariş iptal edilecek. Stok hareketi oluşmayacak.`}
+        mesaj={`#${iptalEdilecek?.id} numaralı sipariş iptal edilecek ve ayrılan stok serbest bırakılacak.`}
         onayMetni="İptal Et"
         onayla={iptalOnayla}
         iptal={() => setIptalEdilecek(null)}

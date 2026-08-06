@@ -29,6 +29,7 @@ function StokHareketleri() {
   const [birimler, setBirimler] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
+  const [gonderiliyor, setGonderiliyor] = useState(false);
 
   const [filtre, setFiltre] = useState(BOS_FILTRE);
   const [sayfa, setSayfa] = useState(1);
@@ -123,6 +124,8 @@ function StokHareketleri() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (gonderiliyor) return;
+    setGonderiliyor(true);
     try {
       await stokHareketiEkle({
         varyant_id: form.varyant_id,
@@ -139,6 +142,8 @@ function StokHareketleri() {
       tanimlariYukle();
     } catch (err) {
       bildir(err.response?.data?.hata || "Hareket eklenemedi", "hata");
+    } finally {
+      setGonderiliyor(false);
     }
   };
 
@@ -262,7 +267,9 @@ function StokHareketleri() {
           />
         </div>
 
-        <button type="submit">Kaydet</button>
+        <button type="submit" disabled={gonderiliyor}>
+          {gonderiliyor ? "Kaydediliyor..." : "Kaydet"}
+        </button>
       </form>
 
       <div className="filtre-cubugu">

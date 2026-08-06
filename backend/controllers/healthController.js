@@ -29,6 +29,25 @@ const NEGATIVE_QUERY = `
   ORDER BY miktar
 `;
 
+const UNFULFILLABLE_RESERVATION_QUERY = `
+  SELECT sb.kod AS birim_kodu,
+         l.kod AS lokasyon_kodu,
+         u.ad AS urun_adi,
+         v.boy,
+         sb.miktar AS mevcut,
+         SUM(r.miktar) AS ayrilan,
+         SUM(r.miktar) - sb.miktar AS eksik,
+         GROUP_CONCAT(DISTINCT r.siparis_id ORDER BY r.siparis_id) AS siparisler
+  FROM stok_rezervasyonlari r
+  JOIN stok_birimleri sb ON r.birim_id = sb.id
+  JOIN lokasyonlar l ON sb.lokasyon_id = l.id
+  JOIN urun_varyantlari v ON sb.varyant_id = v.id
+  JOIN urunler u ON v.urun_id = u.id
+  GROUP BY sb.id, sb.kod, l.kod, u.ad, v.boy, sb.miktar
+  HAVING ayrilan > sb.miktar
+  ORDER BY eksik DESC
+`;
+
 const INACTIVE_LOCATION_QUERY = `
   SELECT l.kod AS lokasyon_kodu, l.ad AS lokasyon_adi,
          u.ad AS urun_adi, v.boy, sb.miktar
@@ -58,12 +77,14 @@ const OVER_CAPACITY_QUERY = `
 
 const checks = async (req, res, next) => {
   try {
-    const [drift, negative, inactive, overCapacity] = await Promise.all([
-      pool.query(DRIFT_QUERY),
-      pool.query(NEGATIVE_QUERY),
-      pool.query(INACTIVE_LOCATION_QUERY),
-      pool.query(OVER_CAPACITY_QUERY),
-    ]);
+    const [drift, negative, unfulfillable, inactive, overCapacity] =
+      await Promise.all([
+        pool.query(DRIFT_QUERY),
+        pool.query(NEGATIVE_QUERY),
+        pool.query(UNFULFILLABLE_RESERVATION_QUERY),
+        pool.query(INACTIVE_LOCATION_QUERY),
+        pool.query(OVER_CAPACITY_QUERY),
+      ]);
 
     const kontroller = [
       {
@@ -96,6 +117,24 @@ const checks = async (req, res, next) => {
           { key: "miktar", label: "Miktar" },
         ],
         satirlar: negative[0],
+      },
+      {
+        anahtar: "karsilanamayan_rezervasyon",
+        ad: "Karşılanamayan Rezervasyon",
+        seviye: "kritik",
+        aciklama:
+          "Siparişlere ayrılan miktar, birimde fiilen bulunan maldan fazla. Genellikle sayım sonrası oluşur. İlgili siparişler teslim edilemez; müşteriyle görüşülüp sipariş düzeltilmelidir.",
+        kolonlar: [
+          { key: "birim_kodu", label: "Palet" },
+          { key: "lokasyon_kodu", label: "Lokasyon" },
+          { key: "urun_adi", label: "Ürün" },
+          { key: "boy", label: "Boy" },
+          { key: "mevcut", label: "Mevcut" },
+          { key: "ayrilan", label: "Ayrılan" },
+          { key: "eksik", label: "Eksik" },
+          { key: "siparisler", label: "Siparişler" },
+        ],
+        satirlar: unfulfillable[0],
       },
       {
         anahtar: "pasif_lokasyonda_stok",

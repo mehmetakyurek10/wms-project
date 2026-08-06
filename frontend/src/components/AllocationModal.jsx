@@ -1,20 +1,18 @@
 import { useEffect, useState } from "react";
-import { PackageCheck } from "lucide-react";
+import { PackageSearch } from "lucide-react";
 import { getStockUnits } from "../api/stockUnitApi";
-import { satisTeslimEt } from "../api/satisApi";
 import { useToast } from "../context/ToastContext";
 
 const yuvarla = (sayi) => Math.round(sayi * 100) / 100;
 
-function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
+function AllocationModal({ acik, kalemler, kapat, tamamlandi, gonderiliyor }) {
   const bildir = useToast();
   const [birimler, setBirimler] = useState({});
   const [secimler, setSecimler] = useState({});
   const [yukleniyor, setYukleniyor] = useState(false);
-  const [gonderiliyor, setGonderiliyor] = useState(false);
 
   useEffect(() => {
-    if (!acik || !siparis || !kalemler?.length) return;
+    if (!acik || !kalemler?.length) return;
 
     const yukle = async () => {
       setYukleniyor(true);
@@ -26,20 +24,25 @@ function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
         );
         const harita = {};
         varyantIdleri.forEach((vid, i) => {
-          harita[vid] = sonuclar[i].data.filter((b) => Number(b.miktar) > 0);
+          harita[vid] = sonuclar[i].data.filter(
+            (b) => Number(b.kullanilabilir) > 0,
+          );
         });
         setBirimler(harita);
       } catch (err) {
-        bildir(err.response?.data?.hata || "Stok birimleri yüklenemedi", "hata");
+        bildir(
+          err.response?.data?.hata || "Stok birimleri yüklenemedi",
+          "hata",
+        );
       } finally {
         setYukleniyor(false);
       }
     };
 
     yukle();
-  }, [acik, siparis?.id]);
+  }, [acik]);
 
-  if (!acik || !siparis) return null;
+  if (!acik) return null;
 
   const gruplar = [];
   const gorulenler = new Set();
@@ -73,11 +76,7 @@ function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
     (grup) => secilenToplam(grup.varyant_id) === grup.gereken,
   );
 
-  const secimDegistir = (birimId, deger) => {
-    setSecimler((onceki) => ({ ...onceki, [birimId]: deger }));
-  };
-
-  const kaydet = async (e) => {
+  const kaydet = (e) => {
     e.preventDefault();
 
     const tahsisler = Object.entries(secimler)
@@ -92,16 +91,7 @@ function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
       return;
     }
 
-    setGonderiliyor(true);
-    try {
-      await satisTeslimEt(siparis.id, { tahsisler });
-      bildir("Sipariş teslim edildi, stoklar düşüldü");
-      tamamlandi();
-    } catch (err) {
-      bildir(err.response?.data?.hata || "Teslim edilemedi", "hata");
-    } finally {
-      setGonderiliyor(false);
-    }
+    tamamlandi(tahsisler);
   };
 
   return (
@@ -111,10 +101,13 @@ function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="modal-ikon modal-ikon-notr">
-          <PackageCheck size={22} />
+          <PackageSearch size={22} />
         </div>
-        <h3>#{siparis.id} · Toplama</h3>
-        <p>Her kalem için malın hangi birimden çıkacağını seç.</p>
+        <h3>Stok Ayır</h3>
+        <p>
+          Sipariş oluşturulurken bu mal depoda ayrılacak ve başka siparişlere
+          satılamayacak.
+        </p>
 
         {yukleniyor ? (
           <div className="yukleniyor-kutu">
@@ -128,6 +121,10 @@ function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
               const kalan = yuvarla(grup.gereken - secilen);
               const tamam = kalan === 0;
 
+              const toplamKullanilabilir = yuvarla(
+                grupBirimleri.reduce((t, b) => t + Number(b.kullanilabilir), 0),
+              );
+
               return (
                 <div key={grup.varyant_id} className="kalem-blogu">
                   <h4 className="bolum-basligi">
@@ -136,7 +133,7 @@ function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
                   </h4>
 
                   <span className={tamam ? "kucuk-not" : "hata-metni"}>
-                    Gereken {grup.gereken.toFixed(0)} · Seçilen{" "}
+                    Gereken {grup.gereken.toFixed(0)} · Ayrılan{" "}
                     {secilen.toFixed(0)}
                     {!tamam &&
                       (kalan > 0
@@ -144,9 +141,16 @@ function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
                         : ` · ${Math.abs(kalan).toFixed(0)} adet fazla`)}
                   </span>
 
+                  {toplamKullanilabilir < grup.gereken && (
+                    <div className="hata-metni">
+                      Depoda yalnızca {toplamKullanilabilir.toFixed(0)} adet
+                      kullanılabilir stok var. Sipariş miktarını düşürmelisiniz.
+                    </div>
+                  )}
+
                   {grupBirimleri.length === 0 ? (
                     <div className="bos-durum">
-                      Bu üründen depoda stok birimi yok.
+                      Bu üründen kullanılabilir stok yok.
                     </div>
                   ) : (
                     <table className="ic-tablo">
@@ -154,8 +158,8 @@ function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
                         <tr>
                           <th>Birim</th>
                           <th>Lokasyon</th>
-                          <th>Mevcut</th>
-                          <th>Alınacak</th>
+                          <th>Kullanılabilir</th>
+                          <th>Ayrılacak</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -171,17 +175,28 @@ function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
                               </span>
                             </td>
                             <td>{birim.lokasyon_kod}</td>
-                            <td>{Number(birim.miktar).toFixed(0)}</td>
+                            <td>
+                              {Number(birim.kullanilabilir).toFixed(0)}
+                              {Number(birim.rezerve) > 0 && (
+                                <span className="kucuk-not">
+                                  {" "}
+                                  ({Number(birim.miktar).toFixed(0)} mevcut)
+                                </span>
+                              )}
+                            </td>
                             <td>
                               <input
                                 type="number"
                                 step="0.01"
                                 min="0"
-                                max={Number(birim.miktar)}
+                                max={Number(birim.kullanilabilir)}
                                 placeholder="0"
                                 value={secimler[birim.id] ?? ""}
                                 onChange={(e) =>
-                                  secimDegistir(birim.id, e.target.value)
+                                  setSecimler((onceki) => ({
+                                    ...onceki,
+                                    [birim.id]: e.target.value,
+                                  }))
                                 }
                               />
                             </td>
@@ -199,7 +214,7 @@ function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
                 Vazgeç
               </button>
               <button type="submit" disabled={gonderiliyor || !hepsiTamam}>
-                {gonderiliyor ? "İşleniyor..." : "Teslim Et"}
+                {gonderiliyor ? "Oluşturuluyor..." : "Siparişi Oluştur"}
               </button>
             </div>
           </form>
@@ -209,4 +224,4 @@ function PickingModal({ acik, siparis, kalemler, kapat, tamamlandi }) {
   );
 }
 
-export default PickingModal;
+export default AllocationModal;

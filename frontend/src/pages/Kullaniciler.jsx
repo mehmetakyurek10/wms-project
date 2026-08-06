@@ -13,6 +13,7 @@ function Kullanicilar() {
   const [kullanicilar, setKullanicilar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
+  const [gonderiliyor, setGonderiliyor] = useState(false);
   const [form, setForm] = useState({
     ad: "",
     email: "",
@@ -45,6 +46,8 @@ function Kullanicilar() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (gonderiliyor) return;
+    setGonderiliyor(true);
     try {
       await kayitOl(form);
       setForm({ ad: "", email: "", sifre: "", rol: "depo_sorumlusu" });
@@ -52,6 +55,8 @@ function Kullanicilar() {
       veriGetir();
     } catch (err) {
       bildir(err.response?.data?.hata || "Kullanıcı eklenemedi", "hata");
+    } finally {
+      setGonderiliyor(false);
     }
   };
 
@@ -130,7 +135,9 @@ function Kullanicilar() {
             <option value="admin">Yönetici</option>
           </select>
         </div>
-        <button type="submit">Ekle</button>
+        <button type="submit" disabled={gonderiliyor}>
+          {gonderiliyor ? "Ekleniyor..." : "Ekle"}
+        </button>
       </form>
 
       <table>

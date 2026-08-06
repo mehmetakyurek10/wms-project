@@ -37,6 +37,7 @@ function Varyantlar() {
   const [silinecek, setSilinecek] = useState(null);
   const [duzenlenenId, setDuzenlenenId] = useState(null);
   const [duzenlemeForm, setDuzenlemeForm] = useState({});
+  const [gonderiliyor, setGonderiliyor] = useState(false);
   const [form, setForm] = useState({
     urun_id: "",
     boy: "",
@@ -122,6 +123,8 @@ function Varyantlar() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (gonderiliyor) return;
+    setGonderiliyor(true);
     try {
       await varyantEkle({
         urun_id: form.urun_id,
@@ -138,6 +141,8 @@ function Varyantlar() {
       varyantlariYukle();
     } catch (err) {
       bildir(err.response?.data?.hata || "Varyant eklenemedi", "hata");
+    } finally {
+      setGonderiliyor(false);
     }
   };
 
@@ -295,7 +300,9 @@ function Varyantlar() {
           />
         </div>
 
-        <button type="submit">Ekle</button>
+        <button type="submit" disabled={gonderiliyor}>
+          {gonderiliyor ? "Ekleniyor..." : "Ekle"}
+        </button>
       </form>
 
       <div className="arama-kutusu">

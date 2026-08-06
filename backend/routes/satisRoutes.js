@@ -5,6 +5,7 @@ const dogrula = require("../middleware/auth");
 
 router.get("/", satisController.listele);
 router.get("/:id/kalemler", satisController.detay);
+router.get("/:id/rezervasyonlar", satisController.rezervasyonlar);
 router.post("/", dogrula, satisController.olustur);
 router.patch("/:id/teslim-et", dogrula, satisController.teslimEt);
 router.patch("/:id/iptal", dogrula, satisController.iptalEt);

@@ -23,6 +23,7 @@ function Tedarikciler() {
   const [duzenlenenId, setDuzenlenenId] = useState(null);
   const [duzenlemeForm, setDuzenlemeForm] = useState({});
   const [silinecek, setSilinecek] = useState(null);
+  const [gonderiliyor, setGonderiliyor] = useState(false);
 
   const veriGetir = async () => {
     try {
@@ -45,6 +46,8 @@ function Tedarikciler() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (gonderiliyor) return;
+    setGonderiliyor(true);
     try {
       await tedarikciEkle(form);
       setForm({ ad: "", yetkili_kisi: "", telefon: "", email: "", adres: "" });
@@ -52,6 +55,8 @@ function Tedarikciler() {
       veriGetir();
     } catch (err) {
       bildir(err.response?.data?.hata || "Tedarikçi eklenemedi", "hata");
+    } finally {
+      setGonderiliyor(false);
     }
   };
 
@@ -134,7 +139,9 @@ function Tedarikciler() {
           value={form.adres}
           onChange={handleChange}
         />
-        <button type="submit">Ekle</button>
+        <button type="submit" disabled={gonderiliyor}>
+          {gonderiliyor ? "Ekleniyor..." : "Ekle"}
+        </button>
       </form>
 
       {tedarikciler.length === 0 ? (

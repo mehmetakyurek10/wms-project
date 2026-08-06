@@ -60,6 +60,8 @@ function LokasyonYonetimi() {
   const [duzenlenenId, setDuzenlenenId] = useState(null);
   const [blokForm, setBlokForm] = useState(BOS_BLOK);
   const [silinecek, setSilinecek] = useState(null);
+  const [alanGonderiliyor, setAlanGonderiliyor] = useState(false);
+  const [blokGonderiliyor, setBlokGonderiliyor] = useState(false);
 
   const veriGetir = async () => {
     try {
@@ -95,6 +97,8 @@ function LokasyonYonetimi() {
 
   const alanKaydet = async (e) => {
     e.preventDefault();
+    if (alanGonderiliyor) return;
+    setAlanGonderiliyor(true);
     try {
       if (duzenlenenId) {
         await lokasyonGuncelle(duzenlenenId, alanForm);
@@ -108,6 +112,8 @@ function LokasyonYonetimi() {
       veriGetir();
     } catch (err) {
       bildir(err.response?.data?.hata || "Kaydedilemedi", "hata");
+    } finally {
+      setAlanGonderiliyor(false);
     }
   };
 
@@ -128,6 +134,8 @@ function LokasyonYonetimi() {
 
   const blokKaydet = async (e) => {
     e.preventDefault();
+    if (blokGonderiliyor) return;
+    setBlokGonderiliyor(true);
     try {
       const response = await blokOlustur({ ...blokForm, yon: "dikey" });
       bildir(response.data.mesaj);
@@ -135,6 +143,8 @@ function LokasyonYonetimi() {
       veriGetir();
     } catch (err) {
       bildir(err.response?.data?.hata || "Blok oluşturulamadı", "hata");
+    } finally {
+      setBlokGonderiliyor(false);
     }
   };
 
@@ -320,8 +330,13 @@ function LokasyonYonetimi() {
             onChange={alanDegisti}
           />
         </div>
-        <button type="submit">
-          <Plus size={15} /> {duzenlenenId ? "Güncelle" : "Ekle"}
+        <button type="submit" disabled={alanGonderiliyor}>
+          <Plus size={15} />{" "}
+          {alanGonderiliyor
+            ? "Kaydediliyor..."
+            : duzenlenenId
+              ? "Güncelle"
+              : "Ekle"}
         </button>
         {duzenlenenId && (
           <button
@@ -441,8 +456,9 @@ function LokasyonYonetimi() {
             onChange={blokDegisti}
           />
         </div>
-        <button type="submit">
-          <Grid3x3 size={15} /> Blok Üret
+        <button type="submit" disabled={blokGonderiliyor}>
+          <Grid3x3 size={15} />{" "}
+          {blokGonderiliyor ? "Üretiliyor..." : "Blok Üret"}
         </button>
       </form>
 

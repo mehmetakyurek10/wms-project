@@ -98,28 +98,28 @@ test("stok degismezi: butun akislar boyunca birim toplami = varyant toplami", as
 
   await kontrol("fire cikisi", 90);
 
-  // 5) Satis: 25 adet — 20 paletten, 5 dokmeden
-  const siparis = await auth(request(app).post("/satis-siparisleri"))
-    .send({
-      musteri_id: musteriId,
-      kalemler: [{ varyant_id: varyantId, miktar: 25, birim_fiyat: 100 }],
-    })
-    .expect(201);
-
+  // 5) Satis: 25 adet — 20 paletten, 5 dokmeden (tahsis siparis aninda yapilir)
   birimler = await birimleriGetir();
   const satisPalet = birimler.find((b) => b.tip === "palet");
   const satisDokme = birimler.find((b) => b.tip === "dokme");
 
-  await auth(
-    request(app).patch(`/satis-siparisleri/${siparis.body.id}/teslim-et`),
-  )
+  const siparis = await auth(request(app).post("/satis-siparisleri"))
     .send({
+      musteri_id: musteriId,
+      kalemler: [{ varyant_id: varyantId, miktar: 25, birim_fiyat: 100 }],
       tahsisler: [
         { birim_id: satisPalet.id, miktar: 20 },
         { birim_id: satisDokme.id, miktar: 5 },
       ],
     })
-    .expect(200);
+    .expect(201);
+
+  // rezervasyon fiziksel stoga dokunmamali
+  await kontrol("rezervasyon", 90);
+
+  await auth(
+    request(app).patch(`/satis-siparisleri/${siparis.body.id}/teslim-et`),
+  ).expect(200);
 
   await kontrol("satis teslimati", 65);
 

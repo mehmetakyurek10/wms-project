@@ -14,6 +14,7 @@ function Kategoriler() {
   const [hata, setHata] = useState("");
   const [ad, setAd] = useState("");
   const [silinecek, setSilinecek] = useState(null);
+  const [gonderiliyor, setGonderiliyor] = useState(false);
 
   const veriGetir = async () => {
     try {
@@ -32,6 +33,8 @@ function Kategoriler() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (gonderiliyor) return;
+    setGonderiliyor(true);
     try {
       await kategoriEkle({ ad });
       setAd("");
@@ -39,6 +42,8 @@ function Kategoriler() {
       veriGetir();
     } catch (err) {
       bildir(err.response?.data?.hata || "Kategori eklenemedi", "hata");
+    } finally {
+      setGonderiliyor(false);
     }
   };
 
@@ -74,7 +79,9 @@ function Kategoriler() {
           onChange={(e) => setAd(e.target.value)}
           required
         />
-        <button type="submit">Ekle</button>
+        <button type="submit" disabled={gonderiliyor}>
+          {gonderiliyor ? "Ekleniyor..." : "Ekle"}
+        </button>
       </form>
 
       {kategoriler.length === 0 ? (

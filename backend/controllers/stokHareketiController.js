@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { reservedQuantity } = require("../utils/reservations");
 
 const GECERLI_SEBEPLER = [
   "satinalma",
@@ -187,11 +188,13 @@ const ekle = async (req, res, next) => {
     }
 
     const birim = birimRows[0];
+    const rezerve = await reservedQuantity(connection, birimId);
+    const kullanilabilir = Number(birim.miktar) - rezerve;
 
-    if (Number(birim.miktar) < hareketMiktari) {
+    if (kullanilabilir < hareketMiktari) {
       await connection.rollback();
       return res.status(400).json({
-        hata: `${birim.kod || "Dökme"} biriminde yeterli stok yok (mevcut ${Number(birim.miktar).toFixed(0)})`,
+        hata: `${birim.kod || "Dökme"} biriminde yeterli kullanılabilir stok yok (mevcut ${Number(birim.miktar).toFixed(0)}, ${rezerve.toFixed(0)} adedi siparişlere ayrılmış)`,
       });
     }
 

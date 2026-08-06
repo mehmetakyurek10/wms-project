@@ -46,10 +46,33 @@ const detay = async (req, res, next) => {
   }
 };
 
+const rezervasyonlar = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const [rows] = await pool.query(
+      `SELECT r.id, r.birim_id, r.miktar,
+              sb.tip, sb.kod, sb.miktar AS birim_miktari,
+              l.kod AS lokasyon_kod,
+              u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg
+       FROM stok_rezervasyonlari r
+       JOIN stok_birimleri sb ON r.birim_id = sb.id
+       JOIN lokasyonlar l ON sb.lokasyon_id = l.id
+       JOIN urun_varyantlari v ON sb.varyant_id = v.id
+       JOIN urunler u ON v.urun_id = u.id
+       WHERE r.siparis_id = ?
+       ORDER BY u.ad, sb.kod`,
+      [id],
+    );
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+};
+
 const olustur = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
-    const { musteri_id, kalemler } = req.body;
+    const { musteri_id, kalemler, tahsisler } = req.body;
 
     if (!musteri_id) {
       return res.status(400).json({ hata: "Müşteri seçilmelidir" });
@@ -57,6 +80,12 @@ const olustur = async (req, res, next) => {
 
     if (!Array.isArray(kalemler) || kalemler.length === 0) {
       return res.status(400).json({ hata: "En az bir kalem eklemelisiniz" });
+    }
+
+    if (!Array.isArray(tahsisler) || tahsisler.length === 0) {
+      return res
+        .status(400)
+        .json({ hata: "Stok hangi birimlerden ayrılacak, seçilmelidir" });
     }
 
     for (const kalem of kalemler) {
@@ -78,6 +107,31 @@ const olustur = async (req, res, next) => {
       }
     }
 
+    const istekler = new Map();
+
+    for (const tahsis of tahsisler) {
+      const birimId = Number(tahsis.birim_id);
+      const miktar = Number(tahsis.miktar);
+
+      if (!Number.isInteger(birimId) || birimId <= 0) {
+        return res.status(400).json({ hata: "Geçersiz stok birimi" });
+      }
+      if (!Number.isFinite(miktar) || miktar <= 0) {
+        return res
+          .status(400)
+          .json({ hata: "Ayrılan miktar sıfırdan büyük olmalıdır" });
+      }
+      if (istekler.has(birimId)) {
+        return res.status(400).json({
+          hata: `Aynı birim listede birden fazla kez var (id: ${birimId})`,
+        });
+      }
+
+      istekler.set(birimId, miktar);
+    }
+
+    const birimIdleri = [...istekler.keys()].sort((a, b) => a - b);
+
     await connection.beginTransaction();
 
     const [musteriRows] = await connection.query(
@@ -88,6 +142,85 @@ const olustur = async (req, res, next) => {
     if (!musteriRows.length) {
       await connection.rollback();
       return res.status(404).json({ hata: "Müşteri bulunamadı" });
+    }
+
+    const [birimRows] = await connection.query(
+      `SELECT id, tip, kod, varyant_id, miktar
+       FROM stok_birimleri
+       WHERE id IN (?)
+       ORDER BY id
+       FOR UPDATE`,
+      [birimIdleri],
+    );
+
+    if (birimRows.length !== birimIdleri.length) {
+      const bulunanlar = new Set(birimRows.map((b) => b.id));
+      const eksik = birimIdleri.filter((bid) => !bulunanlar.has(bid));
+      await connection.rollback();
+      return res
+        .status(404)
+        .json({ hata: `Stok birimi bulunamadı (id: ${eksik.join(", ")})` });
+    }
+
+    const [rezervasyonRows] = await connection.query(
+      `SELECT birim_id, COALESCE(SUM(miktar), 0) AS rezerve
+       FROM stok_rezervasyonlari
+       WHERE birim_id IN (?)
+       GROUP BY birim_id`,
+      [birimIdleri],
+    );
+
+    const rezerveHaritasi = new Map(
+      rezervasyonRows.map((r) => [r.birim_id, Number(r.rezerve)]),
+    );
+
+    const ayrilan = new Map();
+
+    for (const birim of birimRows) {
+      const istenen = istekler.get(birim.id);
+      const rezerve = rezerveHaritasi.get(birim.id) || 0;
+      const kullanilabilir = yuvarla(Number(birim.miktar) - rezerve);
+
+      if (kullanilabilir < istenen) {
+        await connection.rollback();
+        return res.status(400).json({
+          hata: `${birim.kod || "Dökme"} biriminde yeterli kullanılabilir stok yok (kullanılabilir ${kullanilabilir.toFixed(0)}, istenen ${istenen.toFixed(0)})`,
+        });
+      }
+
+      ayrilan.set(
+        birim.varyant_id,
+        yuvarla((ayrilan.get(birim.varyant_id) || 0) + istenen),
+      );
+    }
+
+    const gereken = new Map();
+
+    for (const kalem of kalemler) {
+      const varyantId = Number(kalem.varyant_id);
+      gereken.set(
+        varyantId,
+        yuvarla((gereken.get(varyantId) || 0) + Number(kalem.miktar)),
+      );
+    }
+
+    for (const [varyantId, miktar] of gereken) {
+      const secilen = ayrilan.get(varyantId) || 0;
+      if (secilen !== miktar) {
+        await connection.rollback();
+        return res.status(400).json({
+          hata: `Varyant ${varyantId} için ayrılan miktar siparişle uyuşmuyor — sipariş ${miktar.toFixed(0)}, ayrılan ${secilen.toFixed(0)}`,
+        });
+      }
+    }
+
+    for (const varyantId of ayrilan.keys()) {
+      if (!gereken.has(varyantId)) {
+        await connection.rollback();
+        return res
+          .status(400)
+          .json({ hata: "Siparişte olmayan bir ürün için birim seçilmiş" });
+      }
     }
 
     const toplam_tutar = kalemler.reduce(
@@ -117,11 +250,26 @@ const olustur = async (req, res, next) => {
       [kalemSatirlari],
     );
 
+    const rezervasyonSatirlari = birimIdleri.map((birimId) => [
+      siparis_id,
+      birimId,
+      istekler.get(birimId),
+      req.kullanici.id,
+    ]);
+
+    await connection.query(
+      `INSERT INTO stok_rezervasyonlari
+       (siparis_id, birim_id, miktar, olusturan_kullanici_id)
+       VALUES ?`,
+      [rezervasyonSatirlari],
+    );
+
     await connection.commit();
 
-    res
-      .status(201)
-      .json({ id: siparis_id, mesaj: "Satış siparişi oluşturuldu" });
+    res.status(201).json({
+      id: siparis_id,
+      mesaj: "Satış siparişi oluşturuldu, stok ayrıldı",
+    });
   } catch (err) {
     await connection.rollback().catch(() => {});
     next(err);
@@ -134,38 +282,6 @@ const teslimEt = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
     const { id } = req.params;
-    const { tahsisler } = req.body;
-
-    if (!Array.isArray(tahsisler) || !tahsisler.length) {
-      return res
-        .status(400)
-        .json({ hata: "Hangi birimlerden çıkılacağı seçilmelidir" });
-    }
-
-    const istekler = new Map();
-
-    for (const tahsis of tahsisler) {
-      const birimId = Number(tahsis.birim_id);
-      const miktar = Number(tahsis.miktar);
-
-      if (!Number.isInteger(birimId) || birimId <= 0) {
-        return res.status(400).json({ hata: "Geçersiz stok birimi" });
-      }
-      if (!Number.isFinite(miktar) || miktar <= 0) {
-        return res
-          .status(400)
-          .json({ hata: "Miktar sıfırdan büyük olmalıdır" });
-      }
-      if (istekler.has(birimId)) {
-        return res.status(400).json({
-          hata: `Aynı birim listede birden fazla kez var (id: ${birimId})`,
-        });
-      }
-
-      istekler.set(birimId, miktar);
-    }
-
-    const birimIdleri = [...istekler.keys()].sort((a, b) => a - b);
 
     await connection.beginTransaction();
 
@@ -189,29 +305,24 @@ const teslimEt = async (req, res, next) => {
         .json({ hata: "İptal edilmiş sipariş teslim edilemez" });
     }
 
-    const [kalemler] = await connection.query(
-      `SELECT k.varyant_id, k.miktar, u.ad AS urun_adi, v.boy
-       FROM satis_siparis_kalemleri k
-       JOIN urun_varyantlari v ON k.varyant_id = v.id
-       JOIN urunler u ON v.urun_id = u.id
-       WHERE k.siparis_id = ?`,
+    const [rezervasyonlar] = await connection.query(
+      `SELECT id, birim_id, miktar
+       FROM stok_rezervasyonlari
+       WHERE siparis_id = ?
+       ORDER BY birim_id`,
       [id],
     );
 
-    const gereken = new Map();
-
-    for (const kalem of kalemler) {
-      const onceki = gereken.get(kalem.varyant_id);
-      if (onceki) {
-        onceki.miktar = yuvarla(onceki.miktar + Number(kalem.miktar));
-      } else {
-        gereken.set(kalem.varyant_id, {
-          miktar: yuvarla(Number(kalem.miktar)),
-          urun_adi: kalem.urun_adi,
-          boy: kalem.boy,
-        });
-      }
+    if (!rezervasyonlar.length) {
+      await connection.rollback();
+      return res.status(400).json({
+        hata: "Bu siparişte ayrılmış stok yok, teslim edilemez",
+      });
     }
+
+    const birimIdleri = rezervasyonlar
+      .map((r) => r.birim_id)
+      .sort((a, b) => a - b);
 
     const [birimRows] = await connection.query(
       `SELECT id, tip, kod, varyant_id, lokasyon_id, miktar
@@ -222,54 +333,29 @@ const teslimEt = async (req, res, next) => {
       [birimIdleri],
     );
 
-    if (birimRows.length !== birimIdleri.length) {
-      const bulunanlar = new Set(birimRows.map((b) => b.id));
-      const eksik = birimIdleri.filter((bid) => !bulunanlar.has(bid));
-      await connection.rollback();
-      return res
-        .status(404)
-        .json({ hata: `Stok birimi bulunamadı (id: ${eksik.join(", ")})` });
-    }
+    const birimHaritasi = new Map(birimRows.map((b) => [b.id, b]));
 
-    const verilen = new Map();
+    for (const rez of rezervasyonlar) {
+      const birim = birimHaritasi.get(rez.birim_id);
 
-    for (const birim of birimRows) {
-      const istenen = istekler.get(birim.id);
-
-      if (Number(birim.miktar) < istenen) {
+      if (!birim) {
         await connection.rollback();
-        return res.status(400).json({
-          hata: `${birim.kod || "Dökme"} biriminde yeterli stok yok (mevcut ${Number(birim.miktar).toFixed(0)}, istenen ${istenen.toFixed(0)})`,
+        return res.status(409).json({
+          hata: "Ayrılan stok birimi artık depoda yok, sipariş gözden geçirilmeli",
         });
       }
 
-      verilen.set(
-        birim.varyant_id,
-        yuvarla((verilen.get(birim.varyant_id) || 0) + istenen),
-      );
-    }
-
-    for (const [varyantId, bilgi] of gereken) {
-      const secilen = verilen.get(varyantId) || 0;
-      if (secilen !== bilgi.miktar) {
+      if (Number(birim.miktar) < Number(rez.miktar)) {
         await connection.rollback();
-        return res.status(400).json({
-          hata: `${bilgi.urun_adi} (${bilgi.boy}) için seçilen miktar siparişle uyuşmuyor — sipariş ${bilgi.miktar.toFixed(0)}, seçilen ${secilen.toFixed(0)}`,
+        return res.status(409).json({
+          hata: `${birim.kod || "Dökme"} biriminde ayrılan miktar yok — ayrılan ${Number(rez.miktar).toFixed(0)}, mevcut ${Number(birim.miktar).toFixed(0)}. Sayım sonrası stok düşmüş olabilir.`,
         });
       }
     }
 
-    for (const varyantId of verilen.keys()) {
-      if (!gereken.has(varyantId)) {
-        await connection.rollback();
-        return res
-          .status(400)
-          .json({ hata: "Siparişte olmayan bir ürün için birim seçilmiş" });
-      }
-    }
-
-    for (const birim of birimRows) {
-      const dusulecek = istekler.get(birim.id);
+    for (const rez of rezervasyonlar) {
+      const birim = birimHaritasi.get(rez.birim_id);
+      const dusulecek = Number(rez.miktar);
 
       const [dususSonuc] = await connection.query(
         `UPDATE stok_birimleri SET miktar = miktar - ?
@@ -283,6 +369,10 @@ const teslimEt = async (req, res, next) => {
           hata: "Stok bu sırada değişmiş, işlem geri alındı. Tekrar deneyin.",
         });
       }
+
+      await connection.query("DELETE FROM stok_rezervasyonlari WHERE id = ?", [
+        rez.id,
+      ]);
 
       await connection.query(
         "DELETE FROM stok_birimleri WHERE id = ? AND miktar = 0",
@@ -325,7 +415,7 @@ const teslimEt = async (req, res, next) => {
     await connection.commit();
 
     res.json({
-      mesaj: `Sipariş teslim edildi, ${birimRows.length} birimden stok düşüldü`,
+      mesaj: `Sipariş teslim edildi, ${rezervasyonlar.length} birimden stok düşüldü`,
     });
   } catch (err) {
     await connection.rollback().catch(() => {});
@@ -336,33 +426,41 @@ const teslimEt = async (req, res, next) => {
 };
 
 const iptalEt = async (req, res, next) => {
+  const connection = await pool.getConnection();
   try {
     const { id } = req.params;
 
-    const [sonuc] = await pool.query(
-      "UPDATE satis_siparisleri SET durum = 'iptal' WHERE id = ? AND durum = 'beklemede'",
+    await connection.beginTransaction();
+
+    const [durumSonuc] = await connection.query(
+      `UPDATE satis_siparisleri SET durum = 'iptal'
+       WHERE id = ? AND durum = 'beklemede'`,
       [id],
     );
 
-    if (sonuc.affectedRows === 0) {
-      const [rows] = await pool.query(
-        "SELECT durum FROM satis_siparisleri WHERE id = ?",
-        [id],
-      );
-
-      if (!rows.length) {
-        return res.status(404).json({ hata: "Sipariş bulunamadı" });
-      }
-
-      return res.status(400).json({
-        hata: `Bu sipariş iptal edilemez (durum: ${rows[0].durum})`,
+    if (durumSonuc.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(409).json({
+        hata: "Yalnızca bekleyen siparişler iptal edilebilir",
       });
     }
 
-    res.json({ mesaj: "Sipariş iptal edildi" });
+    const [rezSonuc] = await connection.query(
+      "DELETE FROM stok_rezervasyonlari WHERE siparis_id = ?",
+      [id],
+    );
+
+    await connection.commit();
+
+    res.json({
+      mesaj: `Sipariş iptal edildi, ${rezSonuc.affectedRows} birimdeki ayrılan stok serbest bırakıldı`,
+    });
   } catch (err) {
+    await connection.rollback().catch(() => {});
     next(err);
+  } finally {
+    connection.release();
   }
 };
 
-module.exports = { listele, detay, olustur, teslimEt, iptalEt };
+module.exports = { listele, detay, olustur, teslimEt, iptalEt, rezervasyonlar };

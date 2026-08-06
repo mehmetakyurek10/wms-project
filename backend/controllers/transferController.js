@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { reservedQuantity } = require("../utils/reservations");
 
 const listele = async (req, res, next) => {
   try {
@@ -129,11 +130,13 @@ const olustur = async (req, res, next) => {
         (r) => Number(r.lokasyon_id) === kaynakId,
       );
       const kaynaktaki = kaynakSatiri ? Number(kaynakSatiri.miktar) : 0;
+      const rezerve = await reservedQuantity(connection, birim.id);
+      const kullanilabilir = kaynaktaki - rezerve;
 
-      if (kaynaktaki < tasinan) {
+      if (kullanilabilir < tasinan) {
         await connection.rollback();
         return res.status(400).json({
-          hata: `Kaynak lokasyonda yeterli stok yok (mevcut ${kaynaktaki.toFixed(0)})`,
+          hata: `Kaynak lokasyonda yeterli serbest stok yok (mevcut ${kaynaktaki.toFixed(0)}, ${rezerve.toFixed(0)} adedi siparişlere ayrılmış)`,
         });
       }
 

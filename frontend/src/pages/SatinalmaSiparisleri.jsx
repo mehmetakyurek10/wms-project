@@ -24,6 +24,7 @@ function SatinalmaSiparisleri() {
   const [lokasyonlar, setLokasyonlar] = useState([]);
   const [yukleniyor, setYukleniyor] = useState(true);
   const [hata, setHata] = useState("");
+  const [gonderiliyor, setGonderiliyor] = useState(false);
   const [teslimAlinacak, setTeslimAlinacak] = useState(null);
 
   const [sayfa, setSayfa] = useState(1);
@@ -156,6 +157,8 @@ function SatinalmaSiparisleri() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (gonderiliyor) return;
+    setGonderiliyor(true);
     try {
       await siparisOlustur({
         tedarikci_id: tedarikciId,
@@ -179,15 +182,16 @@ function SatinalmaSiparisleri() {
       }
     } catch (err) {
       bildir(err.response?.data?.hata || "Sipariş oluşturulamadı", "hata");
+    } finally {
+      setGonderiliyor(false);
     }
   };
 
   const teslimAlOnayla = async (lokasyonId) => {
-    const id = teslimAlinacak.id;
-    setTeslimAlinacak(null);
     try {
-      await siparisTeslimAl(id, { lokasyon_id: lokasyonId });
+      await siparisTeslimAl(teslimAlinacak.id, { lokasyon_id: lokasyonId });
       bildir("Sipariş teslim alındı, stoklar güncellendi");
+      setTeslimAlinacak(null);
       siparisleriYukle();
     } catch (err) {
       bildir(err.response?.data?.hata || "Teslim alınamadı", "hata");
@@ -304,7 +308,9 @@ function SatinalmaSiparisleri() {
           <button type="button" onClick={kalemEkle}>
             + Kalem Ekle
           </button>
-          <button type="submit">Siparişi Oluştur</button>
+          <button type="submit" disabled={gonderiliyor}>
+            {gonderiliyor ? "Oluşturuluyor..." : "Siparişi Oluştur"}
+          </button>
         </div>
 
         {genelToplam > 0 && (

@@ -23,6 +23,7 @@ function Musteriler() {
   const [duzenlenenId, setDuzenlenenId] = useState(null);
   const [duzenlemeForm, setDuzenlemeForm] = useState({});
   const [silinecek, setSilinecek] = useState(null);
+  const [gonderiliyor, setGonderiliyor] = useState(false);
 
   const veriGetir = async () => {
     try {
@@ -45,6 +46,8 @@ function Musteriler() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (gonderiliyor) return;
+    setGonderiliyor(true);
     try {
       await musteriEkle(form);
       setForm({ ad: "", yetkili_kisi: "", telefon: "", email: "", adres: "" });
@@ -52,6 +55,8 @@ function Musteriler() {
       veriGetir();
     } catch (err) {
       bildir(err.response?.data?.hata || "Müşteri eklenemedi", "hata");
+    } finally {
+      setGonderiliyor(false);
     }
   };
 
@@ -132,7 +137,9 @@ function Musteriler() {
           <label>Adres</label>
           <input name="adres" value={form.adres} onChange={handleChange} />
         </div>
-        <button type="submit">Ekle</button>
+        <button type="submit" disabled={gonderiliyor}>
+          {gonderiliyor ? "Ekleniyor..." : "Ekle"}
+        </button>
       </form>
 
       {musteriler.length === 0 ? (
