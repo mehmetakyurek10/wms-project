@@ -1,0 +1,112 @@
+@media (max-width: 900px) {
+  .menu-btn {
+    display: inline-flex;
+  }
+
+  .menu-perde {
+    display: block;
+  }
+
+  .yan-menu {
+    position: fixed;
+    top: 0;
+    left: -260px;
+    z-index: 940;
+    transition: left 0.25s ease-out;
+  }
+
+  .yan-menu.acik {
+    left: 0;
+  }
+
+  .icerik {
+    padding: 64px 14px 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  h2 {
+    font-size: 19px;
+  }
+
+  form {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px;
+  }
+
+  .filtre-cubugu {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filtre-cubugu .form-alan,
+  .filtre-cubugu select,
+  .filtre-cubugu input,
+  .filtre-cubugu button {
+    width: 100%;
+  }
+
+  form input,
+  form select,
+  form button,
+  .form-alan {
+    width: 100%;
+  }
+
+  .kalem-satiri,
+  .form-aksiyon,
+  .form-satir {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  button {
+    margin-right: 0;
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  th,
+  td {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .kart {
+    padding: 16px;
+  }
+
+  .kart-deger {
+    font-size: 22px;
+  }
+
+  tbody tr:hover {
+    transform: none;
+  }
+
+  .toast-alan {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+  }
+
+  .toast {
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+

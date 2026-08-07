@@ -1,0 +1,172 @@
+form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  background: var(--renk-yuzey);
+  border: 1px solid var(--renk-kenar);
+  padding: 18px;
+  border-radius: var(--radius);
+  box-shadow: var(--golge);
+  margin-bottom: 24px;
+  animation: buyu 0.4s ease-out 0.05s backwards;
+}
+
+.form-dikey {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.form-satir {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.form-satir label {
+  font-size: 13px;
+  color: var(--renk-metin-soluk);
+  font-weight: 500;
+}
+
+.form-alan {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.form-alan label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--renk-metin-soluk);
+  letter-spacing: 0.02em;
+}
+
+.form-aksiyon {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.kalem-satiri {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+  animation: belir 0.3s ease-out;
+}
+
+form > button[type="submit"] {
+  align-self: flex-end;
+}
+
+input,
+select {
+  padding: 9px 12px;
+  border: 1px solid var(--renk-kenar);
+  border-radius: 8px;
+  font-size: 14px;
+  background: var(--renk-input);
+  color: var(--renk-metin);
+  transition:
+    border-color 0.18s,
+    box-shadow 0.18s,
+    transform 0.18s;
+}
+
+input::placeholder {
+  color: var(--renk-metin-soluk);
+}
+
+input:focus,
+select:focus {
+  outline: none;
+  border-color: var(--renk-birincil);
+  box-shadow: 0 0 0 3px var(--renk-birincil-parlak);
+  transform: scale(1.02);
+}
+
+button {
+  padding: 9px 16px;
+  background-color: var(--renk-birincil);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-right: 6px;
+  transition:
+    background-color 0.18s,
+    transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.18s;
+}
+
+button:last-child {
+  margin-right: 0;
+}
+
+button:hover {
+  background-color: var(--renk-birincil-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px var(--renk-birincil-parlak);
+}
+
+button:active {
+  transform: translateY(0) scale(0.97);
+  box-shadow: none;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+  background-color: var(--renk-birincil);
+}
+
+button.tehlike {
+  background-color: var(--renk-tehlike);
+}
+
+button.tehlike:hover {
+  background-color: var(--renk-tehlike-hover);
+  box-shadow: 0 6px 16px rgba(239, 68, 68, 0.35);
+}
+
+button.tehlike:disabled:hover {
+  background-color: var(--renk-tehlike);
+  box-shadow: none;
+}
+
+button.ikincil {
+  background-color: transparent;
+  border: 1px solid var(--renk-kenar);
+  color: var(--renk-metin-soluk);
+}
+
+button.ikincil:hover {
+  background-color: rgba(127, 127, 127, 0.12);
+  color: var(--renk-metin);
+  box-shadow: none;
+}
+
+.ikon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 9px;
+}
+
+.ikon-btn svg {
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ikon-btn:hover svg {
+  transform: rotate(25deg) scale(1.1);
+}
+

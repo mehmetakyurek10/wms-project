@@ -1,0 +1,126 @@
+.transfer-modal {
+  max-width: 440px;
+  text-align: left;
+}
+
+.transfer-ozet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 8px;
+  background: var(--renk-input);
+  border: 1px solid var(--renk-kenar);
+  margin-bottom: 18px;
+}
+
+.transfer-ozet strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.transfer-yon {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--renk-birincil);
+}
+
+.transfer-form {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  animation: none;
+}
+
+.transfer-form .modal-aksiyon {
+  margin-top: 4px;
+}
+
+.transfer-form .modal-aksiyon button {
+  flex: 1;
+  margin-right: 0;
+}
+
+.lokasyon-detay td button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.alan-bolge.tip-kabul {
+  background: rgba(34, 197, 94, 0.14);
+  border-color: rgba(34, 197, 94, 0.45);
+  border-style: solid;
+}
+.modal-ikon-notr {
+  background: rgba(99, 102, 241, 0.15);
+  color: var(--renk-birincil-hover);
+  animation: none;
+}
+
+.lokasyon-secici {
+  display: flex;
+  gap: 6px;
+}
+
+.lokasyon-secici select {
+  min-width: 0;
+}
+
+.lokasyon-secici select:last-child {
+  flex: 1;
+}
+
+.kat-filtresi {
+  flex-shrink: 0;
+  max-width: 110px;
+}
+
+.tutarlilik-kutu {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 20px;
+  border-radius: var(--radius);
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #4ade80;
+  margin-bottom: 20px;
+}
+
+.tutarlilik-kutu.sapma-var {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: var(--renk-tehlike-hover);
+}
+
+.tutarlilik-kutu > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tutarlilik-kutu strong {
+  font-size: 14px;
+}
+
+[data-tema="light"] .tutarlilik-kutu {
+  color: #15803d;
+}
+
+form .form-alan input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  align-self: flex-start;
+  margin-top: 6px;
+}

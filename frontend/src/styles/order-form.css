@@ -1,0 +1,66 @@
+.miktar-girisi {
+  display: flex;
+  gap: 6px;
+}
+
+.miktar-girisi input {
+  min-width: 0;
+  flex: 1;
+}
+
+.miktar-girisi select {
+  flex-shrink: 0;
+  padding: 9px 8px;
+}
+
+.filtre-cubugu {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  background: var(--renk-yuzey);
+  border: 1px solid var(--renk-kenar);
+  padding: 14px 18px;
+  border-radius: var(--radius);
+  box-shadow: var(--golge);
+  margin-bottom: 18px;
+}
+
+.kalem-blogu {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.kalem-blogu .kalem-satiri {
+  margin-bottom: 0;
+}
+
+.form-toplam {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--renk-kenar);
+  font-size: 14px;
+  color: var(--renk-metin-soluk);
+}
+
+.form-toplam strong {
+  font-size: 18px;
+  color: var(--renk-birincil);
+}
+
+.bilgi-metni {
+  color: var(--renk-metin-soluk);
+  background: var(--renk-input);
+  border: 1px solid var(--renk-kenar);
+  border-left: 3px solid var(--renk-birincil);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  margin-bottom: 16px;
+}
+

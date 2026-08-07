@@ -1,0 +1,114 @@
+.kart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.kart {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--renk-yuzey);
+  border: 1px solid var(--renk-kenar);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--golge);
+  text-decoration: none;
+  color: var(--renk-metin);
+  overflow: hidden;
+  transition:
+    transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.25s,
+    border-color 0.25s;
+  animation: buyu 0.45s ease-out backwards;
+}
+
+.kart:nth-child(1) {
+  animation-delay: 0.06s;
+}
+.kart:nth-child(2) {
+  animation-delay: 0.14s;
+}
+.kart:nth-child(3) {
+  animation-delay: 0.22s;
+}
+.kart:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+.kart::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.06) 50%,
+    transparent 70%
+  );
+  background-size: 300px 100%;
+  background-repeat: no-repeat;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.kart:hover::after {
+  opacity: 1;
+  animation: parla 0.9s ease-out;
+}
+
+.kart:hover {
+  transform: translateY(-5px);
+  border-color: var(--renk-birincil);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+}
+
+.kart-ikon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.kart:hover .kart-ikon {
+  transform: scale(1.15) rotate(-8deg);
+}
+
+.kart-mavi .kart-ikon {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+}
+
+.kart-kirmizi .kart-ikon {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+
+.kart-yesil .kart-ikon {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+
+.kart-turuncu .kart-ikon {
+  background: rgba(249, 115, 22, 0.15);
+  color: #fb923c;
+}
+
+.kart-deger {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.kart-baslik {
+  font-size: 13px;
+  color: var(--renk-metin-soluk);
+  margin-top: 2px;
+}
+

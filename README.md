@@ -194,7 +194,8 @@ frontend/src/
   pages/                 sayfa bileşenleri
   components/            paylaşılan bileşenler
   utils/                 tarih yardımcıları
-  index.css              tüm stiller
+  styles/                konuya göre ayrılmış stil dosyaları
+  index.css              yalnızca stil dosyalarını sırayla içe aktarır
 ```
 
 ### Yetkilendirme
@@ -342,4 +343,5 @@ mysqldump -u root wms > ~/wms-yedek-$(date +%Y%m%d-%H%M).sql
 - **Sunucu tarafı idempotanlık yok.** Çift gönderim arayüzde buton kilidiyle, çift işleme ise koşullu `UPDATE`'lerle engellenir. Ağ kopması sonrası otomatik tekrar için işlem anahtarı (idempotency key) mekanizması yoktur; el terminali kullanılmaya başlandığında gerekecektir.
 - **Satış fiyatı sunucuda doğrulanmaz.** Sipariş toplamı istemciden gelen birim fiyatla hesaplanır; varyantın kayıtlı fiyatıyla karşılaştırılmaz.
 - **Arayüz testi yok.** Backend akışları otomatik test edilir, frontend elle doğrulanır.
-- **Tek CSS dosyası.** Tüm stiller `index.css` içindedir.
+- **Stil dosyaları konuya göre ayrıldı ama içerik yeniden düzenlenmedi.** `styles/` altındaki dosyalar özgün sırayı birebir korur; bu yüzden açık tema kuralları ve medya sorguları hâlâ birden fazla dosyaya dağılmış durumdadır.
+- **JavaScript paketi tek parça.** Üretim derlemesi 500 kB eşiğini aşıyor; kod bölme yapılmamıştır.

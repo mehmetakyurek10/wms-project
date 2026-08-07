@@ -1,0 +1,28 @@
+.sayim-alt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+
+.sayim-alt button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 0;
+}
+
+.fark-arti {
+  color: #4ade80;
+}
+
+.fark-eksi {
+  color: var(--renk-tehlike-hover);
+}
+
+[data-tema="light"] .fark-arti {
+  color: #15803d;
+}
+

@@ -1,0 +1,35 @@
+:root {
+  --renk-arkaplan: #0f172a;
+  --renk-yuzey: #1e293b;
+  --renk-yuzey-koyu: #172033;
+  --renk-input: #0f172a;
+  --renk-satir-hover: #243147;
+  --renk-birincil: #6366f1;
+  --renk-birincil-hover: #818cf8;
+  --renk-birincil-parlak: rgba(99, 102, 241, 0.35);
+  --renk-tehlike: #ef4444;
+  --renk-tehlike-hover: #f87171;
+  --renk-metin: #e2e8f0;
+  --renk-metin-soluk: #94a3b8;
+  --renk-kenar: #334155;
+  --radius: 10px;
+  --golge: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+[data-tema="light"] {
+  --renk-arkaplan: #f1f5f9;
+  --renk-yuzey: #ffffff;
+  --renk-yuzey-koyu: #f8fafc;
+  --renk-input: #f8fafc;
+  --renk-satir-hover: #f1f5f9;
+  --renk-birincil: #4f46e5;
+  --renk-birincil-hover: #4338ca;
+  --renk-birincil-parlak: rgba(79, 70, 229, 0.25);
+  --renk-tehlike: #dc2626;
+  --renk-tehlike-hover: #b91c1c;
+  --renk-metin: #1e293b;
+  --renk-metin-soluk: #64748b;
+  --renk-kenar: #e2e8f0;
+  --golge: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+

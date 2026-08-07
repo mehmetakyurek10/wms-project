@@ -1,0 +1,79 @@
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--renk-yuzey);
+  border: 1px solid var(--renk-kenar);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--golge);
+  animation: belir 0.5s ease-out 0.1s backwards;
+}
+
+th,
+td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--renk-kenar);
+  font-size: 14px;
+  transition: background-color 0.18s;
+}
+
+th {
+  background-color: var(--renk-yuzey-koyu);
+  font-weight: 600;
+  color: var(--renk-metin-soluk);
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+}
+
+tbody tr {
+  animation: belir 0.35s ease-out backwards;
+  transition: transform 0.18s;
+}
+
+tbody tr:nth-child(1) {
+  animation-delay: 0.03s;
+}
+tbody tr:nth-child(2) {
+  animation-delay: 0.06s;
+}
+tbody tr:nth-child(3) {
+  animation-delay: 0.09s;
+}
+tbody tr:nth-child(4) {
+  animation-delay: 0.12s;
+}
+tbody tr:nth-child(5) {
+  animation-delay: 0.15s;
+}
+tbody tr:nth-child(6) {
+  animation-delay: 0.18s;
+}
+tbody tr:nth-child(7) {
+  animation-delay: 0.21s;
+}
+tbody tr:nth-child(8) {
+  animation-delay: 0.24s;
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  transform: translateX(4px);
+}
+
+tbody tr:hover td {
+  background-color: var(--renk-satir-hover);
+}
+
+tr.kritik td {
+  background-color: rgba(239, 68, 68, 0.07);
+}
+
+tr.kritik td:first-child {
+  border-left: 3px solid var(--renk-tehlike);
+}
+
