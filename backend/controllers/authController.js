@@ -1,6 +1,13 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const {
+  createAccessToken,
+  createRefreshToken,
+  setRefreshCookie,
+  clearRefreshCookie,
+  readRefreshCookie,
+} = require("../utils/tokens");
 
 const GECERLI_ROLLER = ["admin", "depo_sorumlusu"];
 
@@ -73,14 +80,10 @@ const girisYap = async (req, res, next) => {
       });
     }
 
-    const token = jwt.sign(
-      { id: kullanici.id, rol: kullanici.rol, tv: kullanici.token_surumu },
-      process.env.JWT_SECRET,
-      { expiresIn: "8h" },
-    );
+    setRefreshCookie(res, createRefreshToken(kullanici));
 
     res.json({
-      token,
+      token: createAccessToken(kullanici),
       kullanici: {
         id: kullanici.id,
         ad: kullanici.ad,
@@ -93,4 +96,72 @@ const girisYap = async (req, res, next) => {
   }
 };
 
-module.exports = { kayitOl, girisYap };
+const yenile = async (req, res, next) => {
+  try {
+    const token = readRefreshCookie(req);
+
+    if (!token) {
+      return res.status(401).json({ hata: "Oturum bulunamadı" });
+    }
+
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      clearRefreshCookie(res);
+      return res
+        .status(401)
+        .json({ hata: "Oturum süresi doldu, tekrar giriş yapın" });
+    }
+
+    if (payload.tip !== "refresh") {
+      clearRefreshCookie(res);
+      return res.status(401).json({ hata: "Geçersiz token türü" });
+    }
+
+    const [rows] = await pool.query(
+      "SELECT id, ad, email, rol, aktif, token_surumu FROM kullanicilar WHERE id = ?",
+      [payload.id],
+    );
+
+    if (!rows.length) {
+      clearRefreshCookie(res);
+      return res.status(401).json({ hata: "Kullanıcı bulunamadı" });
+    }
+
+    const kullanici = rows[0];
+
+    if (!kullanici.aktif) {
+      clearRefreshCookie(res);
+      return res.status(403).json({ hata: "Hesabınız pasif durumda" });
+    }
+
+    if (kullanici.token_surumu !== payload.tv) {
+      clearRefreshCookie(res);
+      return res
+        .status(401)
+        .json({ hata: "Oturumunuz sonlandırıldı, tekrar giriş yapın" });
+    }
+
+    setRefreshCookie(res, createRefreshToken(kullanici));
+
+    res.json({
+      token: createAccessToken(kullanici),
+      kullanici: {
+        id: kullanici.id,
+        ad: kullanici.ad,
+        email: kullanici.email,
+        rol: kullanici.rol,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const cikisYap = (req, res) => {
+  clearRefreshCookie(res);
+  res.json({ mesaj: "Çıkış yapıldı" });
+};
+
+module.exports = { kayitOl, girisYap, yenile, cikisYap };

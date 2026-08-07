@@ -1,12 +1,11 @@
 const express = require("express");
 const router = express.Router();
 const tedarikciController = require("../controllers/tedarikciController");
-const dogrula = require("../middleware/auth");
 const izinVer = require("../middleware/izinVer");
 
 router.get("/", tedarikciController.listele);
-router.post("/", dogrula, tedarikciController.ekle);
-router.put("/:id", dogrula, tedarikciController.guncelle);
-router.delete("/:id", dogrula, izinVer("admin"), tedarikciController.sil);
+router.post("/", tedarikciController.ekle);
+router.put("/:id", tedarikciController.guncelle);
+router.delete("/:id", izinVer("admin"), tedarikciController.sil);
 
 module.exports = router;

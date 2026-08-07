@@ -1,6 +1,10 @@
 const pool = require("../config/db");
 const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const {
+  createAccessToken,
+  createRefreshToken,
+  setRefreshCookie,
+} = require("../utils/tokens");
 
 const MIN_LENGTH = 6;
 
@@ -69,13 +73,18 @@ const changePassword = async (req, res, next) => {
       [userId],
     );
 
-    const token = jwt.sign(
-      { id: userId, rol: user.rol, tv: guncel[0].token_surumu },
-      process.env.JWT_SECRET,
-      { expiresIn: "8h" },
-    );
+    const kullanici = {
+      id: userId,
+      rol: user.rol,
+      token_surumu: guncel[0].token_surumu,
+    };
 
-    res.json({ mesaj: "Şifreniz güncellendi", token });
+    setRefreshCookie(res, createRefreshToken(kullanici));
+
+    res.json({
+      mesaj: "Şifreniz güncellendi",
+      token: createAccessToken(kullanici),
+    });
   } catch (err) {
     next(err);
   }

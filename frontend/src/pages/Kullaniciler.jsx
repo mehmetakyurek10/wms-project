@@ -3,14 +3,13 @@ import { Navigate } from "react-router-dom";
 import { kullanicilariGetir, kullaniciGuncelle } from "../api/kullaniciApi";
 import { kayitOl } from "../api/authApi";
 import { useToast } from "../context/ToastContext";
+import useAuth from "../hooks/useAuth";
 import useFetch from "../hooks/useFetch";
 import Etiket from "../components/Etiket";
 
 function Kullanicilar() {
   const bildir = useToast();
-  const mevcutKullanici = JSON.parse(
-    localStorage.getItem("kullanici") || "null",
-  );
+  const { kullanici: mevcutKullanici } = useAuth();
 
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [form, setForm] = useState({

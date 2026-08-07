@@ -14,7 +14,19 @@ const girisLimiti = rateLimit({
   },
 });
 
+const yenilemeLimiti = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    hata: "Çok fazla yenileme isteği yapıldı, biraz sonra tekrar deneyin",
+  },
+});
+
 router.post("/kayit", kayitKorumasi, authController.kayitOl);
 router.post("/giris", girisLimiti, authController.girisYap);
+router.post("/yenile", yenilemeLimiti, authController.yenile);
+router.post("/cikis", authController.cikisYap);
 
 module.exports = router;

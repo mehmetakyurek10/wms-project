@@ -1,13 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const satisController = require("../controllers/satisController");
-const dogrula = require("../middleware/auth");
 
 router.get("/", satisController.listele);
 router.get("/:id/kalemler", satisController.detay);
 router.get("/:id/rezervasyonlar", satisController.rezervasyonlar);
-router.post("/", dogrula, satisController.olustur);
-router.patch("/:id/teslim-et", dogrula, satisController.teslimEt);
-router.patch("/:id/iptal", dogrula, satisController.iptalEt);
+router.post("/", satisController.olustur);
+router.patch("/:id/teslim-et", satisController.teslimEt);
+router.patch("/:id/iptal", satisController.iptalEt);
 
 module.exports = router;

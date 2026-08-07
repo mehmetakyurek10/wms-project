@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { KeyRound } from "lucide-react";
 import { changePassword } from "../api/passwordApi";
+import { setAccessToken } from "../api/tokenStore";
 import { useToast } from "../context/ToastContext";
 
 const MIN_LENGTH = 6;
@@ -40,7 +41,7 @@ function ChangePassword() {
     try {
       const response = await changePassword({ currentPassword, newPassword });
       if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
+        setAccessToken(response.data.token);
       }
       bildir("Şifreniz güncellendi");
       reset();

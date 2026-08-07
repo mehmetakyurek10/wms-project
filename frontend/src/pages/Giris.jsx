@@ -1,25 +1,32 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { Warehouse, Mail, Lock, Eye, EyeOff, Sun, Moon } from "lucide-react";
 import { girisYap } from "../api/authApi";
+import useAuth from "../hooks/useAuth";
 
 function Giris() {
   const navigate = useNavigate();
+  const { kullanici, hazir, oturumAc } = useAuth();
   const [email, setEmail] = useState("");
   const [sifre, setSifre] = useState("");
   const [sifreGorunur, setSifreGorunur] = useState(false);
   const [hata, setHata] = useState("");
-  const [bilgi, setBilgi] = useState("");
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [tema, setTema] = useState(
     () => document.documentElement.getAttribute("data-tema") || "dark",
   );
 
+  // Mesaj render sirasinda turetiliyor, effect icinde setState ile degil.
+  // Bayragin silinmesi asagidaki effect'te; boylece StrictMode ikinci kez
+  // calistirsa da mesaj kaybolmuyor.
+  const [bilgi, setBilgi] = useState(() =>
+    sessionStorage.getItem("oturumBitti")
+      ? "Oturum süresi doldu, lütfen tekrar giriş yapın."
+      : "",
+  );
+
   useEffect(() => {
-    if (sessionStorage.getItem("oturumBitti")) {
-      setBilgi("Oturum süresi doldu, lütfen tekrar giriş yapın.");
-      sessionStorage.removeItem("oturumBitti");
-    }
+    sessionStorage.removeItem("oturumBitti");
   }, []);
 
   const temaDegistir = () => {
@@ -36,11 +43,7 @@ function Giris() {
     setGonderiliyor(true);
     try {
       const response = await girisYap(email, sifre);
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem(
-        "kullanici",
-        JSON.stringify(response.data.kullanici),
-      );
+      oturumAc(response.data);
       navigate("/panel");
     } catch (err) {
       setHata(err.response?.data?.hata || "Giriş başarısız");
@@ -48,6 +51,10 @@ function Giris() {
       setGonderiliyor(false);
     }
   };
+
+  if (hazir && kullanici) {
+    return <Navigate to="/panel" replace />;
+  }
 
   return (
     <div className="giris-sayfasi">

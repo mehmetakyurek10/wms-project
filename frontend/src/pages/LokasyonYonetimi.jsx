@@ -19,6 +19,7 @@ import {
 import Etiket from "../components/Etiket";
 import OnayModal from "../components/OnayModal";
 import { useToast } from "../context/ToastContext";
+import useAuth from "../hooks/useAuth";
 
 const BOS_ALAN = {
   kod: "",
@@ -46,7 +47,7 @@ const BOS_BLOK = {
 
 function LokasyonYonetimi() {
   const bildir = useToast();
-  const kullanici = JSON.parse(localStorage.getItem("kullanici") || "null");
+  const { kullanici } = useAuth();
 
   const [lokasyonlar, setLokasyonlar] = useState([]);
   const [sapmalar, setSapmalar] = useState([]);

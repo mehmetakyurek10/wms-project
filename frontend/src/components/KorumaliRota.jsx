@@ -1,11 +1,16 @@
 import { Navigate, Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
+import useAuth from "../hooks/useAuth";
 
 function KorumaliRota() {
-  const token = localStorage.getItem("token");
+  const { kullanici, hazir } = useAuth();
 
-  if (!token) {
-    return <Navigate to="/giris" />;
+  if (!hazir) {
+    return <div className="yukleniyor-kutu">Oturum kontrol ediliyor...</div>;
+  }
+
+  if (!kullanici) {
+    return <Navigate to="/giris" replace />;
   }
 
   return (

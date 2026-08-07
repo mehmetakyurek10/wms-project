@@ -25,6 +25,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
+import useAuth from "../hooks/useAuth";
 
 const ROL_ADLARI = {
   admin: "Yönetici",
@@ -104,8 +105,9 @@ function basHarfleriAl(ad) {
 
 function Sidebar() {
   const navigate = useNavigate();
-  const kullanici = JSON.parse(localStorage.getItem("kullanici") || "null");
+  const { kullanici, cikis } = useAuth();
   const [acik, setAcik] = useState(false);
+  const [cikiliyor, setCikiliyor] = useState(false);
   const [tema, setTema] = useState(
     () => document.documentElement.getAttribute("data-tema") || "dark",
   );
@@ -113,10 +115,15 @@ function Sidebar() {
   const gruplar = menuGruplari(kullanici);
   const rolAdi = ROL_ADLARI[kullanici?.rol] || kullanici?.rol;
 
-  const cikisYap = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("kullanici");
-    navigate("/giris");
+  const cikisYap = async () => {
+    if (cikiliyor) return;
+    setCikiliyor(true);
+    try {
+      await cikis();
+      navigate("/giris");
+    } finally {
+      setCikiliyor(false);
+    }
   };
 
   const temaDegistir = () => {
@@ -187,6 +194,7 @@ function Sidebar() {
             <button
               className="tehlike ikon-btn"
               onClick={cikisYap}
+              disabled={cikiliyor}
               title="Çıkış"
             >
               <LogOut size={15} />

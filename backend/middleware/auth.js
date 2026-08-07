@@ -19,6 +19,10 @@ const dogrula = async (req, res, next) => {
     return res.status(401).json({ hata: "Geçersiz veya süresi dolmuş token" });
   }
 
+  if (payload.tip !== "access") {
+    return res.status(401).json({ hata: "Geçersiz token türü" });
+  }
+
   try {
     const [rows] = await pool.query(
       "SELECT token_surumu FROM kullanicilar WHERE id = ?",
