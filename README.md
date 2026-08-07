@@ -146,7 +146,12 @@ Her çalıştırmada şema sıfırdan kurulur. Kapsam:
 
 - **Stok değişmezi** — mal kabul, paletleme, transfer, fire, satış ve sayım akışları sırayla çalıştırılır; her adımdan sonra `SUM(stok_birimleri.miktar) == SUM(urun_varyantlari.miktar)` doğrulanır
 - **Yarış durumu** — aynı satınalma siparişine eşzamanlı iki teslim alma isteği gönderilir; stoğun bir kez arttığı ve deftere tek hareket yazıldığı doğrulanır
-- **Kimlik doğrulama** — token'sız erişimin reddedildiği, ilk kullanıcının admin olduğu
+- **Rezervasyon** — ayrılan stoğun fiziksel miktara dokunmadığı, kullanılabilirin üstünde rezervasyon yapılamadığı, rezerve malın çıkış/paletleme/transfer ile tüketilemediği, paletin bütün olarak taşınabildiği, siparişin iptalinin rezervasyonu serbest bıraktığı
+- **Oturum** — refresh çerezinin `HttpOnly` ve `Path=/auth` olarak basıldığı, refresh token'ın API isteğinde kabul edilmediği, yenilemede çerezin döndürüldüğü, çıkışın çerezi sildiği, şifre değişiminde eski token'ın düştüğü ama kullanıcının kendi oturumunun sürdüğü
+- **Yetkilendirme** — on altı ucun token'sız erişime kapalı olduğu, depo sorumlusunun admin uçlarına ve kullanıcı kaydına erişemediği, günlük işlem uçlarına erişebildiği
+- **Sistem sağlığı** — sağlık ucunun veritabanı bağlantısını doğru bildirdiği, ilk kullanıcının admin olduğu
+
+Arayüz testi yoktur; frontend elle doğrulanır.
 
 ---
 
@@ -160,21 +165,34 @@ backend/
     db.js                mysql2 bağlantı havuzu
     env.js               açılışta ortam değişkeni doğrulaması
   middleware/
-    auth.js              JWT çözer, token sürümünü doğrular
+    auth.js              access token'ı çözer, türünü ve sürümünü doğrular
     izinVer.js           rol bazlı yetkilendirme
     hataYonetici.js      merkezî hata yakalayıcı
     kayitKorumasi.js     ilk kurulum dışında kayıt ucunu kapatır
   routes/                uç nokta tanımları
   controllers/           iş mantığı ve SQL
-  utils/                 tarih ve sayfalama yardımcıları
+  utils/
+    tokens.js            token üretimi ve refresh çerezi ayarları
+    tarih.js             yerel tarih ve yarı açık aralık yardımcıları
+    pagination.js        sayfalama
+    reservations.js      rezerve miktar hesabı
   db/schema.sql          veritabanı şeması (veri içermez)
   tests/                 test dosyaları ve yardımcıları
 
 frontend/src/
-  api/                   axios örneği ve uç nokta sarmalayıcıları
+  api/
+    axios.js             istek/yanıt ara katmanları, sessiz token yenileme
+    tokenStore.js        access token'ın bellekteki tek kopyası
+    *.js                 uç nokta sarmalayıcıları
+  context/
+    authContext.js       oturum context nesnesi
+    AuthProvider.jsx     açılışta oturumu çerezden geri kurar
+    ToastContext.jsx     bildirim sağlayıcısı
+  hooks/
+    useAuth.js           oturuma erişim
+    useFetch.js          veri çekme, ilk yükleme ve yeniden çekme ayrımı
   pages/                 sayfa bileşenleri
   components/            paylaşılan bileşenler
-  context/               Toast bildirim sağlayıcısı
   utils/                 tarih yardımcıları
   index.css              tüm stiller
 ```
@@ -201,6 +219,28 @@ Palet başına miktar sabit değildir — aynı üründen bir palette 75, diğer
 
 Dökme stokta aynı varyant + lokasyon çifti için yalnızca bir satır bulunabilir; bu, üretilmiş bir kolon üzerindeki `dokme_tek` UNIQUE indeksiyle zorunlu kılınmıştır. Paletlerde böyle bir kısıt yoktur, aynı üründen aynı yerde birden fazla palet olabilir.
 
+### Rezervasyon
+
+Satış siparişi oluşturulurken stok **ayrılır**: kullanıcı hangi paletten ve dökmeden kaç adet çıkacağını seçer, seçim `stok_rezervasyonlari` tablosuna birim bazında yazılır. Böylece aynı mal iki siparişe birden satılamaz.
+
+Rezervasyon `stok_birimleri.miktar` alanına **dokunmaz**. Sorgulamada iki ayrı büyüklük vardır:
+
+```
+kullanilabilir = miktar - rezerve
+```
+
+Ayrım bilinçlidir: rezervasyon bir *söz*, stok bir *gerçeklik*tir. Rezerve edileni fiziksel miktardan düşseydik depoyu sayan kişinin gördüğü sayı ile sistemin gösterdiği sayı ayrışırdı — bir depo yönetim sisteminin varlık sebebi tam olarak bu ikisinin örtüşmesidir.
+
+Bunun pratik sonuçları:
+
+| İşlem | Rezerve edilmiş stok için |
+|---|---|
+| Çıkış, paletleme, dökme transfer | Engellenir — yalnızca kullanılabilir tüketilebilir |
+| Paletin bütün olarak taşınması | Serbest — rezervasyon `birim_id`'ye bağlı olduğu için paletle birlikte taşınır |
+| Sayım | **Engellenmez** |
+
+Sayımın engellenmemesi bilinçli bir tercihtir. Sayımda rezerveden az mal bulunursa kayıt yine de kabul edilir; çelişki sistem sağlığı ekranında `karsilanamayan_rezervasyon` olarak görünür ve ilgili siparişin teslimatı `409` ile reddedilir. Sayımı reddetmek, gerçekte olan bir farkı sisteme hiç girilmemiş hale getirirdi. Doğru davranış çelişkiyi yutmak ya da engellemek değil, **görünür kılmaktır**.
+
 ### İşlem güvenliği
 
 Stok değiştiren tüm akışlar aynı kalıbı izler:
@@ -214,7 +254,28 @@ Birden fazla satır kilitlenecekse **her zaman aynı ölçüte göre sıralı** 
 
 ### Oturum yönetimi
 
-Token'lar JWT'dir ve durumsuzdur. `kullanicilar.token_surumu` alanı token içeriğine gömülür ve her istekte karşılaştırılır. Parola değiştiğinde bu sürüm artar; böylece diğer cihazlardaki oturumlar anında geçersiz olur. Parolayı değiştiren kullanıcıya yeni bir token döndürülür, oturumu kesilmez.
+İki ayrı token kullanılır ve ikisi de JWT'dir:
+
+| | Ömür | Nerede durur | Ne işe yarar |
+|---|---|---|---|
+| **Access token** | 15 dakika | Tarayıcı belleğinde (`tokenStore.js`) | Her API isteğinde `Authorization` başlığıyla gider |
+| **Refresh token** | 7 gün | `HttpOnly` çerez, `Path=/auth` | Yalnızca yeni access token almak için kullanılır |
+
+Access token hiçbir zaman `localStorage`'a veya `sessionStorage`'a yazılmaz. Sayfa yenilendiğinde bellekle birlikte kaybolur; oturum, tarayıcıda duran refresh çerezinden geri kurulur (`AuthProvider.jsx`). Refresh token ise JavaScript'ten okunamaz — `HttpOnly` olduğu için bir XSS açığı bile ona erişemez.
+
+Çerezin `Path=/auth` olması, refresh token'ın günlük trafiğin hiçbirinde ağa çıkmamasını sağlar; yalnızca `/auth/*` uçlarına gönderilir.
+
+Token türleri `tip` claim'iyle ayrılır. Bir refresh token'ı `Authorization` başlığına koyup API'ye erişmek mümkün değildir, tersi de öyle.
+
+Access token'ın süresi dolduğunda istek `401` alır; `axios.js` içindeki yanıt ara katmanı bunu yakalar, `/auth/yenile` çağırır ve isteği tekrarlar. Kullanıcı bir şey fark etmez. Eşzamanlı olarak `401` alan istekler **tek bir** yenilemeyi paylaşır (tek uçuş) — aksi halde her biri ayrı yenileme başlatır ve çerez döndürme yarışa girerdi.
+
+Her yenilemede refresh çerezi yenisiyle değiştirilir (rotation), böylece ele geçirilmiş bir refresh token'ın ömrü kısalır.
+
+`kullanicilar.token_surumu` alanı her iki token'ın içeriğine gömülür ve her istekte karşılaştırılır. Parola değiştiğinde bu sürüm artar; diğer cihazlardaki oturumlar anında geçersiz olur. Parolayı değiştiren kullanıcıya yeni bir access token ve yeni bir refresh çerezi verilir, kendi oturumu kesilmez.
+
+Çıkış yapıldığında sunucu refresh çerezini siler. Elde kalmış bir access token en fazla 15 dakika daha yaşar ve yenilenemez.
+
+> **Dağıtım notu:** CSRF koruması çerezin `SameSite=Lax` ayarına dayanır. Bu, frontend ve backend'in aynı sitede sunulduğu kurulumlar için yeterlidir (geliştirmede `localhost:5173` ile `localhost:3000` aynı sitedir — port, site tanımına dahil değildir). İkisi farklı alan adlarına taşınırsa çerez `SameSite=None` olmak zorunda kalır ve o noktada ayrıca CSRF token'ı gerekir.
 
 ---
 
@@ -275,8 +336,10 @@ mysqldump -u root wms > ~/wms-yedek-$(date +%Y%m%d-%H%M).sql
 
 ## Bilinen sınırlar
 
-- **Rezervasyon yok.** Sipariş oluşturmak stoğu bloke etmez; aynı mal birden fazla siparişe satılabilir, sorun teslim anında ortaya çıkar.
-- **Token `localStorage`'da.** XSS durumunda okunabilir. `httpOnly` cookie'ye geçiş planlanmaktadır.
 - **Şema tabanlı girdi doğrulaması yok.** Doğrulama her denetleyicide elle yapılır.
 - **Versiyonlanmış migration yok.** `schema.sql` bir anlık görüntüdür, değişiklik geçmişi tutmaz.
-- **Test kapsamı dar.** Kritik stok akışları ve eşzamanlılık kapsanır; arayüz testi yoktur.
+- **Servis katmanı yok.** SQL, iş kuralı ve HTTP aynı denetleyici fonksiyonunda bulunur.
+- **Sunucu tarafı idempotanlık yok.** Çift gönderim arayüzde buton kilidiyle, çift işleme ise koşullu `UPDATE`'lerle engellenir. Ağ kopması sonrası otomatik tekrar için işlem anahtarı (idempotency key) mekanizması yoktur; el terminali kullanılmaya başlandığında gerekecektir.
+- **Satış fiyatı sunucuda doğrulanmaz.** Sipariş toplamı istemciden gelen birim fiyatla hesaplanır; varyantın kayıtlı fiyatıyla karşılaştırılmaz.
+- **Arayüz testi yok.** Backend akışları otomatik test edilir, frontend elle doğrulanır.
+- **Tek CSS dosyası.** Tüm stiller `index.css` içindedir.
