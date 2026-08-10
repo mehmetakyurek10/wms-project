@@ -150,7 +150,9 @@ function DepoHaritasi() {
 
   const tumPaletler = lokasyonlar.filter((l) => l.tip === "palet");
   const paletler = tumPaletler.filter((l) => l.kat === kat);
-  const alanlar = lokasyonlar.filter((l) => l.tip !== "palet");
+  const alanlar = lokasyonlar.filter(
+    (l) => l.tip !== "palet" && l.tip !== "pazar",
+  );
   const katlar = [...new Set(tumPaletler.map((l) => l.kat))].sort();
 
   const tumGorunur = [...paletler, ...alanlar];

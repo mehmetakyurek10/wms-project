@@ -21,6 +21,7 @@ import LokasyonYonetimi from "./pages/LokasyonYonetimi";
 import ChangePassword from "./pages/ChangePassword";
 import SystemHealth from "./pages/SystemHealth";
 import Pallets from "./pages/Pallets";
+import MarketTrips from "./pages/MarketTrips";
 
 function App() {
   useEffect(() => {
@@ -42,6 +43,7 @@ function App() {
               <Route path="/raporlar" element={<Raporlar />} />
               <Route path="/musteriler" element={<Musteriler />} />
               <Route path="/satis-siparisleri" element={<SatisSiparisleri />} />
+              <Route path="/pazar-seferleri" element={<MarketTrips />} />
               <Route path="/kullanicilar" element={<Kullanicilar />} />
               <Route path="/sayim" element={<Sayim />} />
               <Route path="/lokasyon-yonetimi" element={<LokasyonYonetimi />} />

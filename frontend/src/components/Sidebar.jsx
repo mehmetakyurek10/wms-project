@@ -12,6 +12,7 @@ import {
   MapPin,
   Truck,
   ShoppingCart,
+  Store,
   Building2,
   ShoppingBag,
   FileBarChart,
@@ -71,6 +72,7 @@ function menuGruplari(kullanici) {
           ikon: ShoppingBag,
           ad: "Satış Siparişleri",
         },
+        { to: "/pazar-seferleri", ikon: Store, ad: "Pazar Seferleri" },
       ],
     },
     {

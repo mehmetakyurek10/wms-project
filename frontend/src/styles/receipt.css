@@ -28,6 +28,13 @@
   transform: none;
 }
 
+.ic-tablo input,
+.ic-tablo select {
+  width: 100%;
+  min-width: 0;
+  padding: 6px 8px;
+}
+
 .fis {
   background: var(--renk-yuzey);
   border: 1px solid var(--renk-kenar);
@@ -176,4 +183,3 @@
     display: none;
   }
 }
-

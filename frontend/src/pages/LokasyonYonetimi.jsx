@@ -282,6 +282,7 @@ function LokasyonYonetimi() {
             <option value="soguk_oda">Soğuk Oda</option>
             <option value="koridor">Koridor</option>
             <option value="ofis">Ofis</option>
+            <option value="pazar">Pazar</option>
           </select>
         </div>
         <div className="form-alan">
@@ -483,6 +484,7 @@ function LokasyonYonetimi() {
             <option value="kabul">Mal Kabul</option>
             <option value="sevkiyat">Sevkiyat</option>
             <option value="koridor">Koridor</option>
+            <option value="pazar">Pazar</option>
             <option value="ofis">Ofis</option>
           </select>
         </div>
