@@ -18,6 +18,7 @@ router.use("/musteriler", require("./musteriRoutes"));
 router.use("/stok-hareketleri", require("./stokHareketleriRoutes"));
 router.use("/satinalma-siparisleri", require("./satinalmaRoutes"));
 router.use("/satis-siparisleri", require("./satisRoutes"));
+router.use("/pazar-seferleri", require("./marketTripRoutes"));
 router.use("/sayim", require("./sayimRoutes"));
 router.use("/raporlar", require("./raporRoutes"));
 router.use("/kullanicilar", require("./kullaniciRoutes"));
