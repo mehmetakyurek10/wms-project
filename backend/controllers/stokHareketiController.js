@@ -1,15 +1,6 @@
 const pool = require("../config/db");
 const { reservedQuantity } = require("../utils/reservations");
 
-const GECERLI_SEBEPLER = [
-  "satinalma",
-  "satis",
-  "sayim",
-  "fire",
-  "iade",
-  "manuel",
-];
-
 const listele = async (req, res, next) => {
   try {
     const { varyant_id, tip, sebep, baslangic, bitis, sayfa, limit } =
@@ -81,32 +72,20 @@ const listele = async (req, res, next) => {
 const ekle = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
-    const { varyant_id, lokasyon_id, birim_id, tip, sebep, miktar, aciklama } =
-      req.body;
-
-    if (!["giris", "cikis"].includes(tip)) {
-      return res
-        .status(400)
-        .json({ hata: "Hareket tipi giris veya cikis olmalı" });
-    }
-
-    if (sebep && !GECERLI_SEBEPLER.includes(sebep)) {
-      return res.status(400).json({ hata: "Geçersiz sebep" });
-    }
-
-    const hareketMiktari = Number(miktar);
-
-    if (!Number.isFinite(hareketMiktari) || hareketMiktari <= 0) {
-      return res.status(400).json({ hata: "Miktar sıfırdan büyük olmalıdır" });
-    }
+    // Govde schemas/stockMovement.js tarafindan dogrulandi: tip giris veya
+    // cikis, sebep gecerli listede, miktar pozitif sayi. Ayrica giris icin
+    // varyant_id ve lokasyon_id, cikis icin birim_id bulunmasi garanti.
+    const {
+      varyant_id,
+      lokasyon_id,
+      birim_id: birimId,
+      tip,
+      sebep,
+      miktar: hareketMiktari,
+      aciklama,
+    } = req.body;
 
     if (tip === "giris") {
-      if (!varyant_id || !lokasyon_id) {
-        return res
-          .status(400)
-          .json({ hata: "Varyant ve lokasyon seçilmelidir" });
-      }
-
       await connection.beginTransaction();
 
       const [varyantRows] = await connection.query(
@@ -164,14 +143,6 @@ const ekle = async (req, res, next) => {
 
       await connection.commit();
       return res.status(201).json({ mesaj: "Stok hareketi kaydedildi" });
-    }
-
-    const birimId = Number(birim_id);
-
-    if (!Number.isInteger(birimId) || birimId <= 0) {
-      return res
-        .status(400)
-        .json({ hata: "Çıkış yapılacak stok birimi seçilmelidir" });
     }
 
     await connection.beginTransaction();

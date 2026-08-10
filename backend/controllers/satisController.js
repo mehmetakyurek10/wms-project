@@ -72,62 +72,24 @@ const rezervasyonlar = async (req, res, next) => {
 const olustur = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
+    // Govde schemas/sales.js tarafindan dogrulanip sayiya cevrildi:
+    // musteri_id pozitif tam sayi, kalemler ve tahsisler bos olmayan diziler,
+    // her kalemde varyant_id pozitif tam sayi, miktar pozitif, birim_fiyat
+    // negatif degil, her tahsiste birim_id pozitif tam sayi ve miktar pozitif.
     const { musteri_id, kalemler, tahsisler } = req.body;
-
-    if (!musteri_id) {
-      return res.status(400).json({ hata: "Müşteri seçilmelidir" });
-    }
-
-    if (!Array.isArray(kalemler) || kalemler.length === 0) {
-      return res.status(400).json({ hata: "En az bir kalem eklemelisiniz" });
-    }
-
-    if (!Array.isArray(tahsisler) || tahsisler.length === 0) {
-      return res
-        .status(400)
-        .json({ hata: "Stok hangi birimlerden ayrılacak, seçilmelidir" });
-    }
-
-    for (const kalem of kalemler) {
-      const miktar = Number(kalem.miktar);
-      const fiyat = Number(kalem.birim_fiyat);
-
-      if (!kalem.varyant_id) {
-        return res
-          .status(400)
-          .json({ hata: "Her kalemde varyant seçilmelidir" });
-      }
-      if (!Number.isFinite(miktar) || miktar <= 0) {
-        return res
-          .status(400)
-          .json({ hata: "Miktar sıfırdan büyük olmalıdır" });
-      }
-      if (!Number.isFinite(fiyat) || fiyat < 0) {
-        return res.status(400).json({ hata: "Birim fiyat geçersiz" });
-      }
-    }
 
     const istekler = new Map();
 
+    // Ayni birimin listede iki kez bulunmasi kalemler arasi bir kural;
+    // tek bir tahsise bakarak anlasilamadigi icin semada degil burada.
     for (const tahsis of tahsisler) {
-      const birimId = Number(tahsis.birim_id);
-      const miktar = Number(tahsis.miktar);
-
-      if (!Number.isInteger(birimId) || birimId <= 0) {
-        return res.status(400).json({ hata: "Geçersiz stok birimi" });
-      }
-      if (!Number.isFinite(miktar) || miktar <= 0) {
-        return res
-          .status(400)
-          .json({ hata: "Ayrılan miktar sıfırdan büyük olmalıdır" });
-      }
-      if (istekler.has(birimId)) {
+      if (istekler.has(tahsis.birim_id)) {
         return res.status(400).json({
-          hata: `Aynı birim listede birden fazla kez var (id: ${birimId})`,
+          hata: `Aynı birim listede birden fazla kez var (id: ${tahsis.birim_id})`,
         });
       }
 
-      istekler.set(birimId, miktar);
+      istekler.set(tahsis.birim_id, tahsis.miktar);
     }
 
     const birimIdleri = [...istekler.keys()].sort((a, b) => a - b);
@@ -197,10 +159,9 @@ const olustur = async (req, res, next) => {
     const gereken = new Map();
 
     for (const kalem of kalemler) {
-      const varyantId = Number(kalem.varyant_id);
       gereken.set(
-        varyantId,
-        yuvarla((gereken.get(varyantId) || 0) + Number(kalem.miktar)),
+        kalem.varyant_id,
+        yuvarla((gereken.get(kalem.varyant_id) || 0) + kalem.miktar),
       );
     }
 
@@ -224,7 +185,7 @@ const olustur = async (req, res, next) => {
     }
 
     const toplam_tutar = kalemler.reduce(
-      (toplam, k) => toplam + Number(k.miktar) * Number(k.birim_fiyat),
+      (toplam, k) => toplam + k.miktar * k.birim_fiyat,
       0,
     );
 
@@ -239,8 +200,8 @@ const olustur = async (req, res, next) => {
     const kalemSatirlari = kalemler.map((k) => [
       siparis_id,
       k.varyant_id,
-      Number(k.miktar),
-      Number(k.birim_fiyat),
+      k.miktar,
+      k.birim_fiyat,
     ]);
 
     await connection.query(

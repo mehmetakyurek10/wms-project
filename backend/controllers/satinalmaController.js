@@ -51,34 +51,10 @@ const detay = async (req, res, next) => {
 const olustur = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
+    // Govde schemas/purchasing.js tarafindan dogrulanip sayiya cevrildi:
+    // tedarikci_id pozitif tam sayi, kalemler bos olmayan dizi, her kalemde
+    // varyant_id pozitif tam sayi, miktar pozitif, birim_fiyat negatif degil.
     const { tedarikci_id, kalemler } = req.body;
-
-    if (!tedarikci_id) {
-      return res.status(400).json({ hata: "Tedarikçi seçilmelidir" });
-    }
-
-    if (!Array.isArray(kalemler) || kalemler.length === 0) {
-      return res.status(400).json({ hata: "En az bir kalem eklemelisiniz" });
-    }
-
-    for (const kalem of kalemler) {
-      const miktar = Number(kalem.miktar);
-      const fiyat = Number(kalem.birim_fiyat);
-
-      if (!kalem.varyant_id) {
-        return res
-          .status(400)
-          .json({ hata: "Her kalemde varyant seçilmelidir" });
-      }
-      if (!Number.isFinite(miktar) || miktar <= 0) {
-        return res
-          .status(400)
-          .json({ hata: "Miktar sıfırdan büyük olmalıdır" });
-      }
-      if (!Number.isFinite(fiyat) || fiyat < 0) {
-        return res.status(400).json({ hata: "Birim fiyat geçersiz" });
-      }
-    }
 
     await connection.beginTransaction();
 
@@ -93,7 +69,7 @@ const olustur = async (req, res, next) => {
     }
 
     const toplam_tutar = kalemler.reduce(
-      (toplam, k) => toplam + Number(k.miktar) * Number(k.birim_fiyat),
+      (toplam, k) => toplam + k.miktar * k.birim_fiyat,
       0,
     );
 
@@ -108,8 +84,8 @@ const olustur = async (req, res, next) => {
     const kalemSatirlari = kalemler.map((k) => [
       siparis_id,
       k.varyant_id,
-      Number(k.miktar),
-      Number(k.birim_fiyat),
+      k.miktar,
+      k.birim_fiyat,
     ]);
 
     await connection.query(
@@ -136,13 +112,9 @@ const teslimAl = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
     const { id } = req.params;
+    // lokasyon_id schemas/purchasing.js tarafindan pozitif tam sayi olarak
+    // dogrulandi.
     const { lokasyon_id } = req.body;
-
-    if (!lokasyon_id) {
-      return res
-        .status(400)
-        .json({ hata: "Malın indirileceği lokasyon seçilmelidir" });
-    }
 
     await connection.beginTransaction();
 

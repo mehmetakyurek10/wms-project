@@ -5,53 +5,35 @@ const yuvarla = (sayi) => Math.round(sayi * 100) / 100;
 const kaydet = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
-    const { lokasyon_id, kalemler, aciklama } = req.body;
-
-    const lokasyonId = Number(lokasyon_id);
-
-    if (!Number.isInteger(lokasyonId) || lokasyonId <= 0) {
-      return res
-        .status(400)
-        .json({ hata: "Sayım yapılacak lokasyon seçilmelidir" });
-    }
-
-    if (!Array.isArray(kalemler) || !kalemler.length) {
-      return res.status(400).json({ hata: "Sayılacak kalem gönderilmedi" });
-    }
+    // Govde schemas/stocktake.js tarafindan dogrulandi: lokasyon_id pozitif
+    // tam sayi, kalemler bos olmayan dizi, her kalemde sayilan_miktar negatif
+    // olmayan sayi ve birim_id ile varyant_id'den en az biri mevcut.
+    const { lokasyon_id: lokasyonId, kalemler, aciklama } = req.body;
 
     const birimSayimlari = new Map();
     const varyantSayimlari = new Map();
 
+    // Ayni birimin ya da varyantin listede iki kez bulunmasi semada
+    // yakalanamaz; bu kontrol kalemler arasi bir kural.
     for (const kalem of kalemler) {
-      const sayilan = Number(kalem.sayilan_miktar);
+      const sayilan = yuvarla(kalem.sayilan_miktar);
 
-      if (!Number.isFinite(sayilan) || sayilan < 0) {
-        return res.status(400).json({ hata: "Sayılan miktar geçersiz" });
-      }
-
-      const birimId = Number(kalem.birim_id);
-
-      if (Number.isInteger(birimId) && birimId > 0) {
-        if (birimSayimlari.has(birimId)) {
+      if (kalem.birim_id !== undefined) {
+        if (birimSayimlari.has(kalem.birim_id)) {
           return res.status(400).json({
-            hata: `Aynı birim listede birden fazla kez var (id: ${birimId})`,
+            hata: `Aynı birim listede birden fazla kez var (id: ${kalem.birim_id})`,
           });
         }
-        birimSayimlari.set(birimId, yuvarla(sayilan));
+        birimSayimlari.set(kalem.birim_id, sayilan);
         continue;
       }
 
-      const varyantId = Number(kalem.varyant_id);
-
-      if (!Number.isInteger(varyantId) || varyantId <= 0) {
-        return res.status(400).json({ hata: "Geçersiz kalem" });
-      }
-      if (varyantSayimlari.has(varyantId)) {
+      if (varyantSayimlari.has(kalem.varyant_id)) {
         return res.status(400).json({
-          hata: `Aynı varyant listede birden fazla kez var (id: ${varyantId})`,
+          hata: `Aynı varyant listede birden fazla kez var (id: ${kalem.varyant_id})`,
         });
       }
-      varyantSayimlari.set(varyantId, yuvarla(sayilan));
+      varyantSayimlari.set(kalem.varyant_id, sayilan);
     }
 
     await connection.beginTransaction();

@@ -39,16 +39,14 @@ const listele = async (req, res, next) => {
 const olustur = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
-    const { birim_id, hedef_lokasyon_id, miktar, aciklama } = req.body;
-
-    const birimId = Number(birim_id);
-    const hedefId = Number(hedef_lokasyon_id);
-
-    if (!Number.isInteger(birimId) || !Number.isInteger(hedefId)) {
-      return res
-        .status(400)
-        .json({ hata: "Taşınacak birim ve hedef lokasyon zorunludur" });
-    }
+    // Govde schemas/transfer.js tarafindan dogrulanip sayiya cevrildi:
+    // birim_id ve hedef_lokasyon_id pozitif tam sayi, miktar varsa pozitif.
+    const {
+      birim_id: birimId,
+      hedef_lokasyon_id: hedefId,
+      miktar,
+      aciklama,
+    } = req.body;
 
     const [birimRows] = await connection.query(
       `SELECT id, tip, kod, varyant_id, lokasyon_id, miktar
@@ -109,14 +107,18 @@ const olustur = async (req, res, next) => {
         });
       }
     } else {
-      tasinan = Number(miktar);
-
-      if (!Number.isFinite(tasinan) || tasinan <= 0) {
+      // Sema miktari opsiyonel tutuyor, cunku palet tasimada arayuz bu alani
+      // hic gondermiyor. Birimin dokme oldugu ancak veritabanindan
+      // bilinebildigi icin zorunluluk kontrolu burada kaliyor. Degerin
+      // pozitif oldugunu sema zaten garanti ediyor.
+      if (miktar === undefined) {
         await connection.rollback();
         return res
           .status(400)
           .json({ hata: "Miktar sıfırdan büyük olmalıdır" });
       }
+
+      tasinan = miktar;
 
       const [kilitliRows] = await connection.query(
         `SELECT lokasyon_id, miktar FROM stok_birimleri
