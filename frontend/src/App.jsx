@@ -9,7 +9,7 @@ import StokHareketleri from "./pages/StokHareketleri";
 import SatinalmaSiparisleri from "./pages/SatinalmaSiparisleri";
 import Panel from "./pages/Panel";
 import Varyantlar from "./pages/Varyantlar";
-import { ToastSaglayici } from "./context/ToastContext";
+import { ToastSaglayici } from "./context/ToastSaglayici";
 import AuthProvider from "./context/AuthProvider";
 import Kullanicilar from "./pages/Kullaniciler";
 import Raporlar from "./pages/Raporlar";

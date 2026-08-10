@@ -25,7 +25,12 @@ function DeliveryModal({ acik, siparis, kapat, tamamlandi }) {
     };
 
     yukle();
-  }, [acik, siparis?.id]);
+    // "siparis" nesnesi bilerek bagimliliklarda yok. Modal acikken ust
+    // bilesen yeniden cizilip yeni bir nesne uretse de ayni siparisin
+    // rezervasyonlarini bastan cekmenin anlami yok; gercekten baska bir
+    // siparise gecildiginde "siparis?.id" zaten tetikliyor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acik, siparis?.id, bildir]);
 
   if (!acik || !siparis) return null;
 

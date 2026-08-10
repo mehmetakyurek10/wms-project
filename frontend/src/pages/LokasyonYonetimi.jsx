@@ -79,7 +79,12 @@ function LokasyonYonetimi() {
     }
   };
 
+  // Sayfa acilisinda lokasyonlar ve tutarlilik raporu birlikte cekiliyor.
+  // Kural, etki icinde durum atanmasina uyariyor; veri cekmede bu kaskad
+  // kacinilmaz. veriGetir ayrica her kayit, guncelleme ve silme sonrasi
+  // yeniden cagriliyor.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     veriGetir();
   }, []);
 

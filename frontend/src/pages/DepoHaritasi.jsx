@@ -53,7 +53,14 @@ function DepoHaritasi() {
     }
   };
 
+  // Sayfa acilisinda lokasyonlar bir kez cekiliyor. Kural, etki icinde
+  // durum atanmasini kaskad cizime yol actigi icin uyariyor; veri cekmede
+  // bu kaskad kacinilmaz ve istenen davranistir (once yukleniyor, sonra
+  // veri). useFetch'e tasinmadi, cunku veriGetir'in donus degeri paletleme
+  // ve transfer akislarinda kullaniliyor; useFetch'in refresh'i veri
+  // dondurmuyor.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     veriGetir();
   }, []);
 

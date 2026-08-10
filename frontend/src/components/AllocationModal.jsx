@@ -40,7 +40,12 @@ function AllocationModal({ acik, kalemler, kapat, tamamlandi, gonderiliyor }) {
     };
 
     yukle();
-  }, [acik]);
+    // "kalemler" bilerek bagimliliklarda yok. Her cizimde yeni bir dizi
+    // referansi uretildigi icin eklenirse istek dongusu olusur. Kullanilabilir
+    // stok, modal her acildiginda bir kez cekiliyor; modal acikken kalem
+    // listesi degismiyor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [acik, bildir]);
 
   if (!acik) return null;
 

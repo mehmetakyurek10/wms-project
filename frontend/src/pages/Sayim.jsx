@@ -38,7 +38,11 @@ function Sayim() {
     }
   };
 
+  // Sayfa acilisinda lokasyon ve varyant tanimlari bir kez cekiliyor.
+  // Kural, etki icinde durum atanmasina uyariyor; veri cekmede bu kaskad
+  // kacinilmaz ve istenen davranistir.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     tanimlariYukle();
   }, []);
 
@@ -55,7 +59,10 @@ function Sayim() {
       const response = await lokasyonStok(id);
       setSatirlar(response.data);
     } catch (err) {
-      bildir(err.response?.data?.hata || "Lokasyon içeriği yüklenemedi", "hata");
+      bildir(
+        err.response?.data?.hata || "Lokasyon içeriği yüklenemedi",
+        "hata",
+      );
     } finally {
       setStokYukleniyor(false);
     }

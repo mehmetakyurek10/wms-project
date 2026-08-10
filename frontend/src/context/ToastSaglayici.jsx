@@ -1,7 +1,6 @@
-import { createContext, useContext, useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import { CheckCircle, AlertCircle } from "lucide-react";
-
-const ToastContext = createContext(null);
+import { ToastContext } from "./ToastContext";
 
 export function ToastSaglayici({ children }) {
   const [toastlar, setToastlar] = useState([]);
@@ -31,8 +30,4 @@ export function ToastSaglayici({ children }) {
       </div>
     </ToastContext.Provider>
   );
-}
-
-export function useToast() {
-  return useContext(ToastContext);
 }
