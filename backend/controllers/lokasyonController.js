@@ -175,6 +175,18 @@ const sil = async (req, res, next) => {
       });
     }
 
+    const [seferSayim] = await connection.query(
+      "SELECT COUNT(*) AS adet FROM pazar_seferleri WHERE lokasyon_id = ?",
+      [id],
+    );
+
+    if (seferSayim[0].adet > 0) {
+      await connection.rollback();
+      return res.status(409).json({
+        hata: `Bu pazara ait ${seferSayim[0].adet} sefer kaydı var, silinemez. Pasife alabilirsiniz.`,
+      });
+    }
+
     await connection.query("DELETE FROM stok_birimleri WHERE lokasyon_id = ?", [
       id,
     ]);

@@ -39,13 +39,22 @@ const kaydet = async (req, res, next) => {
     await connection.beginTransaction();
 
     const [lokasyonRows] = await connection.query(
-      "SELECT id FROM lokasyonlar WHERE id = ? AND aktif = TRUE",
+      "SELECT id, tip FROM lokasyonlar WHERE id = ? AND aktif = TRUE",
       [lokasyonId],
     );
 
     if (!lokasyonRows.length) {
       await connection.rollback();
       return res.status(404).json({ hata: "Lokasyon bulunamadı" });
+    }
+
+    // Pazardaki mal tezgahta, depoda degil. Sayilacak bir sey yok; oradaki
+    // miktar sefer kapatilirken donen miktarla belirlenir.
+    if (lokasyonRows[0].tip === "pazar") {
+      await connection.rollback();
+      return res.status(400).json({
+        hata: "Pazardaki mal sayılamaz, sefer kapatılarak işlenir",
+      });
     }
 
     const [mevcutBirimler] = await connection.query(

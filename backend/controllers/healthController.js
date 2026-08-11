@@ -75,16 +75,39 @@ const OVER_CAPACITY_QUERY = `
   ORDER BY asim DESC
 `;
 
+const MARKET_LEFTOVER_QUERY = `
+  SELECT l.kod AS lokasyon_kodu, l.ad AS lokasyon_adi,
+         u.ad AS urun_adi, v.boy, sb.miktar
+  FROM stok_birimleri sb
+  JOIN lokasyonlar l ON sb.lokasyon_id = l.id
+  JOIN urun_varyantlari v ON sb.varyant_id = v.id
+  JOIN urunler u ON v.urun_id = u.id
+  WHERE l.tip = 'pazar'
+    AND sb.miktar > 0
+    AND NOT EXISTS (
+      SELECT 1 FROM pazar_seferleri s
+      WHERE s.lokasyon_id = l.id AND s.durum = 'yolda'
+    )
+  ORDER BY l.kod
+`;
+
 const checks = async (req, res, next) => {
   try {
-    const [drift, negative, unfulfillable, inactive, overCapacity] =
-      await Promise.all([
-        pool.query(DRIFT_QUERY),
-        pool.query(NEGATIVE_QUERY),
-        pool.query(UNFULFILLABLE_RESERVATION_QUERY),
-        pool.query(INACTIVE_LOCATION_QUERY),
-        pool.query(OVER_CAPACITY_QUERY),
-      ]);
+    const [
+      drift,
+      negative,
+      unfulfillable,
+      inactive,
+      overCapacity,
+      marketLeftover,
+    ] = await Promise.all([
+      pool.query(DRIFT_QUERY),
+      pool.query(NEGATIVE_QUERY),
+      pool.query(UNFULFILLABLE_RESERVATION_QUERY),
+      pool.query(INACTIVE_LOCATION_QUERY),
+      pool.query(OVER_CAPACITY_QUERY),
+      pool.query(MARKET_LEFTOVER_QUERY),
+    ]);
 
     const kontroller = [
       {
@@ -135,6 +158,21 @@ const checks = async (req, res, next) => {
           { key: "siparisler", label: "Siparişler" },
         ],
         satirlar: unfulfillable[0],
+      },
+      {
+        anahtar: "pazarda_kalinti",
+        ad: "Pazarda Kalıntı Stok",
+        seviye: "kritik",
+        aciklama:
+          "Açık seferi olmayan bir pazar lokasyonunda mal duruyor. Sefer kapanışında pazarın boşalması gerekir; kalıntı varsa satılan miktar eksik hesaplanmış ya da mal elle oraya konmuş olabilir.",
+        kolonlar: [
+          { key: "lokasyon_kodu", label: "Pazar" },
+          { key: "lokasyon_adi", label: "Ad" },
+          { key: "urun_adi", label: "Ürün" },
+          { key: "boy", label: "Boy" },
+          { key: "miktar", label: "Miktar" },
+        ],
+        satirlar: marketLeftover[0],
       },
       {
         anahtar: "pasif_lokasyonda_stok",

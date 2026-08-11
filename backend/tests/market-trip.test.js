@@ -203,3 +203,25 @@ test("kapatilmis sefer tekrar kapatilamaz", async () => {
   const ikinci = await kapat().expect(400);
   assert.match(ikinci.body.hata, /zaten kapat/i);
 });
+
+test("pazardaki mala transfer ve sayim yapilamaz", async () => {
+  const { auth, seferAc, birimler, pazarId, kabulId, varyantId } =
+    await hazirla();
+
+  await seferAc(100).expect(201);
+
+  const pazardaki = (await birimler()).find((b) => b.lokasyon_id === pazarId);
+
+  const transfer = await auth(request(app).post("/transferler"))
+    .send({ birim_id: pazardaki.id, hedef_lokasyon_id: kabulId, miktar: 10 })
+    .expect(400);
+  assert.match(transfer.body.hata, /transfer edilemez/i);
+
+  const sayim = await auth(request(app).post("/sayim"))
+    .send({
+      lokasyon_id: pazarId,
+      kalemler: [{ varyant_id: varyantId, sayilan_miktar: 90 }],
+    })
+    .expect(400);
+  assert.match(sayim.body.hata, /sayılamaz/i);
+});

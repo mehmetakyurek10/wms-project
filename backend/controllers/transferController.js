@@ -49,8 +49,11 @@ const olustur = async (req, res, next) => {
     } = req.body;
 
     const [birimRows] = await connection.query(
-      `SELECT id, tip, kod, varyant_id, lokasyon_id, miktar
-       FROM stok_birimleri WHERE id = ?`,
+      `SELECT sb.id, sb.tip, sb.kod, sb.varyant_id, sb.lokasyon_id, sb.miktar,
+              l.tip AS lokasyon_tipi
+       FROM stok_birimleri sb
+       JOIN lokasyonlar l ON sb.lokasyon_id = l.id
+       WHERE sb.id = ?`,
       [birimId],
     );
 
@@ -61,6 +64,14 @@ const olustur = async (req, res, next) => {
     const birim = birimRows[0];
     const kaynakId = Number(birim.lokasyon_id);
 
+    // Pazardaki mal tezgahta duruyor; depo ici bir tasima islemiyle yeri
+    // degistirilemez. Oradan cikisin tek yolu seferin kapatilmasi.
+    if (birim.lokasyon_tipi === "pazar") {
+      return res.status(400).json({
+        hata: "Pazardaki mal transfer edilemez, sefer kapatılarak işlenir",
+      });
+    }
+
     if (kaynakId === hedefId) {
       return res
         .status(400)
@@ -70,13 +81,20 @@ const olustur = async (req, res, next) => {
     await connection.beginTransaction();
 
     const [hedefRows] = await connection.query(
-      "SELECT id FROM lokasyonlar WHERE id = ? AND aktif = TRUE",
+      "SELECT id, tip FROM lokasyonlar WHERE id = ? AND aktif = TRUE",
       [hedefId],
     );
 
     if (!hedefRows.length) {
       await connection.rollback();
       return res.status(404).json({ hata: "Hedef lokasyon bulunamadı" });
+    }
+
+    if (hedefRows[0].tip === "pazar") {
+      await connection.rollback();
+      return res.status(400).json({
+        hata: "Pazara transferle mal gönderilemez, Pazar Seferleri ekranını kullanın",
+      });
     }
 
     let tasinan;
