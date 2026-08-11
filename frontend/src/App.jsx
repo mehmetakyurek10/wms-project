@@ -1,27 +1,40 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useEffect } from "react";
-import Giris from "./pages/Giris";
-import Urunler from "./pages/Urunler";
+import { lazy, Suspense, useEffect } from "react";
 import KorumaliRota from "./components/KorumaliRota";
-import Kategoriler from "./pages/Kategoriler";
-import Tedarikciler from "./pages/Tedarikciler";
-import StokHareketleri from "./pages/StokHareketleri";
-import SatinalmaSiparisleri from "./pages/SatinalmaSiparisleri";
-import Panel from "./pages/Panel";
-import Varyantlar from "./pages/Varyantlar";
 import { ToastSaglayici } from "./context/ToastSaglayici";
 import AuthProvider from "./context/AuthProvider";
-import Kullanicilar from "./pages/Kullaniciler";
-import Raporlar from "./pages/Raporlar";
-import Musteriler from "./pages/Musteriler";
-import SatisSiparisleri from "./pages/SatisSiparisleri";
-import Sayim from "./pages/Sayim";
-import DepoHaritasi from "./pages/DepoHaritasi";
-import LokasyonYonetimi from "./pages/LokasyonYonetimi";
-import ChangePassword from "./pages/ChangePassword";
-import SystemHealth from "./pages/SystemHealth";
-import Pallets from "./pages/Pallets";
-import MarketTrips from "./pages/MarketTrips";
+import HataSiniri from "./components/HataSiniri";
+
+// Sayfalar tembel yukleniyor: her biri kendi paketine ayriliyor ve yalnizca
+// acildiginda indiriliyor. En cok kazanci Panel sagliyor, cunku grafik
+// kutuphanesi yalnizca orada kullaniliyor.
+const Giris = lazy(() => import("./pages/Giris"));
+const Panel = lazy(() => import("./pages/Panel"));
+const Urunler = lazy(() => import("./pages/Urunler"));
+const Varyantlar = lazy(() => import("./pages/Varyantlar"));
+const Kategoriler = lazy(() => import("./pages/Kategoriler"));
+const Raporlar = lazy(() => import("./pages/Raporlar"));
+const Musteriler = lazy(() => import("./pages/Musteriler"));
+const SatisSiparisleri = lazy(() => import("./pages/SatisSiparisleri"));
+const MarketTrips = lazy(() => import("./pages/MarketTrips"));
+const Kullanicilar = lazy(() => import("./pages/Kullaniciler"));
+const Sayim = lazy(() => import("./pages/Sayim"));
+const LokasyonYonetimi = lazy(() => import("./pages/LokasyonYonetimi"));
+const DepoHaritasi = lazy(() => import("./pages/DepoHaritasi"));
+const Pallets = lazy(() => import("./pages/Pallets"));
+const Tedarikciler = lazy(() => import("./pages/Tedarikciler"));
+const StokHareketleri = lazy(() => import("./pages/StokHareketleri"));
+const ChangePassword = lazy(() => import("./pages/ChangePassword"));
+const SystemHealth = lazy(() => import("./pages/SystemHealth"));
+const SatinalmaSiparisleri = lazy(() => import("./pages/SatinalmaSiparisleri"));
+
+function Yukleniyor() {
+  return (
+    <div className="yukleniyor-kutu">
+      <div className="spinner" />
+    </div>
+  );
+}
 
 function App() {
   useEffect(() => {
@@ -33,33 +46,46 @@ function App() {
     <ToastSaglayici>
       <AuthProvider>
         <BrowserRouter>
-          <Routes>
-            <Route path="/giris" element={<Giris />} />
-            <Route element={<KorumaliRota />}>
-              <Route path="/panel" element={<Panel />} />
-              <Route path="/urunler" element={<Urunler />} />
-              <Route path="/varyantlar" element={<Varyantlar />} />
-              <Route path="/kategoriler" element={<Kategoriler />} />
-              <Route path="/raporlar" element={<Raporlar />} />
-              <Route path="/musteriler" element={<Musteriler />} />
-              <Route path="/satis-siparisleri" element={<SatisSiparisleri />} />
-              <Route path="/pazar-seferleri" element={<MarketTrips />} />
-              <Route path="/kullanicilar" element={<Kullanicilar />} />
-              <Route path="/sayim" element={<Sayim />} />
-              <Route path="/lokasyon-yonetimi" element={<LokasyonYonetimi />} />
-              <Route path="/depo-haritasi" element={<DepoHaritasi />} />
-              <Route path="/paletler" element={<Pallets />} />
-              <Route path="/tedarikciler" element={<Tedarikciler />} />
-              <Route path="/stok-hareketleri" element={<StokHareketleri />} />
-              <Route path="/sifre-degistir" element={<ChangePassword />} />
-              <Route path="/sistem-sagligi" element={<SystemHealth />} />
-              <Route
-                path="/satinalma-siparisleri"
-                element={<SatinalmaSiparisleri />}
-              />
-            </Route>
-            <Route path="/" element={<Navigate to="/panel" />} />
-          </Routes>
+          <HataSiniri>
+            <Suspense fallback={<Yukleniyor />}>
+              <Routes>
+                <Route path="/giris" element={<Giris />} />
+                <Route element={<KorumaliRota />}>
+                  <Route path="/panel" element={<Panel />} />
+                  <Route path="/urunler" element={<Urunler />} />
+                  <Route path="/varyantlar" element={<Varyantlar />} />
+                  <Route path="/kategoriler" element={<Kategoriler />} />
+                  <Route path="/raporlar" element={<Raporlar />} />
+                  <Route path="/musteriler" element={<Musteriler />} />
+                  <Route
+                    path="/satis-siparisleri"
+                    element={<SatisSiparisleri />}
+                  />
+                  <Route path="/pazar-seferleri" element={<MarketTrips />} />
+                  <Route path="/kullanicilar" element={<Kullanicilar />} />
+                  <Route path="/sayim" element={<Sayim />} />
+                  <Route
+                    path="/lokasyon-yonetimi"
+                    element={<LokasyonYonetimi />}
+                  />
+                  <Route path="/depo-haritasi" element={<DepoHaritasi />} />
+                  <Route path="/paletler" element={<Pallets />} />
+                  <Route path="/tedarikciler" element={<Tedarikciler />} />
+                  <Route
+                    path="/stok-hareketleri"
+                    element={<StokHareketleri />}
+                  />
+                  <Route path="/sifre-degistir" element={<ChangePassword />} />
+                  <Route path="/sistem-sagligi" element={<SystemHealth />} />
+                  <Route
+                    path="/satinalma-siparisleri"
+                    element={<SatinalmaSiparisleri />}
+                  />
+                </Route>
+                <Route path="/" element={<Navigate to="/panel" />} />
+              </Routes>
+            </Suspense>
+          </HataSiniri>
         </BrowserRouter>
       </AuthProvider>
     </ToastSaglayici>

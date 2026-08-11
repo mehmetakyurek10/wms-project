@@ -1,5 +1,7 @@
+import { Suspense } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
+import HataSiniri from "./HataSiniri";
 import useAuth from "../hooks/useAuth";
 
 function KorumaliRota() {
@@ -18,7 +20,19 @@ function KorumaliRota() {
       <Sidebar />
       <main className="icerik">
         <div className="icerik-ic">
-          <Outlet />
+          {/* Icteki sinir sayfa hatasini yakaliyor, boylece yan menu
+              ekranda kaliyor ve kullanici baska bir sayfaya gecebiliyor. */}
+          <HataSiniri>
+            <Suspense
+              fallback={
+                <div className="yukleniyor-kutu">
+                  <div className="spinner" />
+                </div>
+              }
+            >
+              <Outlet />
+            </Suspense>
+          </HataSiniri>
         </div>
       </main>
     </div>

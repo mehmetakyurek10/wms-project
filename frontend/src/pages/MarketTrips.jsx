@@ -25,6 +25,7 @@ function paraFormat(sayi) {
 }
 
 function MarketTrips() {
+  //throw new Error("test"); test amaçlı yazıldı
   const bildir = useToast();
 
   const [sayfa, setSayfa] = useState(1);

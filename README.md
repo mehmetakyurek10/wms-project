@@ -344,4 +344,4 @@ mysqldump -u root wms > ~/wms-yedek-$(date +%Y%m%d-%H%M).sql
 - **Satış fiyatı sunucuda doğrulanmaz.** Sipariş toplamı istemciden gelen birim fiyatla hesaplanır; varyantın kayıtlı fiyatıyla karşılaştırılmaz.
 - **Arayüz testi yok.** Backend akışları otomatik test edilir, frontend elle doğrulanır.
 - **Stil dosyaları konuya göre ayrıldı ama içerik yeniden düzenlenmedi.** `styles/` altındaki dosyalar özgün sırayı birebir korur; bu yüzden açık tema kuralları ve medya sorguları hâlâ birden fazla dosyaya dağılmış durumdadır.
-- **JavaScript paketi tek parça.** Üretim derlemesi 500 kB eşiğini aşıyor; kod bölme yapılmamıştır.
+- **Panel ekranının paketi büyük.** Sayfalar tembel yüklendiği için ilk açılış hafiftir, ancak panel grafik kütüphanesiyle birlikte yaklaşık 390 kB'lık ayrı bir paket oluşturur. Yalnızca panele girildiğinde iner.
