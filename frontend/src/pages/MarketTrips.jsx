@@ -1,26 +1,43 @@
 import { useState } from "react";
-import { Plus, Trash2, Store } from "lucide-react";
-import { seferleriGetir, seferAc } from "../api/marketTripApi";
+import { Plus, Trash2, Store, Receipt } from "lucide-react";
+import {
+  seferleriGetir,
+  seferOzetiGetir,
+  seferKalemleriGetir,
+  seferAc,
+} from "../api/marketTripApi";
 import { lokasyonlariGetir } from "../api/lokasyonApi";
 import { varyantlariGetir } from "../api/varyantApi";
 import AllocationModal from "../components/AllocationModal";
 import MarketReturnModal from "../components/MarketReturnModal";
+import MarketTripReceipt from "../components/MarketTripReceipt";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 
 const SAYFA_BOYUTU = 20;
 const BOS_KALEM = { varyant_id: "", miktar: "", birim: "adet" };
 
+function paraFormat(sayi) {
+  return Number(sayi).toLocaleString("tr-TR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 function MarketTrips() {
   const bildir = useToast();
 
   const [sayfa, setSayfa] = useState(1);
+  const [ozetYil, setOzetYil] = useState("");
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [tahsisAcik, setTahsisAcik] = useState(false);
   const [donusAcik, setDonusAcik] = useState(false);
   const [pazarId, setPazarId] = useState("");
   const [aciklama, setAciklama] = useState("");
   const [kalemler, setKalemler] = useState([BOS_KALEM]);
+
+  const [fisSefer, setFisSefer] = useState(null);
+  const [fisKalemler, setFisKalemler] = useState([]);
 
   const {
     data: seferler,
@@ -39,6 +56,15 @@ function MarketTrips() {
     { initial: [], errorMessage: "Açık sefer bilgisi alınamadı" },
   );
 
+  const { data: ozet, refresh: ozetiYenile } = useFetch(
+    () => seferOzetiGetir({ yil: ozetYil || undefined }),
+    [ozetYil],
+    {
+      initial: { yil: null, yillar: [], satirlar: [] },
+      errorMessage: "Özet yüklenemedi",
+    },
+  );
+
   const { data: lokasyonlar } = useFetch(() => lokasyonlariGetir(), [], {
     initial: [],
     errorMessage: "Lokasyonlar yüklenemedi",
@@ -54,6 +80,16 @@ function MarketTrips() {
   const acikSefer = acikSeferler[0] || null;
   const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
   const secilenPazarId = pazarId || pazarlar[0]?.id || "";
+
+  const ozetToplami = ozet.satirlar.reduce(
+    (t, s) => ({
+      giden: t.giden + Number(s.toplam_giden),
+      donen: t.donen + Number(s.toplam_donen),
+      satilan: t.satilan + Number(s.toplam_satilan),
+      hasilat: t.hasilat + Number(s.tahmini_hasilat),
+    }),
+    { giden: 0, donen: 0, satilan: 0, hasilat: 0 },
+  );
 
   const kalemHesapla = (kalem) => {
     const varyant = varyantlar.find(
@@ -84,6 +120,16 @@ function MarketTrips() {
     const yeniKalemler = [...kalemler];
     yeniKalemler[index] = { ...yeniKalemler[index], [alan]: deger };
     setKalemler(yeniKalemler);
+  };
+
+  const fisAc = async (sefer) => {
+    try {
+      const response = await seferKalemleriGetir(sefer.id);
+      setFisKalemler(response.data);
+      setFisSefer(sefer);
+    } catch (err) {
+      bildir(err.response?.data?.hata || "Fiş oluşturulamadı", "hata");
+    }
   };
 
   const handleSubmit = (e) => {
@@ -133,6 +179,7 @@ function MarketTrips() {
     seferleriYukle();
     acikSeferiYenile();
     varyantlariYenile();
+    ozetiYenile();
   };
 
   if (yukleniyor)
@@ -161,7 +208,12 @@ function MarketTrips() {
               sefer açmadan önce bu seferi kapatmalısınız.
             </span>
           </div>
-          <button onClick={() => setDonusAcik(true)}>Dönüşü Kaydet</button>
+          <div className="yan-aksiyon">
+            <button className="ikincil" onClick={() => fisAc(acikSefer)}>
+              <Receipt size={15} /> Fiş
+            </button>
+            <button onClick={() => setDonusAcik(true)}>Dönüşü Kaydet</button>
+          </div>
         </div>
       ) : (
         <>
@@ -283,6 +335,78 @@ function MarketTrips() {
         </>
       )}
 
+      <h2 className="bolum-basligi">Yıl özeti</h2>
+
+      <div className="filtre-cubugu">
+        <div className="form-alan">
+          <label>Yıl</label>
+          <select
+            value={ozetYil || ozet.yil || ""}
+            onChange={(e) => setOzetYil(e.target.value)}
+          >
+            {(ozet.yillar.length ? ozet.yillar : [ozet.yil])
+              .filter(Boolean)
+              .map((y) => (
+                <option key={y} value={y}>
+                  {y}
+                </option>
+              ))}
+          </select>
+        </div>
+      </div>
+
+      {ozet.satirlar.length === 0 ? (
+        <div className="bos-durum">
+          Bu yıl için tamamlanmış sefer yok. Özet yalnızca kapatılmış seferleri
+          sayar.
+        </div>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Pazar</th>
+              <th>Sefer</th>
+              <th>Giden</th>
+              <th>Dönen</th>
+              <th>Satılan</th>
+              <th>Tahmini hasılat</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ozet.satirlar.map((s) => (
+              <tr key={s.lokasyon_id}>
+                <td>{s.pazar_adi || s.pazar_kod}</td>
+                <td>{s.sefer_sayisi}</td>
+                <td>{Number(s.toplam_giden).toFixed(0)}</td>
+                <td>{Number(s.toplam_donen).toFixed(0)}</td>
+                <td>
+                  <strong>{Number(s.toplam_satilan).toFixed(0)}</strong>
+                </td>
+                <td>{paraFormat(s.tahmini_hasilat)} ₺</td>
+              </tr>
+            ))}
+            <tr>
+              <td>
+                <strong>Toplam</strong>
+              </td>
+              <td></td>
+              <td>
+                <strong>{ozetToplami.giden.toFixed(0)}</strong>
+              </td>
+              <td>
+                <strong>{ozetToplami.donen.toFixed(0)}</strong>
+              </td>
+              <td>
+                <strong>{ozetToplami.satilan.toFixed(0)}</strong>
+              </td>
+              <td>
+                <strong>{paraFormat(ozetToplami.hasilat)} ₺</strong>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      )}
+
       <h2 className="bolum-basligi">Geçmiş seferler</h2>
 
       {seferler.length === 0 ? (
@@ -300,6 +424,7 @@ function MarketTrips() {
                 <th>Dönen</th>
                 <th>Satılan</th>
                 <th>Durum</th>
+                <th>İşlemler</th>
               </tr>
             </thead>
             <tbody>
@@ -322,6 +447,15 @@ function MarketTrips() {
                     >
                       {s.durum === "yolda" ? "Yolda" : "Tamamlandı"}
                     </span>
+                  </td>
+                  <td>
+                    <button
+                      className="ikincil ikon-btn"
+                      onClick={() => fisAc(s)}
+                      title="Fiş"
+                    >
+                      <Receipt size={14} />
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -363,6 +497,13 @@ function MarketTrips() {
         sefer={acikSefer}
         kapat={() => setDonusAcik(false)}
         tamamlandi={donusTamamlandi}
+      />
+
+      <MarketTripReceipt
+        acik={fisSefer !== null}
+        sefer={fisSefer}
+        kalemler={fisKalemler}
+        kapat={() => setFisSefer(null)}
       />
     </div>
   );

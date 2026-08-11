@@ -4,6 +4,7 @@ const marketTripController = require("../controllers/marketTripController");
 const { dogrulaGovde } = require("../utils/validation");
 const { seferAc, seferKapat } = require("../schemas/marketTrip");
 
+router.get("/ozet", marketTripController.ozet);
 router.get("/", marketTripController.listele);
 router.get("/:id/kalemler", marketTripController.detay);
 router.post("/", dogrulaGovde(seferAc), marketTripController.seferAc);

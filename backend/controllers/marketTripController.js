@@ -14,8 +14,15 @@ const listele = async (req, res, next) => {
     );
     res.set("X-Toplam-Kayit", sayim[0].toplam);
 
+    // Tarihler DATE_FORMAT ile metin olarak donuyor. Ham DATE kolonu
+    // mysql2 tarafindan JS Date nesnesine cevriliyor, JSON'a yazilirken de
+    // UTC'ye kaydiriliyor: yerel gece yarisi bir onceki gunun 21:00'i olup
+    // tarih bir gun geri gidiyor. Saat bilgisi tasimayan bir kolonda bu
+    // donusumun anlami yok.
     const [seferler] = await pool.query(
-      `SELECT s.id, s.fis_no, s.durum, s.cikis_tarihi, s.donus_tarihi,
+      `SELECT s.id, s.fis_no, s.durum,
+              DATE_FORMAT(s.cikis_tarihi, '%Y-%m-%d') AS cikis_tarihi,
+              DATE_FORMAT(s.donus_tarihi, '%Y-%m-%d') AS donus_tarihi,
               s.aciklama, l.kod AS pazar_kod, l.ad AS pazar_adi,
               k.ad AS olusturan_adi,
               COALESCE(SUM(sk.giden_miktar), 0) AS toplam_giden,
@@ -31,6 +38,53 @@ const listele = async (req, res, next) => {
       [limit, offset],
     );
     res.json(seferler);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const ozet = async (req, res, next) => {
+  try {
+    const istenenYil = parseInt(req.query.yil, 10);
+    const yil = Number.isInteger(istenenYil)
+      ? istenenYil
+      : new Date().getFullYear();
+
+    const [yilRows] = await pool.query(
+      `SELECT DISTINCT YEAR(cikis_tarihi) AS yil
+       FROM pazar_seferleri
+       ORDER BY yil DESC`,
+    );
+
+    // Yari acik aralik kullaniliyor: cikis_tarihi uzerinde fonksiyon
+    // cagirmak indeksi devre disi birakir ve yil sinirinda hata yapmaya
+    // acik hale getirir.
+    const [satirlar] = await pool.query(
+      `SELECT l.id AS lokasyon_id, l.kod AS pazar_kod, l.ad AS pazar_adi,
+              COUNT(DISTINCT s.id) AS sefer_sayisi,
+              COALESCE(SUM(sk.giden_miktar), 0) AS toplam_giden,
+              COALESCE(SUM(sk.donen_miktar), 0) AS toplam_donen,
+              COALESCE(SUM(sk.giden_miktar - COALESCE(sk.donen_miktar, 0)), 0)
+                AS toplam_satilan,
+              COALESCE(SUM(
+                (sk.giden_miktar - COALESCE(sk.donen_miktar, 0)) * v.perakende_fiyat
+              ), 0) AS tahmini_hasilat
+       FROM pazar_seferleri s
+       JOIN lokasyonlar l ON s.lokasyon_id = l.id
+       LEFT JOIN pazar_sefer_kalemleri sk ON sk.sefer_id = s.id
+       LEFT JOIN urun_varyantlari v ON sk.varyant_id = v.id
+       WHERE s.durum = 'tamamlandi'
+         AND s.cikis_tarihi >= ? AND s.cikis_tarihi < ?
+       GROUP BY l.id, l.kod, l.ad
+       ORDER BY toplam_satilan DESC`,
+      [`${yil}-01-01`, `${yil + 1}-01-01`],
+    );
+
+    res.json({
+      yil,
+      yillar: yilRows.map((r) => r.yil),
+      satirlar,
+    });
   } catch (err) {
     next(err);
   }
@@ -443,4 +497,4 @@ const seferKapat = async (req, res, next) => {
   }
 };
 
-module.exports = { listele, detay, seferAc, seferKapat };
+module.exports = { listele, ozet, detay, seferAc, seferKapat };
