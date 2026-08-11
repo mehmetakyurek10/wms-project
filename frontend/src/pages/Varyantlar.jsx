@@ -42,7 +42,7 @@ function Varyantlar() {
     miktar: 0,
     birim: "adet",
     kritik_seviye: 0,
-    birim_fiyat: 0,
+    toptan_fiyat: 0,
     perakende_fiyat: 0,
   });
 
@@ -120,7 +120,7 @@ function Varyantlar() {
         barkod: form.barkod,
         miktar: miktarAdet,
         kritik_seviye: form.kritik_seviye,
-        birim_fiyat: form.birim_fiyat,
+        toptan_fiyat: form.toptan_fiyat,
         perakende_fiyat: form.perakende_fiyat,
       });
       setForm({ ...form, boy: "", barkod: "", miktar: 0 });
@@ -141,7 +141,7 @@ function Varyantlar() {
       ambalaj_kg: v.ambalaj_kg,
       barkod: v.barkod || "",
       kritik_seviye: v.kritik_seviye,
-      birim_fiyat: v.birim_fiyat,
+      toptan_fiyat: v.toptan_fiyat,
       perakende_fiyat: v.perakende_fiyat,
       aktif: v.aktif,
     });
@@ -278,12 +278,12 @@ function Varyantlar() {
         </div>
 
         <div className="form-alan">
-          <label>Birim fiyat (adet)</label>
+          <label>Toptan fiyat (adet)</label>
           <input
-            name="birim_fiyat"
+            name="toptan_fiyat"
             type="number"
             step="0.01"
-            value={form.birim_fiyat}
+            value={form.toptan_fiyat}
             onChange={handleChange}
           />
         </div>

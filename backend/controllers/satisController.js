@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const { buildPagination } = require("../utils/pagination");
 const yuvarla = (sayi) => Math.round(sayi * 100) / 100;
+const FIYAT_SAPMA_ORANI = 0.2;
 
 const listele = async (req, res, next) => {
   try {
@@ -104,6 +105,54 @@ const olustur = async (req, res, next) => {
     if (!musteriRows.length) {
       await connection.rollback();
       return res.status(404).json({ hata: "Müşteri bulunamadı" });
+    }
+
+    // Fiyat denetimi icin varyantlari okumak gerekiyor; bu ayni zamanda
+    // gecersiz bir varyant_id'nin yabanci anahtar hatasiyla 500 donmesini
+    // engelleyip anlamli bir 404'e cevriyor.
+    const varyantIdleri = [...new Set(kalemler.map((k) => k.varyant_id))].sort(
+      (a, b) => a - b,
+    );
+
+    const [varyantRows] = await connection.query(
+      `SELECT v.id, v.toptan_fiyat, v.ambalaj_kg, v.boy, v.ambalaj_tipi,
+              u.ad AS urun_adi
+       FROM urun_varyantlari v
+       JOIN urunler u ON u.id = v.urun_id
+       WHERE v.id IN (?)`,
+      [varyantIdleri],
+    );
+
+    if (varyantRows.length !== varyantIdleri.length) {
+      const bulunanlar = new Set(varyantRows.map((v) => v.id));
+      const eksik = varyantIdleri.filter((vid) => !bulunanlar.has(vid));
+      await connection.rollback();
+      return res
+        .status(404)
+        .json({ hata: `Ürün bulunamadı (id: ${eksik.join(", ")})` });
+    }
+
+    const varyantHaritasi = new Map(varyantRows.map((v) => [v.id, v]));
+
+    for (const kalem of kalemler) {
+      const varyant = varyantHaritasi.get(kalem.varyant_id);
+      const kayitliFiyat = Number(varyant.toptan_fiyat);
+
+      // Fiyati tanimlanmamis varyantta kiyaslanacak bir referans yok.
+      if (kayitliFiyat <= 0) continue;
+
+      const sapma = Math.abs(kalem.birim_fiyat - kayitliFiyat) / kayitliFiyat;
+
+      if (sapma > FIYAT_SAPMA_ORANI) {
+        const kg = Number(varyant.ambalaj_kg) || 1;
+        await connection.rollback();
+        return res.status(400).json({
+          hata:
+            `${varyant.urun_adi} ${varyant.boy} ${varyant.ambalaj_tipi} için girilen fiyat kayıtlı fiyattan çok farklı ` +
+            `(girilen ${yuvarla(kalem.birim_fiyat / kg).toFixed(2)} ₺/kg, kayıtlı ${yuvarla(kayitliFiyat / kg).toFixed(2)} ₺/kg). ` +
+            `En fazla %${FIYAT_SAPMA_ORANI * 100} sapma kabul ediliyor.`,
+        });
+      }
     }
 
     const [birimRows] = await connection.query(

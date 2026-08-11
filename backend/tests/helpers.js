@@ -63,7 +63,7 @@ async function seedWarehouse(app, token) {
       ambalaj_kg: 10,
       miktar: 0,
       kritik_seviye: 0,
-      birim_fiyat: 100,
+      toptan_fiyat: 100,
     })
     .expect(201);
 

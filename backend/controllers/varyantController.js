@@ -91,7 +91,7 @@ const ekle = async (req, res, next) => {
       barkod,
       miktar,
       kritik_seviye,
-      birim_fiyat,
+      toptan_fiyat,
       perakende_fiyat,
     } = req.body;
 
@@ -102,7 +102,7 @@ const ekle = async (req, res, next) => {
     const [result] = await pool.query(
       `INSERT INTO urun_varyantlari
        (urun_id, boy, ambalaj_tipi, ambalaj_kg, barkod, miktar, kritik_seviye,
-        birim_fiyat, perakende_fiyat)
+        toptan_fiyat, perakende_fiyat)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         urun_id,
@@ -112,7 +112,7 @@ const ekle = async (req, res, next) => {
         barkod || null,
         miktar || 0,
         kritik_seviye || 0,
-        birim_fiyat || 0,
+        toptan_fiyat || 0,
         perakende_fiyat || 0,
       ],
     );
@@ -137,7 +137,7 @@ const guncelle = async (req, res, next) => {
       ambalaj_kg,
       barkod,
       kritik_seviye,
-      birim_fiyat,
+      toptan_fiyat,
       perakende_fiyat,
       aktif,
     } = req.body;
@@ -145,7 +145,7 @@ const guncelle = async (req, res, next) => {
     const [sonuc] = await pool.query(
       `UPDATE urun_varyantlari
        SET boy=?, ambalaj_tipi=?, ambalaj_kg=?, barkod=?, kritik_seviye=?,
-           birim_fiyat=?, perakende_fiyat=?, aktif=?
+           toptan_fiyat=?, perakende_fiyat=?, aktif=?
        WHERE id=?`,
       [
         boy,
@@ -153,7 +153,7 @@ const guncelle = async (req, res, next) => {
         ambalaj_kg,
         barkod || null,
         kritik_seviye,
-        birim_fiyat,
+        toptan_fiyat ?? 0,
         perakende_fiyat ?? 0,
         aktif ?? true,
         id,

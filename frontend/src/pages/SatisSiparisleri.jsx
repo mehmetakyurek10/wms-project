@@ -147,7 +147,7 @@ function SatisSiparisleri() {
       if (varyant && !yeniKalemler[index].birim_fiyat) {
         const ambalajKg = Number(varyant.ambalaj_kg) || 1;
         yeniKalemler[index].birim_fiyat = (
-          Number(varyant.birim_fiyat) / ambalajKg
+          Number(varyant.toptan_fiyat) / ambalajKg
         ).toFixed(2);
       }
     }
