@@ -321,27 +321,43 @@ Kat bilgisi kuş bakışı planda gösterilemediği için haritada katman geçi�
 
 ## Şema değişiklikleri
 
-Versiyonlanmış migration altyapısı henüz yoktur; değişiklikler elle uygulanır. Şemada değişiklik yaptıktan sonra dosyayı yeniden üret:
+Şema değişiklikleri `backend/db/migrations/` altında numaralı SQL dosyalarıyla tutulur. `001_baseline.sql` projenin bu düzene geçtiği andaki tam şemadır; sonraki her değişiklik ayrı bir dosyadır.
+
+Uygulanmış sürümler veritabanındaki `schema_migrations` tablosunda kayıtlıdır. Çalıştırıcı yalnızca eksik olanları, dosya adı sırasına göre uygular:
 
 ```bash
-mysqldump -u root --no-data --skip-comments --set-gtid-purged=OFF wms > backend/db/schema.sql
+npm run migrate --prefix backend
 ```
 
-Şema değişikliğinden önce mutlaka yedek al:
+Komut her koşulda güvenle çalıştırılabilir; uygulanmış bir sürüm ikinci kez çalıştırılmaz.
+
+### Değişiklik yaparken
+
+Önce yedek al. Bu adım atlanamaz:
 
 ```bash
 mysqldump -u root wms > ~/wms-yedek-$(date +%Y%m%d-%H%M).sql
 ```
 
+Sonra sıradaki numarayla açıklayıcı adlı bir dosya oluştur (`002_pazar_seferi.sql` gibi), değişikliği çalıştır ve anlık görüntüyü yenile:
+
+```bash
+npm run migrate --prefix backend
+mysqldump -u root --no-data --skip-comments --set-gtid-purged=OFF wms > backend/db/schema.sql
+```
+
+İki dosyanın da güncellenmesi gerekiyor çünkü farklı işlere yarıyorlar: migration dosyaları değişiklik geçmişini taşır ve mevcut bir veritabanını ilerletir; `schema.sql` ise güncel durumun anlık görüntüsüdür ve testler her çalıştırmada şemayı ondan kurar.
+
+> **Not:** MySQL'de `ALTER TABLE` gibi ifadeler örtük commit üretir, yani bir migration yarıda kalırsa geri alınamaz. Her dosyayı tek bir mantıksal değişiklikle sınırlı tut.
+
 ---
 
 ## Bilinen sınırlar
 
-- **Şema tabanlı girdi doğrulaması yok.** Doğrulama her denetleyicide elle yapılır.
-- **Versiyonlanmış migration yok.** `schema.sql` bir anlık görüntüdür, değişiklik geçmişi tutmaz.
+- **Girdi doğrulaması yalnızca stok uçlarında şema tabanlı.** Satış, satınalma, sayım, transfer ve stok hareketi uçları `zod` şemalarıyla doğrulanır; kalan uçlarda doğrulama hâlâ denetleyici içinde elle yapılır.
 - **Servis katmanı yok.** SQL, iş kuralı ve HTTP aynı denetleyici fonksiyonunda bulunur.
 - **Sunucu tarafı idempotanlık yok.** Çift gönderim arayüzde buton kilidiyle, çift işleme ise koşullu `UPDATE`'lerle engellenir. Ağ kopması sonrası otomatik tekrar için işlem anahtarı (idempotency key) mekanizması yoktur; el terminali kullanılmaya başlandığında gerekecektir.
-- **Satış fiyatı sunucuda doğrulanmaz.** Sipariş toplamı istemciden gelen birim fiyatla hesaplanır; varyantın kayıtlı fiyatıyla karşılaştırılmaz.
+- **Satınalma fiyatı denetlenmez.** Satış siparişinde girilen fiyat, varyantın kayıtlı toptan fiyatından en fazla %20 sapabilir. Satınalmada böyle bir kontrol bilinçli olarak yoktur: alış fiyatı piyasaya göre değiştiği için kayıtlı satış fiyatıyla karşılaştırmak sürekli yanlış alarm üretir.
 - **Arayüz testi yok.** Backend akışları otomatik test edilir, frontend elle doğrulanır.
 - **Stil dosyaları konuya göre ayrıldı ama içerik yeniden düzenlenmedi.** `styles/` altındaki dosyalar özgün sırayı birebir korur; bu yüzden açık tema kuralları ve medya sorguları hâlâ birden fazla dosyaya dağılmış durumdadır.
 - **Panel ekranının paketi büyük.** Sayfalar tembel yüklendiği için ilk açılış hafiftir, ancak panel grafik kütüphanesiyle birlikte yaklaşık 390 kB'lık ayrı bir paket oluşturur. Yalnızca panele girildiğinde iner.
