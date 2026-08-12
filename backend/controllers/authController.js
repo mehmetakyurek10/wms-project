@@ -96,6 +96,17 @@ const girisYap = async (req, res, next) => {
   }
 };
 
+const kurulumDurumu = async (req, res, next) => {
+  try {
+    const [rows] = await pool.query(
+      "SELECT COUNT(*) AS adet FROM kullanicilar",
+    );
+    res.json({ ilkKurulum: rows[0].adet === 0 });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const yenile = async (req, res, next) => {
   try {
     const token = readRefreshCookie(req);
@@ -164,4 +175,4 @@ const cikisYap = (req, res) => {
   res.json({ mesaj: "Çıkış yapıldı" });
 };
 
-module.exports = { kayitOl, girisYap, yenile, cikisYap };
+module.exports = { kayitOl, girisYap, kurulumDurumu, yenile, cikisYap };

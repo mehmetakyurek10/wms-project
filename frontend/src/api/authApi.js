@@ -1,5 +1,6 @@
 import api from "./axios";
 
+export const kurulumDurumu = () => api.get("/auth/kurulum");
 export const girisYap = (email, sifre) =>
   api.post("/auth/giris", { email, sifre });
 export const kayitOl = (data) => api.post("/auth/kayit", data);

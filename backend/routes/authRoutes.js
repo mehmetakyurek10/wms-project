@@ -25,6 +25,7 @@ const yenilemeLimiti = rateLimit({
 });
 
 router.post("/kayit", kayitKorumasi, authController.kayitOl);
+router.get("/kurulum", authController.kurulumDurumu);
 router.post("/giris", girisLimiti, authController.girisYap);
 router.post("/yenile", yenilemeLimiti, authController.yenile);
 router.post("/cikis", authController.cikisYap);

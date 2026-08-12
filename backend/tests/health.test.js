@@ -35,3 +35,18 @@ test("ilk kullanici admin olur ve giris yapabilir", async () => {
     .set("Authorization", `Bearer ${token}`)
     .expect(200);
 });
+
+test("kurulum ucu ilk kullanici olusana kadar kurulum bildirir", async () => {
+  await resetDatabase();
+
+  const once = await request(app).get("/auth/kurulum").expect(200);
+  assert.equal(once.body.ilkKurulum, true, "bos veritabaninda kurulum gerekli");
+
+  await request(app)
+    .post("/auth/kayit")
+    .send({ ad: "Test Admin", email: "admin@test.local", sifre: "test1234" })
+    .expect(201);
+
+  const sonra = await request(app).get("/auth/kurulum").expect(200);
+  assert.equal(sonra.body.ilkKurulum, false, "kullanici varken kurulum bitmis");
+});
