@@ -110,28 +110,32 @@ const kaydet = async (req, res, next) => {
       }
     }
 
+    // Asagidaki iki dongu yalnizca hesap yapiyor; sorgular sonda toplu
+    // olarak calisiyor. Onceki halinde her kalem icin dort ayri sorgu
+    // gidiyordu ve kilitlenen satirlar bu sure boyunca acik kaliyordu.
     const sonuclar = [];
+    const birimGuncellemeleri = [];
+    const dokmeSatirlari = [];
+    const dokmeVaryantIdleri = [];
+    const hareketSatirlari = [];
+    const varyantFarklari = new Map();
 
-    const hareketYaz = async (varyantId, fark, etiket) => {
-      await connection.query(
-        `INSERT INTO stok_hareketleri
-         (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
-         VALUES (?, ?, ?, 'sayim', ?, ?, ?)`,
-        [
-          varyantId,
-          lokasyonId,
-          fark > 0 ? "giris" : "cikis",
-          Math.abs(fark),
-          `${aciklama || "Stok sayımı"}${etiket ? ` · ${etiket}` : ""}`,
-          req.kullanici.id,
-        ],
-      );
-
-      await connection.query(
-        "UPDATE urun_varyantlari SET miktar = miktar + ? WHERE id = ?",
-        [fark, varyantId],
+    const farkEkle = (varyantId, fark) => {
+      varyantFarklari.set(
+        varyantId,
+        yuvarla((varyantFarklari.get(varyantId) || 0) + fark),
       );
     };
+
+    const hareketSatiri = (varyantId, fark, etiket) => [
+      varyantId,
+      lokasyonId,
+      fark > 0 ? "giris" : "cikis",
+      "sayim",
+      Math.abs(fark),
+      `${aciklama || "Stok sayımı"}${etiket ? ` · ${etiket}` : ""}`,
+      req.kullanici.id,
+    ];
 
     for (const birimId of [...birimSayimlari.keys()].sort((a, b) => a - b)) {
       const birim = birimHaritasi.get(birimId);
@@ -141,17 +145,11 @@ const kaydet = async (req, res, next) => {
 
       if (fark === 0) continue;
 
-      await connection.query(
-        "UPDATE stok_birimleri SET miktar = ? WHERE id = ?",
-        [sayilan, birimId],
+      birimGuncellemeleri.push([birimId, sayilan]);
+      farkEkle(birim.varyant_id, fark);
+      hareketSatirlari.push(
+        hareketSatiri(birim.varyant_id, fark, birim.kod || "Dökme"),
       );
-
-      await connection.query(
-        "DELETE FROM stok_birimleri WHERE id = ? AND miktar = 0",
-        [birimId],
-      );
-
-      await hareketYaz(birim.varyant_id, fark, birim.kod || "Dökme");
 
       sonuclar.push({
         birim_id: birimId,
@@ -173,21 +171,16 @@ const kaydet = async (req, res, next) => {
 
       if (fark === 0) continue;
 
-      await connection.query(
-        `INSERT INTO stok_birimleri
-         (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
-         VALUES ('dokme', ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE miktar = ?`,
-        [varyantId, lokasyonId, sayilan, req.kullanici.id, sayilan],
-      );
-
-      await connection.query(
-        `DELETE FROM stok_birimleri
-         WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id = ? AND miktar = 0`,
-        [varyantId, lokasyonId],
-      );
-
-      await hareketYaz(varyantId, fark, "Dökme");
+      dokmeSatirlari.push([
+        "dokme",
+        varyantId,
+        lokasyonId,
+        sayilan,
+        req.kullanici.id,
+      ]);
+      dokmeVaryantIdleri.push(varyantId);
+      farkEkle(varyantId, fark);
+      hareketSatirlari.push(hareketSatiri(varyantId, fark, "Dökme"));
 
       sonuclar.push({
         varyant_id: varyantId,
@@ -196,6 +189,67 @@ const kaydet = async (req, res, next) => {
         sayilan,
         fark,
       });
+    }
+
+    if (birimGuncellemeleri.length) {
+      const birimIdleri = birimGuncellemeleri.map(([birimId]) => birimId);
+      const birimCase = birimGuncellemeleri
+        .map(() => "WHEN ? THEN ?")
+        .join(" ");
+      const birimDegerleri = birimGuncellemeleri.flat();
+
+      await connection.query(
+        `UPDATE stok_birimleri
+         SET miktar = CASE id ${birimCase} ELSE miktar END
+         WHERE id IN (?)`,
+        [...birimDegerleri, birimIdleri],
+      );
+
+      await connection.query(
+        "DELETE FROM stok_birimleri WHERE id IN (?) AND miktar = 0",
+        [birimIdleri],
+      );
+    }
+
+    if (dokmeSatirlari.length) {
+      await connection.query(
+        `INSERT INTO stok_birimleri
+         (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
+         VALUES ?
+         AS yeni
+         ON DUPLICATE KEY UPDATE miktar = yeni.miktar`,
+        [dokmeSatirlari],
+      );
+
+      await connection.query(
+        `DELETE FROM stok_birimleri
+         WHERE tip = 'dokme' AND lokasyon_id = ? AND varyant_id IN (?)
+           AND miktar = 0`,
+        [lokasyonId, dokmeVaryantIdleri],
+      );
+    }
+
+    if (varyantFarklari.size) {
+      const farkIdleri = [...varyantFarklari.keys()].sort((a, b) => a - b);
+      const farkCase = farkIdleri.map(() => "WHEN ? THEN ?").join(" ");
+      const farkDegerleri = [];
+      for (const varyantId of farkIdleri) {
+        farkDegerleri.push(varyantId, varyantFarklari.get(varyantId));
+      }
+
+      await connection.query(
+        `UPDATE urun_varyantlari
+         SET miktar = miktar + CASE id ${farkCase} ELSE 0 END
+         WHERE id IN (?)`,
+        [...farkDegerleri, farkIdleri],
+      );
+
+      await connection.query(
+        `INSERT INTO stok_hareketleri
+         (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
+         VALUES ?`,
+        [hareketSatirlari],
+      );
     }
 
     await connection.commit();

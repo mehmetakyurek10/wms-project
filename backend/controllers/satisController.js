@@ -363,50 +363,89 @@ const teslimEt = async (req, res, next) => {
       }
     }
 
+    // Asagidaki islemler birim sayisindan bagimsiz olarak sabit sayida
+    // sorgu kullaniyor. Onceki halinde her birim icin bes ayri sorgu
+    // calisiyordu; kilitlenen satirlar transaction boyunca acik kaldigi
+    // icin bu sure es zamanli teslimatlarin birbirini bekleme olasiligini
+    // artiriyordu. satinalmaController.teslimAl ayni kalibi kullaniyor.
+    const dususCase = rezervasyonlar.map(() => "WHEN ? THEN ?").join(" ");
+    const dususDegerleri = [];
+    for (const rez of rezervasyonlar) {
+      dususDegerleri.push(rez.birim_id, Number(rez.miktar));
+    }
+
+    const [dususSonuc] = await connection.query(
+      `UPDATE stok_birimleri
+       SET miktar = miktar - CASE id ${dususCase} ELSE 0 END
+       WHERE id IN (?)
+         AND miktar >= CASE id ${dususCase} ELSE 0 END`,
+      [...dususDegerleri, birimIdleri, ...dususDegerleri],
+    );
+
+    if (dususSonuc.affectedRows !== rezervasyonlar.length) {
+      await connection.rollback();
+      return res.status(409).json({
+        hata: "Stok bu sırada değişmiş, işlem geri alındı. Tekrar deneyin.",
+      });
+    }
+
+    await connection.query(
+      "DELETE FROM stok_rezervasyonlari WHERE siparis_id = ?",
+      [id],
+    );
+
+    await connection.query(
+      "DELETE FROM stok_birimleri WHERE id IN (?) AND miktar = 0",
+      [birimIdleri],
+    );
+
+    // Ayni varyanttan birden fazla birim teslim ediliyor olabilir; tek bir
+    // UPDATE yazabilmek icin dusumler varyant bazinda toplaniyor.
+    const varyantDusumleri = new Map();
+
     for (const rez of rezervasyonlar) {
       const birim = birimHaritasi.get(rez.birim_id);
-      const dusulecek = Number(rez.miktar);
-
-      const [dususSonuc] = await connection.query(
-        `UPDATE stok_birimleri SET miktar = miktar - ?
-         WHERE id = ? AND miktar >= ?`,
-        [dusulecek, birim.id, dusulecek],
-      );
-
-      if (dususSonuc.affectedRows === 0) {
-        await connection.rollback();
-        return res.status(409).json({
-          hata: "Stok bu sırada değişmiş, işlem geri alındı. Tekrar deneyin.",
-        });
-      }
-
-      await connection.query("DELETE FROM stok_rezervasyonlari WHERE id = ?", [
-        rez.id,
-      ]);
-
-      await connection.query(
-        "DELETE FROM stok_birimleri WHERE id = ? AND miktar = 0",
-        [birim.id],
-      );
-
-      await connection.query(
-        "UPDATE urun_varyantlari SET miktar = miktar - ? WHERE id = ?",
-        [dusulecek, birim.varyant_id],
-      );
-
-      await connection.query(
-        `INSERT INTO stok_hareketleri
-         (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
-         VALUES (?, ?, 'cikis', 'satis', ?, ?, ?)`,
-        [
-          birim.varyant_id,
-          birim.lokasyon_id,
-          dusulecek,
-          `Satış siparişi #${id} teslim edildi${birim.kod ? ` · ${birim.kod}` : ""}`,
-          req.kullanici.id,
-        ],
+      varyantDusumleri.set(
+        birim.varyant_id,
+        yuvarla(
+          (varyantDusumleri.get(birim.varyant_id) || 0) + Number(rez.miktar),
+        ),
       );
     }
+
+    const varyantIdleri = [...varyantDusumleri.keys()].sort((a, b) => a - b);
+    const varyantCase = varyantIdleri.map(() => "WHEN ? THEN ?").join(" ");
+    const varyantDegerleri = [];
+    for (const varyantId of varyantIdleri) {
+      varyantDegerleri.push(varyantId, varyantDusumleri.get(varyantId));
+    }
+
+    await connection.query(
+      `UPDATE urun_varyantlari
+       SET miktar = miktar - CASE id ${varyantCase} ELSE 0 END
+       WHERE id IN (?)`,
+      [...varyantDegerleri, varyantIdleri],
+    );
+
+    const hareketSatirlari = rezervasyonlar.map((rez) => {
+      const birim = birimHaritasi.get(rez.birim_id);
+      return [
+        birim.varyant_id,
+        birim.lokasyon_id,
+        "cikis",
+        "satis",
+        Number(rez.miktar),
+        `Satış siparişi #${id} teslim edildi${birim.kod ? ` · ${birim.kod}` : ""}`,
+        req.kullanici.id,
+      ];
+    });
+
+    await connection.query(
+      `INSERT INTO stok_hareketleri
+       (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
+       VALUES ?`,
+      [hareketSatirlari],
+    );
 
     const [durumSonuc] = await connection.query(
       `UPDATE satis_siparisleri

@@ -1,63 +1,66 @@
 # WMS — Depo Yönetim Sistemi
 
-Zeytin toptancılığı için geliştirilmiş depo yönetim sistemi. Stok takibi, palet yönetimi, satınalma ve satış siparişleri, lokasyon bazlı depo haritası ve raporlama içerir.
+Zeytin toptancılığı için geliştirilmiş depo yönetim sistemi. Stok takibi, palet yönetimi, satınalma ve satış siparişleri, pazar seferleri, lokasyon bazlı depo haritası ve raporlama içerir.
 
-**Yığın:** Express 5 + MySQL 8 (backend) · React 19 + Vite (frontend)
+**Yığın:** Express 5 + MySQL 8 (backend) · React 19 + Vite (frontend) · Docker
 
 ---
 
 ## Kurulum
 
-### Gereksinimler
+İki yol var. Sistemi çalıştırmak istiyorsan Docker, üzerinde geliştirme yapacaksan yerel kurulum.
 
-- Node.js 20.6 veya üstü (`--env-file` desteği için)
-- MySQL 8.0.19 veya üstü
+### Docker ile (önerilen)
 
-### 1. Depoyu klonla
+Tek gereksinim Docker Desktop. Node ve MySQL kurmana gerek yok.
 
 ```bash
 git clone <depo-adresi>
 cd wms-projesi
-```
-
-### 2. Veritabanını kur
-
-```bash
-mysql -u root -e "CREATE DATABASE wms;"
-mysql -u root wms < backend/db/schema.sql
-```
-
-Testleri de çalıştıracaksan ikinci bir veritabanı gerekiyor:
-
-```bash
-mysql -u root -e "CREATE DATABASE wms_test;"
-```
-
-### 3. Backend
-
-```bash
-cd backend
-npm install
 cp .env.example .env
 ```
 
-`.env` dosyasını doldur (aşağıdaki tabloya bakınız). `JWT_SECRET` için:
+`.env` dosyasını doldur. `JWT_SECRET` için:
 
 ```bash
 openssl rand -base64 48
 ```
 
-Sonra başlat:
+Sonra:
 
 ```bash
+docker compose up --build
+```
+
+Uygulama `http://localhost:8080` adresinde açılır. Veritabanı konteyner içinde kurulur, şema geçişleri açılışta otomatik uygulanır ve veriler adlandırılmış bir birimde kalıcı tutulur.
+
+İlk açılışta **kurulum ekranı** karşılar; oluşturduğun hesap yönetici olur.
+
+Durdurmak için `Ctrl+C`. Verileri de silmek istersen:
+
+```bash
+docker compose down -v
+```
+
+### Yerel kurulum (geliştirme)
+
+Gereksinimler: Node.js 20.6 veya üstü, MySQL 8.0.19 veya üstü.
+
+```bash
+mysql -u root -e "CREATE DATABASE wms; CREATE DATABASE wms_test;"
+```
+
+Backend:
+
+```bash
+cd backend
+npm install
+cp .env.example .env      # doldur, JWT_SECRET en az 32 karakter
+npm run migrate           # şemayı kurar
 npm run dev
 ```
 
-API `http://localhost:3000` üzerinde çalışır.
-
-### 4. Frontend
-
-Yeni bir terminalde:
+Frontend, yeni bir terminalde:
 
 ```bash
 cd frontend
@@ -66,19 +69,11 @@ cp .env.example .env
 npm run dev
 ```
 
-Arayüz `http://localhost:5173` üzerinde açılır.
+Arayüz `http://localhost:5173`, API `http://localhost:3000` üzerinde çalışır. Tarayıcıda kurulum ekranı karşılar.
 
-### 5. İlk kullanıcı
+### İlk kullanıcı
 
-Sistemde hiç kullanıcı yokken `POST /auth/kayit` ucu açıktır ve oluşturulan **ilk kullanıcı otomatik olarak `admin` rolü alır**. Arayüzdeki kayıt ekranından ya da doğrudan:
-
-```bash
-curl -X POST http://localhost:3000/auth/kayit \
-  -H "Content-Type: application/json" \
-  -d '{"ad":"Adınız","email":"siz@ornek.com","sifre":"guclu-bir-sifre"}'
-```
-
-İlk kullanıcı oluştuktan sonra bu uç kapanır; yeni kullanıcı ancak admin tarafından eklenebilir.
+Sistemde hiç kullanıcı yokken giriş ekranı kendini **kurulum formuna** dönüştürür ve oluşturulan ilk hesap otomatik olarak `admin` rolü alır. Bunun arkasında `POST /auth/kayit` ucunun yalnızca kullanıcı tablosu boşken herkese açık olması vardır; ilk kayıttan sonra uç kapanır ve yeni kullanıcı ancak yönetici tarafından eklenebilir.
 
 ---
 
@@ -109,6 +104,18 @@ Uygulama açılışta bu değişkenleri doğrular. Zorunlu biri eksikse ya da `J
 
 > **Uyarı:** `VITE_` önekli değişkenler build sırasında JS paketinin içine gömülür ve tarayıcıdan okunabilir. Buraya parola, anahtar veya gizli bilgi konmaz.
 
+### `.env` (proje kökü, yalnızca Docker)
+
+| Değişken | Açıklama |
+|---|---|
+| `DB_NAME` | Konteynerde oluşturulacak veritabanı adı |
+| `DB_ROOT_PASSWORD` | MySQL kök parolası — konteyner ağı dışına açılmaz |
+| `JWT_SECRET` | Token imzalama anahtarı, en az 32 karakter |
+| `APP_PORT` | Uygulamanın yayınlanacağı port (varsayılan 8080) |
+| `APP_ORIGIN` | Uygulamanın adresi, örn. `http://localhost:8080` |
+
+Docker kurulumunda `backend/.env` ve `frontend/.env` **okunmaz**; değişkenler doğrudan Compose tarafından verilir. Arayüzün API adresi de derleme sırasında `/api` olarak sabitlenir, çünkü her ikisi de aynı adres üzerinden sunulur.
+
 ---
 
 ## Komutlar
@@ -119,6 +126,7 @@ Uygulama açılışta bu değişkenleri doğrular. Zorunlu biri eksikse ya da `J
 |---|---|
 | `npm run dev` | nodemon ile geliştirme sunucusu |
 | `npm start` | production sunucusu |
+| `npm run migrate` | uygulanmamış şema geçişlerini çalıştırır |
 | `npm test` | testleri `wms_test` veritabanında çalıştırır |
 
 ### Frontend
@@ -129,6 +137,15 @@ Uygulama açılışta bu değişkenleri doğrular. Zorunlu biri eksikse ya da `J
 | `npm run build` | üretim derlemesi (`dist/`) |
 | `npm run preview` | derlenmiş sürümü önizle |
 | `npm run lint` | ESLint |
+
+### Docker
+
+| Komut | Ne yapar |
+|---|---|
+| `docker compose up --build` | imajları kurar ve üç konteyneri başlatır |
+| `docker compose logs api` | backend günlükleri |
+| `docker compose down` | konteynerleri durdurur, veriler kalır |
+| `docker compose down -v` | veritabanı birimini de siler |
 
 ---
 
@@ -149,7 +166,9 @@ Her çalıştırmada şema sıfırdan kurulur. Kapsam:
 - **Rezervasyon** — ayrılan stoğun fiziksel miktara dokunmadığı, kullanılabilirin üstünde rezervasyon yapılamadığı, rezerve malın çıkış/paletleme/transfer ile tüketilemediği, paletin bütün olarak taşınabildiği, siparişin iptalinin rezervasyonu serbest bıraktığı
 - **Oturum** — refresh çerezinin `HttpOnly` ve `Path=/auth` olarak basıldığı, refresh token'ın API isteğinde kabul edilmediği, yenilemede çerezin döndürüldüğü, çıkışın çerezi sildiği, şifre değişiminde eski token'ın düştüğü ama kullanıcının kendi oturumunun sürdüğü
 - **Yetkilendirme** — on altı ucun token'sız erişime kapalı olduğu, depo sorumlusunun admin uçlarına ve kullanıcı kaydına erişemediği, günlük işlem uçlarına erişebildiği
-- **Sistem sağlığı** — sağlık ucunun veritabanı bağlantısını doğru bildirdiği, ilk kullanıcının admin olduğu
+- **Pazar seferi** — sefer açılışının toplam stoğu değiştirmediği, açık sefer varken ikincisinin açılamadığı, rezerve malın pazara çıkamadığı, kapanışta dönenin mal kabule girip kalanın satış olarak düştüğü, sefer sonrası pazar konumunun boşaldığı, pazardaki mala sayım ve transfer yapılamadığı
+- **Girdi doğrulama** — arayüzün boş metin olarak gönderdiği alanların "gönderilmemiş" sayıldığı, hata iletilerinin değişmediği, şemada tanımsız alanların isteği reddettirmediği, satış fiyatının kayıtlı fiyattan çok sapmasının engellendiği
+- **Sistem sağlığı ve kurulum** — sağlık ucunun veritabanı bağlantısını doğru bildirdiği, ilk kullanıcının admin olduğu, kurulum ucunun kullanıcı oluşana kadar kurulum gerektiğini bildirdiği
 
 Arayüz testi yoktur; frontend elle doğrulanır.
 
@@ -158,7 +177,11 @@ Arayüz testi yoktur; frontend elle doğrulanır.
 ## Mimari
 
 ```
+docker-compose.yml       mysql + api + nginx
+.env                     yalnızca Docker kurulumu için
+
 backend/
+  Dockerfile             açılışta geçişleri uygular, sonra sunucuyu başlatır
   app.js                 Express uygulaması (port açmaz, testler bunu kullanır)
   index.js               sunucuyu başlatır, graceful shutdown
   config/
@@ -171,32 +194,49 @@ backend/
     kayitKorumasi.js     ilk kurulum dışında kayıt ucunu kapatır
   routes/                uç nokta tanımları
   controllers/           iş mantığı ve SQL
+  schemas/               uç bazında istek gövdesi şemaları (zod)
   utils/
+    validation.js        şema doğrulama ara katmanı ve ortak alan tanımları
     tokens.js            token üretimi ve refresh çerezi ayarları
     tarih.js             yerel tarih ve yarı açık aralık yardımcıları
     pagination.js        sayfalama
     reservations.js      rezerve miktar hesabı
-  db/schema.sql          veritabanı şeması (veri içermez)
+  db/
+    schema.sql           güncel şemanın anlık görüntüsü (testler bunu kurar)
+    migrate.js           uygulanmamış geçişleri sırayla çalıştırır
+    migrations/          numaralandırılmış şema değişiklikleri
   tests/                 test dosyaları ve yardımcıları
 
-frontend/src/
-  api/
-    axios.js             istek/yanıt ara katmanları, sessiz token yenileme
-    tokenStore.js        access token'ın bellekteki tek kopyası
-    *.js                 uç nokta sarmalayıcıları
-  context/
-    authContext.js       oturum context nesnesi
-    AuthProvider.jsx     açılışta oturumu çerezden geri kurar
-    ToastContext.jsx     bildirim sağlayıcısı
-  hooks/
-    useAuth.js           oturuma erişim
-    useFetch.js          veri çekme, ilk yükleme ve yeniden çekme ayrımı
-  pages/                 sayfa bileşenleri
-  components/            paylaşılan bileşenler
-  utils/                 tarih yardımcıları
-  styles/                konuya göre ayrılmış stil dosyaları
-  index.css              yalnızca stil dosyalarını sırayla içe aktarır
+frontend/
+  Dockerfile             çok aşamalı: derler, çıktıyı nginx'e taşır
+  nginx.conf             statik sunum + /api yönlendirmesi
+  src/
+    api/
+      axios.js           istek/yanıt ara katmanları, sessiz token yenileme
+      tokenStore.js      access token'ın bellekteki tek kopyası
+      *.js               uç nokta sarmalayıcıları
+    context/
+      authContext.js     oturum context nesnesi
+      AuthProvider.jsx   açılışta oturumu çerezden geri kurar
+      ToastContext.js    bildirim context nesnesi ve kancası
+      ToastSaglayici.jsx bildirim sağlayıcısı
+    hooks/
+      useAuth.js         oturuma erişim
+      useFetch.js        veri çekme, ilk yükleme ve yeniden çekme ayrımı
+    pages/               sayfa bileşenleri (tembel yüklenir)
+    components/
+      HataSiniri.jsx     paket yüklenemediğinde boş ekran yerine uyarı
+      *.jsx              paylaşılan bileşenler
+    utils/               tarih yardımcıları
+    styles/              konuya göre ayrılmış stil dosyaları
+    index.css            yalnızca stil dosyalarını sırayla içe aktarır
 ```
+
+### Dağıtım
+
+Docker kurulumunda üç konteyner çalışır. Nginx hem statik dosyaları sunar hem `/api` ile başlayan istekleri backend'e yönlendirir; böylece tarayıcı tek bir adres görür ve CORS ile çerez kısıtları devreye girmez. Refresh çerezinin yolu geçiş sırasında `/api/auth` olarak yeniden yazılır.
+
+Backend konteyneri açılışta önce şema geçişlerini uygular, sonra sunucuyu başlatır. Veritabanının hazır olmasını sağlık kontrolü bekler — konteynerin başlaması ile bağlantı kabul etmeye hazır olması aynı şey değildir.
 
 ### Yetkilendirme
 
@@ -241,6 +281,26 @@ Bunun pratik sonuçları:
 | Sayım | **Engellenmez** |
 
 Sayımın engellenmemesi bilinçli bir tercihtir. Sayımda rezerveden az mal bulunursa kayıt yine de kabul edilir; çelişki sistem sağlığı ekranında `karsilanamayan_rezervasyon` olarak görünür ve ilgili siparişin teslimatı `409` ile reddedilir. Sayımı reddetmek, gerçekte olan bir farkı sisteme hiç girilmemiş hale getirirdi. Doğru davranış çelişkiyi yutmak ya da engellemek değil, **görünür kılmaktır**.
+
+### Pazar seferi
+
+İşletme haftada dört gün pazara mal götürüyor, bir kısmını perakende satıyor, kalanı depoya döndürüyor. Bu akış satış siparişine benzemez: miktar önceden belli değildir ve satış ancak dönüş kaydedildiğinde ortaya çıkar.
+
+Her pazar bir **konum** olarak tanımlanır (`lokasyonlar.tip = 'pazar'`). Sefer açıldığında mal depodan pazar konumuna taşınır — **toplam stok değişmez**, yalnızca yeri değişir. Mal fiziksel olarak hâlâ işletmenin elindedir ve sistemde görünür kalması gerekir.
+
+Sefer kapatılırken dönen miktar girilir. Dönen kısım mal kabul alanına aktarılır, kalan fark gerçek bir çıkış olarak kaydedilir:
+
+```
+satılan = giden − dönen
+```
+
+Bu değer ayrı bir alanda tutulmaz, her sorgulamada hesaplanır. Aynı bilginin iki yerde durması, bir gün ayrışması demektir.
+
+Kapanıştan sonra pazar konumunun **boşalmış olması** gerekir; kalıntı varsa sistem sağlığı ekranı bunu bildirir. Pazardaki mala sayım ve transfer yapılamaz — oradaki miktar yalnızca sefer kapatılarak belirlenir.
+
+Aynı anda birden fazla seferin açık kalamaması uygulama koduna bırakılmamıştır: `pazar_seferleri` tablosunda üretilmiş bir kolon üzerindeki tekillik kısıtı bunu veritabanı düzeyinde zorunlu kılar.
+
+Hasılat, satılan miktar ile varyantın `perakende_fiyat` değerinden hesaplanır ve raporda **tahmini** olarak sunulur; pazarda pazarlık yapıldığı için kasadaki gerçek tutarla birebir örtüşmesi beklenmez.
 
 ### İşlem güvenliği
 
@@ -292,9 +352,10 @@ Her yenilemede refresh çerezi yenisiyle değiştirilir (rotation), böylece ele
 | **Sayım** | Lokasyon bazlı sayım; her palet ve dökme yığın ayrı satır |
 | **Satınalma** | Sipariş oluşturma, teslim alma, fiş |
 | **Satış** | Sipariş oluşturma, birim bazlı toplama, teslim, iptal, fiş |
+| **Pazar Seferleri** | Pazara götürülen malın sevki, dönüşün kaydı, sevk fişi, pazar bazlı yıl özeti |
 | **Lokasyonlar** | Lokasyon tanımları ve blok üreteci |
 | **Raporlar** | Tarih aralığına göre hareket özeti, çalışan ve kalem kırılımı |
-| **Sistem Sağlığı** | Stok sapması, negatif stok, pasif lokasyonda stok, kapasite aşımı kontrolleri |
+| **Sistem Sağlığı** | Stok sapması, negatif stok, karşılanamayan rezervasyon, pazarda kalıntı, pasif lokasyonda stok, kapasite aşımı |
 | **Kullanıcılar** | Kullanıcı yönetimi, rol atama, parola değiştirme |
 
 ### Roller
