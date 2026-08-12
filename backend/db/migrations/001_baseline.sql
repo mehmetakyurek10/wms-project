@@ -9,20 +9,18 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-DROP TABLE IF EXISTS `kategoriler`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `kategoriler` (
+CREATE TABLE IF NOT EXISTS `kategoriler` (
   `id` int NOT NULL AUTO_INCREMENT,
   `ad` varchar(50) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `ad` (`ad`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `kullanicilar`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `kullanicilar` (
+CREATE TABLE IF NOT EXISTS `kullanicilar` (
   `id` int NOT NULL AUTO_INCREMENT,
   `ad` varchar(100) NOT NULL,
   `email` varchar(100) NOT NULL,
@@ -35,10 +33,9 @@ CREATE TABLE `kullanicilar` (
   UNIQUE KEY `email` (`email`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `lokasyonlar`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `lokasyonlar` (
+CREATE TABLE IF NOT EXISTS `lokasyonlar` (
   `id` int NOT NULL AUTO_INCREMENT,
   `kod` varchar(20) NOT NULL,
   `ad` varchar(100) DEFAULT NULL,
@@ -58,10 +55,9 @@ CREATE TABLE `lokasyonlar` (
   UNIQUE KEY `konum` (`satir`,`kolon`,`kat`)
 ) ENGINE=InnoDB AUTO_INCREMENT=274 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `musteriler`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `musteriler` (
+CREATE TABLE IF NOT EXISTS `musteriler` (
   `id` int NOT NULL AUTO_INCREMENT,
   `ad` varchar(100) NOT NULL,
   `yetkili_kisi` varchar(100) DEFAULT NULL,
@@ -71,10 +67,9 @@ CREATE TABLE `musteriler` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pazar_sefer_kalemleri`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pazar_sefer_kalemleri` (
+CREATE TABLE IF NOT EXISTS `pazar_sefer_kalemleri` (
   `id` int NOT NULL AUTO_INCREMENT,
   `sefer_id` int NOT NULL,
   `varyant_id` int NOT NULL,
@@ -87,10 +82,9 @@ CREATE TABLE `pazar_sefer_kalemleri` (
   CONSTRAINT `fk_sefer_kalem_varyant` FOREIGN KEY (`varyant_id`) REFERENCES `urun_varyantlari` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `pazar_seferleri`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `pazar_seferleri` (
+CREATE TABLE IF NOT EXISTS `pazar_seferleri` (
   `id` int NOT NULL AUTO_INCREMENT,
   `fis_no` varchar(20) NOT NULL,
   `lokasyon_id` int NOT NULL,
@@ -110,10 +104,9 @@ CREATE TABLE `pazar_seferleri` (
   CONSTRAINT `fk_sefer_lokasyon` FOREIGN KEY (`lokasyon_id`) REFERENCES `lokasyonlar` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `satinalma_siparis_kalemleri`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `satinalma_siparis_kalemleri` (
+CREATE TABLE IF NOT EXISTS `satinalma_siparis_kalemleri` (
   `id` int NOT NULL AUTO_INCREMENT,
   `siparis_id` int NOT NULL,
   `miktar` decimal(10,2) NOT NULL,
@@ -126,10 +119,9 @@ CREATE TABLE `satinalma_siparis_kalemleri` (
   CONSTRAINT `satinalma_siparis_kalemleri_ibfk_1` FOREIGN KEY (`siparis_id`) REFERENCES `satinalma_siparisleri` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `satinalma_siparisleri`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `satinalma_siparisleri` (
+CREATE TABLE IF NOT EXISTS `satinalma_siparisleri` (
   `id` int NOT NULL AUTO_INCREMENT,
   `tedarikci_id` int NOT NULL,
   `durum` enum('beklemede','verildi','teslim_alindi','iptal') NOT NULL DEFAULT 'beklemede',
@@ -144,10 +136,9 @@ CREATE TABLE `satinalma_siparisleri` (
   CONSTRAINT `satinalma_siparisleri_ibfk_1` FOREIGN KEY (`tedarikci_id`) REFERENCES `tedarikciler` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `satis_siparis_kalemleri`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `satis_siparis_kalemleri` (
+CREATE TABLE IF NOT EXISTS `satis_siparis_kalemleri` (
   `id` int NOT NULL AUTO_INCREMENT,
   `siparis_id` int NOT NULL,
   `varyant_id` int NOT NULL,
@@ -160,10 +151,9 @@ CREATE TABLE `satis_siparis_kalemleri` (
   CONSTRAINT `satis_siparis_kalemleri_ibfk_2` FOREIGN KEY (`varyant_id`) REFERENCES `urun_varyantlari` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `satis_siparisleri`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `satis_siparisleri` (
+CREATE TABLE IF NOT EXISTS `satis_siparisleri` (
   `id` int NOT NULL AUTO_INCREMENT,
   `musteri_id` int NOT NULL,
   `durum` enum('beklemede','hazirlaniyor','teslim_edildi','iptal') NOT NULL DEFAULT 'beklemede',
@@ -178,10 +168,9 @@ CREATE TABLE `satis_siparisleri` (
   CONSTRAINT `satis_siparisleri_ibfk_2` FOREIGN KEY (`olusturan_kullanici_id`) REFERENCES `kullanicilar` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `stok_birimleri`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `stok_birimleri` (
+CREATE TABLE IF NOT EXISTS `stok_birimleri` (
   `id` int NOT NULL AUTO_INCREMENT,
   `tip` enum('palet','dokme') NOT NULL DEFAULT 'palet',
   `kod` varchar(30) DEFAULT NULL,
@@ -202,10 +191,9 @@ CREATE TABLE `stok_birimleri` (
   CONSTRAINT `fk_birim_varyant` FOREIGN KEY (`varyant_id`) REFERENCES `urun_varyantlari` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=32 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `stok_hareketleri`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `stok_hareketleri` (
+CREATE TABLE IF NOT EXISTS `stok_hareketleri` (
   `id` int NOT NULL AUTO_INCREMENT,
   `tip` enum('giris','cikis','duzeltme') NOT NULL,
   `miktar` decimal(10,2) NOT NULL,
@@ -224,10 +212,9 @@ CREATE TABLE `stok_hareketleri` (
   CONSTRAINT `fk_hareket_varyant` FOREIGN KEY (`varyant_id`) REFERENCES `urun_varyantlari` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=54 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `stok_rezervasyonlari`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `stok_rezervasyonlari` (
+CREATE TABLE IF NOT EXISTS `stok_rezervasyonlari` (
   `id` int NOT NULL AUTO_INCREMENT,
   `siparis_id` int NOT NULL,
   `birim_id` int NOT NULL,
@@ -243,10 +230,9 @@ CREATE TABLE `stok_rezervasyonlari` (
   CONSTRAINT `fk_rez_siparis` FOREIGN KEY (`siparis_id`) REFERENCES `satis_siparisleri` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `tedarikciler`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `tedarikciler` (
+CREATE TABLE IF NOT EXISTS `tedarikciler` (
   `id` int NOT NULL AUTO_INCREMENT,
   `ad` varchar(100) NOT NULL,
   `yetkili_kisi` varchar(100) DEFAULT NULL,
@@ -256,10 +242,9 @@ CREATE TABLE `tedarikciler` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `transferler`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `transferler` (
+CREATE TABLE IF NOT EXISTS `transferler` (
   `id` int NOT NULL AUTO_INCREMENT,
   `varyant_id` int NOT NULL,
   `kaynak_lokasyon_id` int NOT NULL,
@@ -279,10 +264,9 @@ CREATE TABLE `transferler` (
   CONSTRAINT `transferler_ibfk_4` FOREIGN KEY (`olusturan_kullanici_id`) REFERENCES `kullanicilar` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `urun_varyantlari`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `urun_varyantlari` (
+CREATE TABLE IF NOT EXISTS `urun_varyantlari` (
   `id` int NOT NULL AUTO_INCREMENT,
   `urun_id` int NOT NULL,
   `boy` varchar(20) NOT NULL,
@@ -301,10 +285,9 @@ CREATE TABLE `urun_varyantlari` (
   CONSTRAINT `urun_varyantlari_ibfk_1` FOREIGN KEY (`urun_id`) REFERENCES `urunler` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-DROP TABLE IF EXISTS `urunler`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!50503 SET character_set_client = utf8mb4 */;
-CREATE TABLE `urunler` (
+CREATE TABLE IF NOT EXISTS `urunler` (
   `id` int NOT NULL AUTO_INCREMENT,
   `ad` varchar(100) NOT NULL,
   `olusturulma_tarihi` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
