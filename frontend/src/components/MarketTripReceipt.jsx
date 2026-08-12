@@ -1,4 +1,5 @@
 import { Printer, MessageCircle, X } from "lucide-react";
+import Modal from "./Modal";
 
 function paraFormat(sayi) {
   return Number(sayi).toLocaleString("tr-TR", {
@@ -16,7 +17,7 @@ function tarihYaz(metin) {
 }
 
 function MarketTripReceipt({ acik, sefer, kalemler, kapat }) {
-  if (!acik || !sefer) return null;
+  if (!sefer) return null;
 
   const tamamlandi = sefer.durum === "tamamlandi";
   const pazarAdi = sefer.pazar_adi || sefer.pazar_kod;
@@ -43,7 +44,7 @@ function MarketTripReceipt({ acik, sefer, kalemler, kapat }) {
     const urunler = satirlar.map((s) =>
       tamamlandi
         ? `- ${s.urun_adi} ${s.boy}\n  Giden ${s.giden.toFixed(0)} · Dönen ${s.donen.toFixed(0)} · Satılan ${s.satilan.toFixed(0)}`
-        : `- ${s.urun_adi} ${s.boy} ${s.ambalaj_kg}kg ${s.ambalaj_tipi}\n  ${s.giden.toFixed(0)} adet`,
+        : `- ${s.urun_adi} ${s.boy} ${Number(s.ambalaj_kg)}kg ${s.ambalaj_tipi}\n  ${s.giden.toFixed(0)} adet`,
     );
 
     return [
@@ -67,85 +68,88 @@ function MarketTripReceipt({ acik, sefer, kalemler, kapat }) {
   };
 
   return (
-    <div className="modal-perde" onClick={kapat}>
-      <div className="fis" onClick={(e) => e.stopPropagation()}>
-        <div className="fis-baslik">
-          <div>
-            <h3>PAZAR SEVK FİŞİ</h3>
-            <span className="fis-no">{sefer.fis_no}</span>
-          </div>
-          <button className="ikincil ikon-btn fis-kapat" onClick={kapat}>
-            <X size={16} />
-          </button>
+    <Modal
+      acik={acik}
+      kapat={kapat}
+      baslik={`Pazar sevk fişi ${sefer.fis_no}`}
+      temelSinif="fis"
+    >
+      <div className="fis-baslik">
+        <div>
+          <h3>PAZAR SEVK FİŞİ</h3>
+          <span className="fis-no">{sefer.fis_no}</span>
         </div>
+        <button className="ikincil ikon-btn fis-kapat" onClick={kapat}>
+          <X size={16} />
+        </button>
+      </div>
 
-        <div className="fis-bilgi">
-          <div>
-            <span>Pazar</span>
-            <strong>{pazarAdi}</strong>
-          </div>
-          <div>
-            <span>Çıkış</span>
-            <strong>{tarihYaz(sefer.cikis_tarihi)}</strong>
-          </div>
-          <div>
-            <span>Durum</span>
-            <strong>{tamamlandi ? "Tamamlandı" : "Yolda"}</strong>
-          </div>
+      <div className="fis-bilgi">
+        <div>
+          <span>Pazar</span>
+          <strong>{pazarAdi}</strong>
         </div>
-
-        <table className="fis-tablo">
-          <thead>
-            <tr>
-              <th>Ürün</th>
-              <th>Giden</th>
-              {tamamlandi && <th>Dönen</th>}
-              {tamamlandi && <th>Satılan</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {satirlar.map((s) => (
-              <tr key={s.varyant_id}>
-                <td>
-                  {s.urun_adi}
-                  <div className="fis-alt-bilgi">
-                    {s.boy} · {Number(s.ambalaj_kg)}kg {s.ambalaj_tipi}
-                  </div>
-                </td>
-                <td>{s.giden.toFixed(0)}</td>
-                {tamamlandi && <td>{s.donen.toFixed(0)}</td>}
-                {tamamlandi && <td>{s.satilan.toFixed(0)}</td>}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="fis-toplam">
-          <span>{tamamlandi ? "Satılan toplam" : "Götürülen toplam"}</span>
-          <strong>
-            {tamamlandi
-              ? `${toplamSatilan.toFixed(0)} adet`
-              : `${toplamGiden.toFixed(0)} adet`}
-          </strong>
+        <div>
+          <span>Çıkış</span>
+          <strong>{tarihYaz(sefer.cikis_tarihi)}</strong>
         </div>
-
-        {tamamlandi && (
-          <div className="fis-toplam">
-            <span>Tahmini hasılat</span>
-            <strong>{paraFormat(toplamHasilat)} ₺</strong>
-          </div>
-        )}
-
-        <div className="fis-aksiyon">
-          <button className="ikincil" onClick={() => window.print()}>
-            <Printer size={15} /> Yazdır
-          </button>
-          <button onClick={whatsappGonder}>
-            <MessageCircle size={15} /> WhatsApp ile Gönder
-          </button>
+        <div>
+          <span>Durum</span>
+          <strong>{tamamlandi ? "Tamamlandı" : "Yolda"}</strong>
         </div>
       </div>
-    </div>
+
+      <table className="fis-tablo">
+        <thead>
+          <tr>
+            <th>Ürün</th>
+            <th>Giden</th>
+            {tamamlandi && <th>Dönen</th>}
+            {tamamlandi && <th>Satılan</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {satirlar.map((s) => (
+            <tr key={s.varyant_id}>
+              <td>
+                {s.urun_adi}
+                <div className="fis-alt-bilgi">
+                  {s.boy} · {Number(s.ambalaj_kg)}kg {s.ambalaj_tipi}
+                </div>
+              </td>
+              <td>{s.giden.toFixed(0)}</td>
+              {tamamlandi && <td>{s.donen.toFixed(0)}</td>}
+              {tamamlandi && <td>{s.satilan.toFixed(0)}</td>}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      <div className="fis-toplam">
+        <span>{tamamlandi ? "Satılan toplam" : "Götürülen toplam"}</span>
+        <strong>
+          {tamamlandi
+            ? `${toplamSatilan.toFixed(0)} adet`
+            : `${toplamGiden.toFixed(0)} adet`}
+        </strong>
+      </div>
+
+      {tamamlandi && (
+        <div className="fis-toplam">
+          <span>Tahmini hasılat</span>
+          <strong>{paraFormat(toplamHasilat)} ₺</strong>
+        </div>
+      )}
+
+      <div className="fis-aksiyon">
+        <button className="ikincil" onClick={() => window.print()}>
+          <Printer size={15} /> Yazdır
+        </button>
+        <button onClick={whatsappGonder}>
+          <MessageCircle size={15} /> WhatsApp ile Gönder
+        </button>
+      </div>
+    </Modal>
   );
 }
 

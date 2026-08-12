@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
 import { PackageSearch } from "lucide-react";
 import { getStockUnits } from "../api/stockUnitApi";
+import Modal from "./Modal";
 import { useToast } from "../context/ToastContext";
 
 const yuvarla = (sayi) => Math.round(sayi * 100) / 100;
 
-function AllocationModal({ acik, kalemler, kapat, tamamlandi, gonderiliyor }) {
+function AllocationModal({
+  acik,
+  kalemler = [],
+  kapat,
+  tamamlandi,
+  gonderiliyor,
+}) {
   const bildir = useToast();
   const [birimler, setBirimler] = useState({});
   const [secimler, setSecimler] = useState({});
@@ -46,8 +53,6 @@ function AllocationModal({ acik, kalemler, kapat, tamamlandi, gonderiliyor }) {
     // listesi degismiyor.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [acik, bildir]);
-
-  if (!acik) return null;
 
   const gruplar = [];
   const gorulenler = new Set();
@@ -100,132 +105,133 @@ function AllocationModal({ acik, kalemler, kapat, tamamlandi, gonderiliyor }) {
   };
 
   return (
-    <div className="modal-perde" onClick={kapat}>
-      <div
-        className="modal transfer-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-ikon modal-ikon-notr">
-          <PackageSearch size={22} />
-        </div>
-        <h3>Stok Ayır</h3>
-        <p>
-          Sipariş oluşturulurken bu mal depoda ayrılacak ve başka siparişlere
-          satılamayacak.
-        </p>
-
-        {yukleniyor ? (
-          <div className="yukleniyor-kutu">
-            <div className="spinner" />
-          </div>
-        ) : (
-          <form onSubmit={kaydet} className="transfer-form">
-            {gruplar.map((grup) => {
-              const grupBirimleri = birimler[grup.varyant_id] || [];
-              const secilen = secilenToplam(grup.varyant_id);
-              const kalan = yuvarla(grup.gereken - secilen);
-              const tamam = kalan === 0;
-
-              const toplamKullanilabilir = yuvarla(
-                grupBirimleri.reduce((t, b) => t + Number(b.kullanilabilir), 0),
-              );
-
-              return (
-                <div key={grup.varyant_id} className="kalem-blogu">
-                  <h4 className="bolum-basligi">
-                    {grup.urun_adi} · {grup.boy} · {Number(grup.ambalaj_kg)}kg{" "}
-                    {grup.ambalaj_tipi}
-                  </h4>
-
-                  <span className={tamam ? "kucuk-not" : "hata-metni"}>
-                    Gereken {grup.gereken.toFixed(0)} · Ayrılan{" "}
-                    {secilen.toFixed(0)}
-                    {!tamam &&
-                      (kalan > 0
-                        ? ` · ${kalan.toFixed(0)} adet eksik`
-                        : ` · ${Math.abs(kalan).toFixed(0)} adet fazla`)}
-                  </span>
-
-                  {toplamKullanilabilir < grup.gereken && (
-                    <div className="hata-metni">
-                      Depoda yalnızca {toplamKullanilabilir.toFixed(0)} adet
-                      kullanılabilir stok var. Sipariş miktarını düşürmelisiniz.
-                    </div>
-                  )}
-
-                  {grupBirimleri.length === 0 ? (
-                    <div className="bos-durum">
-                      Bu üründen kullanılabilir stok yok.
-                    </div>
-                  ) : (
-                    <table className="ic-tablo">
-                      <thead>
-                        <tr>
-                          <th>Birim</th>
-                          <th>Lokasyon</th>
-                          <th>Kullanılabilir</th>
-                          <th>Ayrılacak</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {grupBirimleri.map((birim) => (
-                          <tr key={birim.id}>
-                            <td>
-                              <span
-                                className={`etiket etiket-${
-                                  birim.tip === "palet" ? "mavi" : "gri"
-                                }`}
-                              >
-                                {birim.tip === "palet" ? birim.kod : "Dökme"}
-                              </span>
-                            </td>
-                            <td>{birim.lokasyon_kod}</td>
-                            <td>
-                              {Number(birim.kullanilabilir).toFixed(0)}
-                              {Number(birim.rezerve) > 0 && (
-                                <span className="kucuk-not">
-                                  {" "}
-                                  ({Number(birim.miktar).toFixed(0)} mevcut)
-                                </span>
-                              )}
-                            </td>
-                            <td>
-                              <input
-                                type="number"
-                                step="0.01"
-                                min="0"
-                                max={Number(birim.kullanilabilir)}
-                                placeholder="0"
-                                value={secimler[birim.id] ?? ""}
-                                onChange={(e) =>
-                                  setSecimler((onceki) => ({
-                                    ...onceki,
-                                    [birim.id]: e.target.value,
-                                  }))
-                                }
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              );
-            })}
-
-            <div className="modal-aksiyon">
-              <button type="button" className="ikincil" onClick={kapat}>
-                Vazgeç
-              </button>
-              <button type="submit" disabled={gonderiliyor || !hepsiTamam}>
-                {gonderiliyor ? "Oluşturuluyor..." : "Siparişi Oluştur"}
-              </button>
-            </div>
-          </form>
-        )}
+    <Modal
+      acik={acik}
+      kapat={kapat}
+      baslik="Stok ayırma"
+      sinif="transfer-modal"
+      kirli={Object.values(secimler).some((s) => s !== "" && s !== undefined)}
+    >
+      <div className="modal-ikon modal-ikon-notr">
+        <PackageSearch size={22} />
       </div>
-    </div>
+      <h3>Stok Ayır</h3>
+      <p>
+        Sipariş oluşturulurken bu mal depoda ayrılacak ve başka siparişlere
+        satılamayacak.
+      </p>
+
+      {yukleniyor ? (
+        <div className="yukleniyor-kutu">
+          <div className="spinner" />
+        </div>
+      ) : (
+        <form onSubmit={kaydet} className="transfer-form">
+          {gruplar.map((grup) => {
+            const grupBirimleri = birimler[grup.varyant_id] || [];
+            const secilen = secilenToplam(grup.varyant_id);
+            const kalan = yuvarla(grup.gereken - secilen);
+            const tamam = kalan === 0;
+
+            const toplamKullanilabilir = yuvarla(
+              grupBirimleri.reduce((t, b) => t + Number(b.kullanilabilir), 0),
+            );
+
+            return (
+              <div key={grup.varyant_id} className="kalem-blogu">
+                <h4 className="bolum-basligi">
+                  {grup.urun_adi} · {grup.boy} · {Number(grup.ambalaj_kg)}kg{" "}
+                  {grup.ambalaj_tipi}
+                </h4>
+
+                <span className={tamam ? "kucuk-not" : "hata-metni"}>
+                  Gereken {grup.gereken.toFixed(0)} · Ayrılan{" "}
+                  {secilen.toFixed(0)}
+                  {!tamam &&
+                    (kalan > 0
+                      ? ` · ${kalan.toFixed(0)} adet eksik`
+                      : ` · ${Math.abs(kalan).toFixed(0)} adet fazla`)}
+                </span>
+
+                {toplamKullanilabilir < grup.gereken && (
+                  <div className="hata-metni">
+                    Depoda yalnızca {toplamKullanilabilir.toFixed(0)} adet
+                    kullanılabilir stok var. Sipariş miktarını düşürmelisiniz.
+                  </div>
+                )}
+
+                {grupBirimleri.length === 0 ? (
+                  <div className="bos-durum">
+                    Bu üründen kullanılabilir stok yok.
+                  </div>
+                ) : (
+                  <table className="ic-tablo">
+                    <thead>
+                      <tr>
+                        <th>Birim</th>
+                        <th>Lokasyon</th>
+                        <th>Kullanılabilir</th>
+                        <th>Ayrılacak</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {grupBirimleri.map((birim) => (
+                        <tr key={birim.id}>
+                          <td>
+                            <span
+                              className={`etiket etiket-${
+                                birim.tip === "palet" ? "mavi" : "gri"
+                              }`}
+                            >
+                              {birim.tip === "palet" ? birim.kod : "Dökme"}
+                            </span>
+                          </td>
+                          <td>{birim.lokasyon_kod}</td>
+                          <td>
+                            {Number(birim.kullanilabilir).toFixed(0)}
+                            {Number(birim.rezerve) > 0 && (
+                              <span className="kucuk-not">
+                                {" "}
+                                ({Number(birim.miktar).toFixed(0)} mevcut)
+                              </span>
+                            )}
+                          </td>
+                          <td>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              max={Number(birim.kullanilabilir)}
+                              placeholder="0"
+                              value={secimler[birim.id] ?? ""}
+                              onChange={(e) =>
+                                setSecimler((onceki) => ({
+                                  ...onceki,
+                                  [birim.id]: e.target.value,
+                                }))
+                              }
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            );
+          })}
+
+          <div className="modal-aksiyon">
+            <button type="button" className="ikincil" onClick={kapat}>
+              Vazgeç
+            </button>
+            <button type="submit" disabled={gonderiliyor || !hepsiTamam}>
+              {gonderiliyor ? "Oluşturuluyor..." : "Siparişi Oluştur"}
+            </button>
+          </div>
+        </form>
+      )}
+    </Modal>
   );
 }
 

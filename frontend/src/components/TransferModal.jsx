@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { transferYap } from "../api/transferApi";
 import LokasyonSecici from "./LokasyonSecici";
+import Modal from "./Modal";
 import { useToast } from "../context/ToastContext";
 
 function TransferModal({
@@ -18,7 +19,7 @@ function TransferModal({
   const [aciklama, setAciklama] = useState("");
   const [gonderiliyor, setGonderiliyor] = useState(false);
 
-  if (!acik || !stokSatiri) return null;
+  if (!stokSatiri || !kaynak) return null;
 
   const palet = stokSatiri.birim_tipi === "palet";
   const mevcut = Number(stokSatiri.miktar);
@@ -48,80 +49,81 @@ function TransferModal({
   };
 
   return (
-    <div className="modal-perde" onClick={kapat}>
-      <div
-        className="modal transfer-modal"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h3>{palet ? "Palet Taşı" : "Stok Transferi"}</h3>
+    <Modal
+      acik={acik}
+      kapat={kapat}
+      baslik={palet ? "Palet Taşı" : "Stok Transferi"}
+      sinif="transfer-modal"
+      kirli={hedefId !== "" || miktar !== "" || aciklama !== ""}
+    >
+      <h3>{palet ? "Palet Taşı" : "Stok Transferi"}</h3>
 
-        <div className="transfer-ozet">
-          <div>
-            <span className="kucuk-not">
-              {palet ? `Palet ${stokSatiri.birim_kodu}` : "Ürün"}
-            </span>
-            <strong>
-              {stokSatiri.urun_adi} · {stokSatiri.boy} ·{" "}
-              {Number(stokSatiri.ambalaj_kg)}kg {stokSatiri.ambalaj_tipi}
-            </strong>
-          </div>
-          <div className="transfer-yon">
-            <span>{kaynak.kod}</span>
-            <ArrowRight size={16} />
-            <span>{secilenHedef ? secilenHedef.kod : "?"}</span>
-          </div>
+      <div className="transfer-ozet">
+        <div>
+          <span className="kucuk-not">
+            {palet ? `Palet ${stokSatiri.birim_kodu}` : "Ürün"}
+          </span>
+          <strong>
+            {stokSatiri.urun_adi} · {stokSatiri.boy} ·{" "}
+            {Number(stokSatiri.ambalaj_kg)}kg {stokSatiri.ambalaj_tipi}
+          </strong>
+        </div>
+        <div className="transfer-yon">
+          <span>{kaynak.kod}</span>
+          <ArrowRight size={16} />
+          <span>{secilenHedef ? secilenHedef.kod : "?"}</span>
+        </div>
+      </div>
+
+      <form onSubmit={kaydet} className="transfer-form">
+        <div className="form-alan">
+          <label>Hedef lokasyon</label>
+          <LokasyonSecici
+            deger={hedefId}
+            degisti={(e) => setHedefId(e.target.value)}
+            lokasyonlar={hedefler}
+            zorunlu
+          />
         </div>
 
-        <form onSubmit={kaydet} className="transfer-form">
+        {palet ? (
+          <p className="kucuk-not">
+            Palet bütün olarak taşınacak · {mevcut.toFixed(0)} adet
+          </p>
+        ) : (
           <div className="form-alan">
-            <label>Hedef lokasyon</label>
-            <LokasyonSecici
-              deger={hedefId}
-              degisti={(e) => setHedefId(e.target.value)}
-              lokasyonlar={hedefler}
-              zorunlu
-            />
-          </div>
-
-          {palet ? (
-            <p className="kucuk-not">
-              Palet bütün olarak taşınacak · {mevcut.toFixed(0)} adet
-            </p>
-          ) : (
-            <div className="form-alan">
-              <label>Miktar (adet) · mevcut {mevcut.toFixed(0)}</label>
-              <input
-                type="number"
-                step="0.01"
-                min="0.01"
-                max={mevcut}
-                value={miktar}
-                onChange={(e) => setMiktar(e.target.value)}
-                required
-              />
-            </div>
-          )}
-
-          <div className="form-alan">
-            <label>Açıklama</label>
+            <label>Miktar (adet) · mevcut {mevcut.toFixed(0)}</label>
             <input
-              placeholder="İsteğe bağlı"
-              value={aciklama}
-              onChange={(e) => setAciklama(e.target.value)}
+              type="number"
+              step="0.01"
+              min="0.01"
+              max={mevcut}
+              value={miktar}
+              onChange={(e) => setMiktar(e.target.value)}
+              required
             />
           </div>
+        )}
 
-          <div className="modal-aksiyon">
-            <button type="button" className="ikincil" onClick={kapat}>
-              Vazgeç
-            </button>
-            <button type="submit" disabled={gonderiliyor}>
-              {gonderiliyor ? "Taşınıyor..." : "Taşı"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+        <div className="form-alan">
+          <label>Açıklama</label>
+          <input
+            placeholder="İsteğe bağlı"
+            value={aciklama}
+            onChange={(e) => setAciklama(e.target.value)}
+          />
+        </div>
+
+        <div className="modal-aksiyon">
+          <button type="button" className="ikincil" onClick={kapat}>
+            Vazgeç
+          </button>
+          <button type="submit" disabled={gonderiliyor}>
+            {gonderiliyor ? "Taşınıyor..." : "Taşı"}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
