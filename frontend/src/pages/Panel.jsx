@@ -110,7 +110,7 @@ function Panel() {
       baslik: "Düşük Stok",
       deger: veri.dusukStok,
       ikon: <AlertTriangle size={22} />,
-      link: "/varyantlar",
+      link: "/varyantlar?sadece_dusuk=1",
       renk: "kirmizi",
       nabiz: veri.dusukStok > 0,
     },

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import {
   varyantlariGetir,
@@ -13,22 +14,22 @@ import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
 
 const SAYFA_BOYUTU = 20;
-
-const BOS_FILTRE = {
-  kategori_id: "",
-  urun_id: "",
-  aktif: "",
-  sadece_dusuk: "",
-};
+const FILTRE_ALANLARI = ["kategori_id", "urun_id", "aktif", "sadece_dusuk"];
 
 function Varyantlar() {
   const bildir = useToast();
+  const [parametreler, setParametreler] = useSearchParams();
 
-  const [arama, setArama] = useState("");
-  const [aranan, setAranan] = useState("");
-  const [filtre, setFiltre] = useState(BOS_FILTRE);
-  const [sayfa, setSayfa] = useState(1);
+  // Filtreler ve sayfa numarasi adres cubugunda tutuluyor: sayfa
+  // yenilendiginde kayboluyorlardi ve panelden filtreli baglanti
+  // verilemiyordu.
+  const aranan = parametreler.get("ara") || "";
+  const sayfa = Number(parametreler.get("sayfa")) || 1;
+  const filtre = Object.fromEntries(
+    FILTRE_ALANLARI.map((alan) => [alan, parametreler.get(alan) || ""]),
+  );
 
+  const [arama, setArama] = useState(aranan);
   const [silinecek, setSilinecek] = useState(null);
   const [duzenlenenId, setDuzenlenenId] = useState(null);
   const [duzenlemeForm, setDuzenlemeForm] = useState({});
@@ -46,6 +47,26 @@ function Varyantlar() {
     perakende_fiyat: 0,
   });
 
+  const parametreGuncelle = (yeniler) => {
+    const sonraki = new URLSearchParams(parametreler);
+
+    for (const [anahtar, deger] of Object.entries(yeniler)) {
+      if (deger === "" || deger === undefined || deger === null) {
+        sonraki.delete(anahtar);
+      } else {
+        sonraki.set(anahtar, String(deger));
+      }
+    }
+
+    // replace kullaniliyor: her filtre degisikligi tarayici gecmisine
+    // ayri bir kayit birakirsa geri tusu kullanilamaz hale gelir.
+    setParametreler(sonraki, { replace: true });
+  };
+
+  // URLSearchParams her cizimde yeni nesne uretir; bagimliliga metin
+  // halini vermek gereksiz yeniden cekmeyi onluyor.
+  const sorguAnahtari = parametreler.toString();
+
   const {
     data: varyantlar,
     total: toplam,
@@ -55,12 +76,15 @@ function Varyantlar() {
   } = useFetch(
     () =>
       varyantlariGetir({
-        ...filtre,
+        kategori_id: filtre.kategori_id || undefined,
+        urun_id: filtre.urun_id || undefined,
+        aktif: filtre.aktif || undefined,
+        sadece_dusuk: filtre.sadece_dusuk || undefined,
         ara: aranan || undefined,
         sayfa,
         limit: SAYFA_BOYUTU,
       }),
-    [aranan, filtre, sayfa],
+    [sorguAnahtari],
     { initial: [], errorMessage: "Varyantlar yüklenemedi" },
   );
 
@@ -76,25 +100,27 @@ function Varyantlar() {
 
   const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
   const filtreVar =
-    aranan !== "" || Object.values(filtre).some((deger) => deger !== "");
+    aranan !== "" || FILTRE_ALANLARI.some((alan) => filtre[alan] !== "");
 
   useEffect(() => {
     const zamanlayici = setTimeout(() => {
-      setAranan(arama);
-      setSayfa(1);
+      if (arama !== aranan) {
+        parametreGuncelle({ ara: arama, sayfa: "" });
+      }
     }, 400);
     return () => clearTimeout(zamanlayici);
+    // Yalnizca kullanicinin yazdigi metni izliyoruz; digerleri her cizimde
+    // yeniden uretildigi icin bagimliliga eklenirse dongu olusur.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [arama]);
 
   const filtreDegisti = (e) => {
-    setFiltre({ ...filtre, [e.target.name]: e.target.value });
-    setSayfa(1);
+    parametreGuncelle({ [e.target.name]: e.target.value, sayfa: "" });
   };
 
   const filtreleriTemizle = () => {
-    setFiltre(BOS_FILTRE);
     setArama("");
-    setSayfa(1);
+    setParametreler(new URLSearchParams(), { replace: true });
   };
 
   const ambalajKg = Number(form.ambalaj_kg) || 1;
@@ -509,7 +535,7 @@ function Varyantlar() {
           {toplam > SAYFA_BOYUTU && (
             <div className="sayfalama">
               <button
-                onClick={() => setSayfa(sayfa - 1)}
+                onClick={() => parametreGuncelle({ sayfa: sayfa - 1 })}
                 disabled={sayfa === 1}
               >
                 Önceki
@@ -518,7 +544,7 @@ function Varyantlar() {
                 Sayfa {sayfa} / {toplamSayfa} · Toplam {toplam} kayıt
               </span>
               <button
-                onClick={() => setSayfa(sayfa + 1)}
+                onClick={() => parametreGuncelle({ sayfa: sayfa + 1 })}
                 disabled={sayfa >= toplamSayfa}
               >
                 Sonraki

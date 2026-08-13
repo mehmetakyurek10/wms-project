@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { X } from "lucide-react";
 import {
   stokHareketleriniGetir,
@@ -13,20 +14,39 @@ import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 
 const SAYFA_BOYUTU = 20;
-
-const BOS_FILTRE = {
-  varyant_id: "",
-  tip: "",
-  sebep: "",
-  baslangic: "",
-  bitis: "",
-};
+const FILTRE_ALANLARI = ["varyant_id", "tip", "sebep", "baslangic", "bitis"];
 
 function StokHareketleri() {
   const bildir = useToast();
+  const [parametreler, setParametreler] = useSearchParams();
 
-  const [filtre, setFiltre] = useState(BOS_FILTRE);
-  const [sayfa, setSayfa] = useState(1);
+  // Filtreler ve sayfa numarasi adres cubugunda tutuluyor: sayfa
+  // yenilendiginde kayboluyorlardi ve filtreli bir goruntu paylasilamiyordu.
+  const sayfa = Number(parametreler.get("sayfa")) || 1;
+  const filtre = Object.fromEntries(
+    FILTRE_ALANLARI.map((alan) => [alan, parametreler.get(alan) || ""]),
+  );
+
+  const parametreGuncelle = (yeniler) => {
+    const sonraki = new URLSearchParams(parametreler);
+
+    for (const [anahtar, deger] of Object.entries(yeniler)) {
+      if (deger === "" || deger === undefined || deger === null) {
+        sonraki.delete(anahtar);
+      } else {
+        sonraki.set(anahtar, String(deger));
+      }
+    }
+
+    // replace kullaniliyor: her filtre degisikligi gecmise ayri bir kayit
+    // birakirsa geri tusu kullanilamaz hale gelir.
+    setParametreler(sonraki, { replace: true });
+  };
+
+  // URLSearchParams her cizimde yeni nesne uretir; bagimliliga metin halini
+  // vermek gereksiz yeniden cekmeyi onluyor.
+  const sorguAnahtari = parametreler.toString();
+
   const [gonderiliyor, setGonderiliyor] = useState(false);
 
   const [form, setForm] = useState({
@@ -48,7 +68,7 @@ function StokHareketleri() {
     refresh: hareketleriYukle,
   } = useFetch(
     () => stokHareketleriniGetir({ ...filtre, sayfa, limit: SAYFA_BOYUTU }),
-    [filtre, sayfa],
+    [sorguAnahtari],
     { initial: [], errorMessage: "Hareketler yüklenemedi" },
   );
 
@@ -80,11 +100,10 @@ function StokHareketleri() {
   );
 
   const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
-  const filtreVar = Object.values(filtre).some((deger) => deger !== "");
+  const filtreVar = FILTRE_ALANLARI.some((alan) => filtre[alan] !== "");
 
   const filtreDegisti = (e) => {
-    setFiltre({ ...filtre, [e.target.name]: e.target.value });
-    setSayfa(1);
+    parametreGuncelle({ [e.target.name]: e.target.value, sayfa: "" });
   };
 
   const secilenVaryant = varyantlar.find(
@@ -322,10 +341,9 @@ function StokHareketleri() {
         {filtreVar && (
           <button
             className="ikincil ikon-btn"
-            onClick={() => {
-              setFiltre(BOS_FILTRE);
-              setSayfa(1);
-            }}
+            onClick={() =>
+              setParametreler(new URLSearchParams(), { replace: true })
+            }
             title="Filtreleri temizle"
           >
             <X size={15} />
@@ -381,7 +399,7 @@ function StokHareketleri() {
           {toplam > SAYFA_BOYUTU && (
             <div className="sayfalama">
               <button
-                onClick={() => setSayfa(sayfa - 1)}
+                onClick={() => parametreGuncelle({ sayfa: sayfa - 1 })}
                 disabled={sayfa === 1}
               >
                 Önceki
@@ -390,7 +408,7 @@ function StokHareketleri() {
                 Sayfa {sayfa} / {toplamSayfa} · Toplam {toplam} kayıt
               </span>
               <button
-                onClick={() => setSayfa(sayfa + 1)}
+                onClick={() => parametreGuncelle({ sayfa: sayfa + 1 })}
                 disabled={sayfa >= toplamSayfa}
               >
                 Sonraki

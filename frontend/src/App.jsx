@@ -1,9 +1,15 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { lazy, Suspense, useEffect } from "react";
 import KorumaliRota from "./components/KorumaliRota";
+import HataSiniri from "./components/HataSiniri";
 import { ToastSaglayici } from "./context/ToastSaglayici";
 import AuthProvider from "./context/AuthProvider";
-import HataSiniri from "./components/HataSiniri";
 
 // Sayfalar tembel yukleniyor: her biri kendi paketine ayriliyor ve yalnizca
 // acildiginda indiriliyor. En cok kazanci Panel sagliyor, cunku grafik
@@ -28,6 +34,39 @@ const ChangePassword = lazy(() => import("./pages/ChangePassword"));
 const SystemHealth = lazy(() => import("./pages/SystemHealth"));
 const SatinalmaSiparisleri = lazy(() => import("./pages/SatinalmaSiparisleri"));
 
+const SAYFA_BASLIKLARI = {
+  "/giris": "Giriş",
+  "/panel": "Panel",
+  "/urunler": "Ürünler",
+  "/varyantlar": "Stok Kalemleri",
+  "/depo-haritasi": "Depo Haritası",
+  "/paletler": "Palet Sorgula",
+  "/stok-hareketleri": "Hareketler",
+  "/sayim": "Sayım",
+  "/tedarikciler": "Tedarikçiler",
+  "/satinalma-siparisleri": "Alım Siparişleri",
+  "/musteriler": "Müşteriler",
+  "/satis-siparisleri": "Satış Siparişleri",
+  "/pazar-seferleri": "Pazar Seferleri",
+  "/raporlar": "Raporlar",
+  "/kategoriler": "Kategoriler",
+  "/kullanicilar": "Kullanıcılar",
+  "/lokasyon-yonetimi": "Lokasyonlar",
+  "/sistem-sagligi": "Sistem Sağlığı",
+  "/sifre-degistir": "Şifre Değiştir",
+};
+
+function SayfaBasligi() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    const ad = SAYFA_BASLIKLARI[pathname];
+    document.title = ad ? `${ad} · WMS` : "WMS";
+  }, [pathname]);
+
+  return null;
+}
+
 function Yukleniyor() {
   return (
     <div className="yukleniyor-kutu">
@@ -46,6 +85,7 @@ function App() {
     <ToastSaglayici>
       <AuthProvider>
         <BrowserRouter>
+          <SayfaBasligi />
           <HataSiniri>
             <Suspense fallback={<Yukleniyor />}>
               <Routes>
@@ -82,7 +122,7 @@ function App() {
                     element={<SatinalmaSiparisleri />}
                   />
                 </Route>
-                <Route path="/" element={<Navigate to="/panel" />} />
+                <Route path="/" element={<Navigate to="/panel" replace />} />
               </Routes>
             </Suspense>
           </HataSiniri>
