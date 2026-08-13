@@ -1,5 +1,7 @@
 # WMS — Depo Yönetim Sistemi
 
+![CI](https://github.com/mehmetakyurek10/wms-project/actions/workflows/ci.yml/badge.svg)
+
 Zeytin toptancılığı için geliştirilmiş depo yönetim sistemi. Stok takibi, palet yönetimi, satınalma ve satış siparişleri, pazar seferleri, lokasyon bazlı depo haritası ve raporlama içerir.
 
 **Yığın:** Express 5 + MySQL 8 (backend) · React 19 + Vite (frontend) · Docker
@@ -81,38 +83,38 @@ Sistemde hiç kullanıcı yokken giriş ekranı kendini **kurulum formuna** dön
 
 ### `backend/.env`
 
-| Değişken | Açıklama |
-|---|---|
-| `NODE_ENV` | `development` / `production` — üretimde hata detayları gizlenir |
-| `PORT` | API portu (varsayılan 3000) |
-| `DB_HOST` | MySQL sunucusu |
-| `DB_USER` | MySQL kullanıcısı |
-| `DB_PASSWORD` | MySQL parolası |
-| `DB_NAME` | Veritabanı adı |
-| `DB_PORT` | MySQL portu (varsayılan 3306) |
-| `DB_POOL_SIZE` | Bağlantı havuzu boyutu (varsayılan 20) |
-| `JWT_SECRET` | Token imzalama anahtarı — **en az 32 karakter** |
-| `CORS_ORIGIN` | İzinli kaynaklar, virgülle ayrılmış |
+| Değişken       | Açıklama                                                        |
+| -------------- | --------------------------------------------------------------- |
+| `NODE_ENV`     | `development` / `production` — üretimde hata detayları gizlenir |
+| `PORT`         | API portu (varsayılan 3000)                                     |
+| `DB_HOST`      | MySQL sunucusu                                                  |
+| `DB_USER`      | MySQL kullanıcısı                                               |
+| `DB_PASSWORD`  | MySQL parolası                                                  |
+| `DB_NAME`      | Veritabanı adı                                                  |
+| `DB_PORT`      | MySQL portu (varsayılan 3306)                                   |
+| `DB_POOL_SIZE` | Bağlantı havuzu boyutu (varsayılan 20)                          |
+| `JWT_SECRET`   | Token imzalama anahtarı — **en az 32 karakter**                 |
+| `CORS_ORIGIN`  | İzinli kaynaklar, virgülle ayrılmış                             |
 
 Uygulama açılışta bu değişkenleri doğrular. Zorunlu biri eksikse ya da `JWT_SECRET` kısaysa **başlamaz** — hatalı yapılandırmayla çalışmaktansa açıkça durmak tercih edilmiştir.
 
 ### `frontend/.env`
 
-| Değişken | Açıklama |
-|---|---|
+| Değişken       | Açıklama                                     |
+| -------------- | -------------------------------------------- |
 | `VITE_API_URL` | Backend adresi, örn. `http://localhost:3000` |
 
 > **Uyarı:** `VITE_` önekli değişkenler build sırasında JS paketinin içine gömülür ve tarayıcıdan okunabilir. Buraya parola, anahtar veya gizli bilgi konmaz.
 
 ### `.env` (proje kökü, yalnızca Docker)
 
-| Değişken | Açıklama |
-|---|---|
-| `DB_NAME` | Konteynerde oluşturulacak veritabanı adı |
+| Değişken           | Açıklama                                          |
+| ------------------ | ------------------------------------------------- |
+| `DB_NAME`          | Konteynerde oluşturulacak veritabanı adı          |
 | `DB_ROOT_PASSWORD` | MySQL kök parolası — konteyner ağı dışına açılmaz |
-| `JWT_SECRET` | Token imzalama anahtarı, en az 32 karakter |
-| `APP_PORT` | Uygulamanın yayınlanacağı port (varsayılan 8080) |
-| `APP_ORIGIN` | Uygulamanın adresi, örn. `http://localhost:8080` |
+| `JWT_SECRET`       | Token imzalama anahtarı, en az 32 karakter        |
+| `APP_PORT`         | Uygulamanın yayınlanacağı port (varsayılan 8080)  |
+| `APP_ORIGIN`       | Uygulamanın adresi, örn. `http://localhost:8080`  |
 
 Docker kurulumunda `backend/.env` ve `frontend/.env` **okunmaz**; değişkenler doğrudan Compose tarafından verilir. Arayüzün API adresi de derleme sırasında `/api` olarak sabitlenir, çünkü her ikisi de aynı adres üzerinden sunulur.
 
@@ -122,30 +124,30 @@ Docker kurulumunda `backend/.env` ve `frontend/.env` **okunmaz**; değişkenler 
 
 ### Backend
 
-| Komut | Ne yapar |
-|---|---|
-| `npm run dev` | nodemon ile geliştirme sunucusu |
-| `npm start` | production sunucusu |
-| `npm run migrate` | uygulanmamış şema geçişlerini çalıştırır |
-| `npm test` | testleri `wms_test` veritabanında çalıştırır |
+| Komut             | Ne yapar                                     |
+| ----------------- | -------------------------------------------- |
+| `npm run dev`     | nodemon ile geliştirme sunucusu              |
+| `npm start`       | production sunucusu                          |
+| `npm run migrate` | uygulanmamış şema geçişlerini çalıştırır     |
+| `npm test`        | testleri `wms_test` veritabanında çalıştırır |
 
 ### Frontend
 
-| Komut | Ne yapar |
-|---|---|
-| `npm run dev` | Vite geliştirme sunucusu |
-| `npm run build` | üretim derlemesi (`dist/`) |
-| `npm run preview` | derlenmiş sürümü önizle |
-| `npm run lint` | ESLint |
+| Komut             | Ne yapar                   |
+| ----------------- | -------------------------- |
+| `npm run dev`     | Vite geliştirme sunucusu   |
+| `npm run build`   | üretim derlemesi (`dist/`) |
+| `npm run preview` | derlenmiş sürümü önizle    |
+| `npm run lint`    | ESLint                     |
 
 ### Docker
 
-| Komut | Ne yapar |
-|---|---|
+| Komut                       | Ne yapar                                 |
+| --------------------------- | ---------------------------------------- |
 | `docker compose up --build` | imajları kurar ve üç konteyneri başlatır |
-| `docker compose logs api` | backend günlükleri |
-| `docker compose down` | konteynerleri durdurur, veriler kalır |
-| `docker compose down -v` | veritabanı birimini de siler |
+| `docker compose logs api`   | backend günlükleri                       |
+| `docker compose down`       | konteynerleri durdurur, veriler kalır    |
+| `docker compose down -v`    | veritabanı birimini de siler             |
 
 ---
 
@@ -251,10 +253,10 @@ Stok **iki katmanda** tutulur:
 
 `stok_birimleri` her fiziksel taşıma birimini ayrı satır olarak tutar:
 
-| `tip` | Anlamı |
-|---|---|
+| `tip`   | Anlamı                                         |
+| ------- | ---------------------------------------------- |
 | `palet` | Barkodu olan fiziksel palet (`kod` alanı dolu) |
-| `dokme` | Barkodu olmayan, lokasyonda serbest duran mal |
+| `dokme` | Barkodu olmayan, lokasyonda serbest duran mal  |
 
 Palet başına miktar sabit değildir — aynı üründen bir palette 75, diğerinde 80 kova olabilir. Her palet kendi miktarını taşıdığı için palet sayısı bölme işlemiyle tahmin edilmez, doğrudan sayılır.
 
@@ -270,15 +272,15 @@ Rezervasyon `stok_birimleri.miktar` alanına **dokunmaz**. Sorgulamada iki ayrı
 kullanilabilir = miktar - rezerve
 ```
 
-Ayrım bilinçlidir: rezervasyon bir *söz*, stok bir *gerçeklik*tir. Rezerve edileni fiziksel miktardan düşseydik depoyu sayan kişinin gördüğü sayı ile sistemin gösterdiği sayı ayrışırdı — bir depo yönetim sisteminin varlık sebebi tam olarak bu ikisinin örtüşmesidir.
+Ayrım bilinçlidir: rezervasyon bir _söz_, stok bir *gerçeklik*tir. Rezerve edileni fiziksel miktardan düşseydik depoyu sayan kişinin gördüğü sayı ile sistemin gösterdiği sayı ayrışırdı — bir depo yönetim sisteminin varlık sebebi tam olarak bu ikisinin örtüşmesidir.
 
 Bunun pratik sonuçları:
 
-| İşlem | Rezerve edilmiş stok için |
-|---|---|
-| Çıkış, paletleme, dökme transfer | Engellenir — yalnızca kullanılabilir tüketilebilir |
-| Paletin bütün olarak taşınması | Serbest — rezervasyon `birim_id`'ye bağlı olduğu için paletle birlikte taşınır |
-| Sayım | **Engellenmez** |
+| İşlem                            | Rezerve edilmiş stok için                                                      |
+| -------------------------------- | ------------------------------------------------------------------------------ |
+| Çıkış, paletleme, dökme transfer | Engellenir — yalnızca kullanılabilir tüketilebilir                             |
+| Paletin bütün olarak taşınması   | Serbest — rezervasyon `birim_id`'ye bağlı olduğu için paletle birlikte taşınır |
+| Sayım                            | **Engellenmez**                                                                |
 
 Sayımın engellenmemesi bilinçli bir tercihtir. Sayımda rezerveden az mal bulunursa kayıt yine de kabul edilir; çelişki sistem sağlığı ekranında `karsilanamayan_rezervasyon` olarak görünür ve ilgili siparişin teslimatı `409` ile reddedilir. Sayımı reddetmek, gerçekte olan bir farkı sisteme hiç girilmemiş hale getirirdi. Doğru davranış çelişkiyi yutmak ya da engellemek değil, **görünür kılmaktır**.
 
@@ -317,10 +319,10 @@ Birden fazla satır kilitlenecekse **her zaman aynı ölçüte göre sıralı** 
 
 İki ayrı token kullanılır ve ikisi de JWT'dir:
 
-| | Ömür | Nerede durur | Ne işe yarar |
-|---|---|---|---|
-| **Access token** | 15 dakika | Tarayıcı belleğinde (`tokenStore.js`) | Her API isteğinde `Authorization` başlığıyla gider |
-| **Refresh token** | 7 gün | `HttpOnly` çerez, `Path=/auth` | Yalnızca yeni access token almak için kullanılır |
+|                   | Ömür      | Nerede durur                          | Ne işe yarar                                       |
+| ----------------- | --------- | ------------------------------------- | -------------------------------------------------- |
+| **Access token**  | 15 dakika | Tarayıcı belleğinde (`tokenStore.js`) | Her API isteğinde `Authorization` başlığıyla gider |
+| **Refresh token** | 7 gün     | `HttpOnly` çerez, `Path=/auth`        | Yalnızca yeni access token almak için kullanılır   |
 
 Access token hiçbir zaman `localStorage`'a veya `sessionStorage`'a yazılmaz. Sayfa yenilendiğinde bellekle birlikte kaybolur; oturum, tarayıcıda duran refresh çerezinden geri kurulur (`AuthProvider.jsx`). Refresh token ise JavaScript'ten okunamaz — `HttpOnly` olduğu için bir XSS açığı bile ona erişemez.
 
@@ -342,39 +344,39 @@ Her yenilemede refresh çerezi yenisiyle değiştirilir (rotation), böylece ele
 
 ## Modüller
 
-| Modül | İçerik |
-|---|---|
-| **Panel** | Özet kartlar, son 14 gün giriş/çıkış grafiği, en çok hareket gören kalemler, bölge bazlı dağılım |
-| **Ürünler / Stok Kalemleri** | Ürün ve varyant tanımları (boy, ambalaj tipi, ambalaj kg, barkod, kritik seviye) |
-| **Depo Haritası** | Kuş bakışı yerleşim planı, kat katmanları, lokasyon detayı, paletleme ve taşıma |
-| **Palet Sorgula** | Barkod ile palet arama, depodaki paletlerin listesi |
-| **Stok Hareketleri** | Giriş/çıkış kaydı, birim seçimi, filtreleme ve sayfalama |
-| **Sayım** | Lokasyon bazlı sayım; her palet ve dökme yığın ayrı satır |
-| **Satınalma** | Sipariş oluşturma, teslim alma, fiş |
-| **Satış** | Sipariş oluşturma, birim bazlı toplama, teslim, iptal, fiş |
-| **Pazar Seferleri** | Pazara götürülen malın sevki, dönüşün kaydı, sevk fişi, pazar bazlı yıl özeti |
-| **Lokasyonlar** | Lokasyon tanımları ve blok üreteci |
-| **Raporlar** | Tarih aralığına göre hareket özeti, çalışan ve kalem kırılımı |
-| **Sistem Sağlığı** | Stok sapması, negatif stok, karşılanamayan rezervasyon, pazarda kalıntı, pasif lokasyonda stok, kapasite aşımı |
-| **Kullanıcılar** | Kullanıcı yönetimi, rol atama, parola değiştirme |
+| Modül                        | İçerik                                                                                                         |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Panel**                    | Özet kartlar, son 14 gün giriş/çıkış grafiği, en çok hareket gören kalemler, bölge bazlı dağılım               |
+| **Ürünler / Stok Kalemleri** | Ürün ve varyant tanımları (boy, ambalaj tipi, ambalaj kg, barkod, kritik seviye)                               |
+| **Depo Haritası**            | Kuş bakışı yerleşim planı, kat katmanları, lokasyon detayı, paletleme ve taşıma                                |
+| **Palet Sorgula**            | Barkod ile palet arama, depodaki paletlerin listesi                                                            |
+| **Stok Hareketleri**         | Giriş/çıkış kaydı, birim seçimi, filtreleme ve sayfalama                                                       |
+| **Sayım**                    | Lokasyon bazlı sayım; her palet ve dökme yığın ayrı satır                                                      |
+| **Satınalma**                | Sipariş oluşturma, teslim alma, fiş                                                                            |
+| **Satış**                    | Sipariş oluşturma, birim bazlı toplama, teslim, iptal, fiş                                                     |
+| **Pazar Seferleri**          | Pazara götürülen malın sevki, dönüşün kaydı, sevk fişi, pazar bazlı yıl özeti                                  |
+| **Lokasyonlar**              | Lokasyon tanımları ve blok üreteci                                                                             |
+| **Raporlar**                 | Tarih aralığına göre hareket özeti, çalışan ve kalem kırılımı                                                  |
+| **Sistem Sağlığı**           | Stok sapması, negatif stok, karşılanamayan rezervasyon, pazarda kalıntı, pasif lokasyonda stok, kapasite aşımı |
+| **Kullanıcılar**             | Kullanıcı yönetimi, rol atama, parola değiştirme                                                               |
 
 ### Roller
 
-| Rol | Yetki |
-|---|---|
-| `admin` | Tüm işlemler, kullanıcı ve lokasyon yönetimi, sistem sağlığı |
-| `depo_sorumlusu` | Stok işlemleri, siparişler, sayım, transfer |
+| Rol              | Yetki                                                        |
+| ---------------- | ------------------------------------------------------------ |
+| `admin`          | Tüm işlemler, kullanıcı ve lokasyon yönetimi, sistem sağlığı |
+| `depo_sorumlusu` | Stok işlemleri, siparişler, sayım, transfer                  |
 
 ### Lokasyon adresleme
 
 Palet yerleri `R-01-02-K1` biçiminde adreslenir:
 
-| Parça | Anlam |
-|---|---|
-| `R` | Blok / yön |
-| `01` | Sıra |
-| `02` | Derinlik |
-| `K1` | Kat |
+| Parça | Anlam      |
+| ----- | ---------- |
+| `R`   | Blok / yön |
+| `01`  | Sıra       |
+| `02`  | Derinlik   |
+| `K1`  | Kat        |
 
 Kat bilgisi kuş bakışı planda gösterilemediği için haritada katman geçişi olarak sunulur.
 

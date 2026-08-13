@@ -30,7 +30,7 @@
   position: sticky;
   top: 0;
   height: 100vh;
-  overflow-y: auto;
+  overflow: hidden;
   animation: kay 0.4s ease-out;
 }
 
@@ -58,6 +58,30 @@
   flex-direction: column;
   gap: 18px;
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-right: -4px;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.2s;
+}
+
+.yan-menu:hover .yan-linkler {
+  scrollbar-color: var(--renk-kenar) transparent;
+}
+
+.yan-linkler::-webkit-scrollbar {
+  width: 6px;
+}
+
+.yan-linkler::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.yan-menu:hover .yan-linkler::-webkit-scrollbar-thumb {
+  background: var(--renk-kenar);
 }
 
 .yan-grup {
