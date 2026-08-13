@@ -7,12 +7,16 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "node --env-file=.env.test --test --test-concurrency=1 tests/*.test.js",
-    "migrate": "node --env-file=.env db/migrate.js"
+    "migrate": "node --env-file=.env db/migrate.js",
+    "lint": "eslint ."
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
+  "engines": {
+    "node": ">=24"
+  },
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",
@@ -26,6 +30,9 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.8.1",
+    "globals": "^17.11.0",
     "nodemon": "^3.1.14",
     "supertest": "^7.2.2"
   }

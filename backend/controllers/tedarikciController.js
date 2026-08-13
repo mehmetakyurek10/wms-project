@@ -42,10 +42,15 @@ const guncelle = async (req, res, next) => {
   try {
     const { ad, yetkili_kisi, telefon, email, adres } = req.body;
     const { id } = req.params;
-    const [result] = await pool.query(
+    const [sonuc] = await pool.query(
       "UPDATE tedarikciler SET ad=?,yetkili_kisi=?,telefon=?,email=?,adres=? WHERE id=?",
       [ad, yetkili_kisi, telefon, email, adres, id],
     );
+
+    if (sonuc.affectedRows === 0) {
+      return res.status(404).json({ hata: "Tedarikçi bulunamadı" });
+    }
+
     res.json({ mesaj: "Güncellendi" });
   } catch (err) {
     next(err);
@@ -55,7 +60,14 @@ const guncelle = async (req, res, next) => {
 const sil = async (req, res, next) => {
   try {
     const { id } = req.params;
-    await pool.query("DELETE FROM tedarikciler WHERE id=?", [id]);
+    const [sonuc] = await pool.query("DELETE FROM tedarikciler WHERE id=?", [
+      id,
+    ]);
+
+    if (sonuc.affectedRows === 0) {
+      return res.status(404).json({ hata: "Tedarikçi bulunamadı" });
+    }
+
     res.json({ mesaj: "Silindi" });
   } catch (err) {
     next(err);

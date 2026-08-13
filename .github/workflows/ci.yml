@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (lint + test + migration)
+    runs-on: ubuntu-latest
+
+    # Testler gercek bir MySQL istiyor; GitHub bu kabi is basliyamadan
+    # ayaga kaldirip saglik kontrolu gecene kadar bekliyor.
+    services:
+      mysql:
+        image: mysql:8.4
+        env:
+          MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+          MYSQL_DATABASE: wms_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Bagimliliklar
+        working-directory: backend
+        run: npm ci
+
+      - name: Lint
+        working-directory: backend
+        run: npm run lint
+
+      # .env.test depoya girmiyor; ornekten uretiliyor. localhost yerine
+      # 127.0.0.1: kosucuda localhost once IPv6'ya cozulup baglanti
+      # reddedilebiliyor.
+      - name: Test ortami
+        working-directory: backend
+        run: |
+          cp .env.test.example .env.test
+          sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env.test
+
+      - name: Testler
+        working-directory: backend
+        run: npm test
+
+      # Testler semayi db/schema.sql'den kuruyor, migration'lara hic
+      # dokunmuyor. Bu adim ayri bir veritabaninda migration zincirini
+      # sifirdan calistirir: baseline'in gercekten calisir durumda
+      # oldugunu ve ikinci kosumun bir sey bozmadigini kanitlar.
+      - name: Migration'lar sifirdan kurulum
+        working-directory: backend
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASSWORD: ""
+          DB_NAME: wms_migrate
+          DB_PORT: "3306"
+        run: |
+          node - <<'JS'
+          const mysql = require("mysql2/promise");
+          (async () => {
+            const c = await mysql.createConnection({
+              host: "127.0.0.1",
+              user: "root",
+              port: 3306,
+            });
+            await c.query("CREATE DATABASE IF NOT EXISTS wms_migrate");
+            await c.end();
+          })();
+          JS
+
+          echo "--- ilk kosum ---"
+          node db/migrate.js
+
+          echo "--- ikinci kosum (degisiklik olmamali) ---"
+          node db/migrate.js
+
+          node - <<'JS'
+          const mysql = require("mysql2/promise");
+          (async () => {
+            const c = await mysql.createConnection({
+              host: "127.0.0.1",
+              user: "root",
+              port: 3306,
+              database: "wms_migrate",
+            });
+            const [tablolar] = await c.query(
+              "SELECT COUNT(*) AS n FROM information_schema.tables WHERE table_schema = 'wms_migrate'",
+            );
+            const [surumler] = await c.query(
+              "SELECT COUNT(*) AS n FROM schema_migrations",
+            );
+            await c.end();
+
+            console.log(`Tablo: ${tablolar[0].n}, uygulanan surum: ${surumler[0].n}`);
+
+            if (tablolar[0].n < 15) {
+              throw new Error("Beklenenden az tablo olustu");
+            }
+            if (surumler[0].n < 1) {
+              throw new Error("Hicbir surum kaydedilmemis");
+            }
+          })();
+          JS
+
+  frontend:
+    name: Frontend (lint + build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Bagimliliklar
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Derleme
+        working-directory: frontend
+        run: npm run build

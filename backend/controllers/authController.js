@@ -100,7 +100,7 @@ const yenile = async (req, res, next) => {
     let payload;
     try {
       payload = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (err) {
+    } catch {
       clearRefreshCookie(res);
       return res
         .status(401)

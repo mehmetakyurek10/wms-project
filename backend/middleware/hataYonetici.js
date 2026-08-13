@@ -1,6 +1,6 @@
 const config = require("../config/env");
 
-const hataYonetici = (err, req, res, next) => {
+const hataYonetici = (err, req, res, _next) => {
   const durumKodu = err.statusCode || 500;
 
   console.error(`[HATA] ${req.method} ${req.originalUrl} →`, err);

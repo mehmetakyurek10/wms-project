@@ -15,7 +15,7 @@ const dogrula = async (req, res, next) => {
   let payload;
   try {
     payload = jwt.verify(token, process.env.JWT_SECRET);
-  } catch (err) {
+  } catch {
     return res.status(401).json({ hata: "Geçersiz veya süresi dolmuş token" });
   }
 
