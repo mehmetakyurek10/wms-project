@@ -27,9 +27,9 @@ jobs:
           --health-retries=15
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -42,6 +42,10 @@ jobs:
       - name: Lint
         working-directory: backend
         run: npm run lint
+
+      - name: Bicim
+        working-directory: backend
+        run: npm run format:check
 
       # .env.test depoya girmiyor; ornekten uretiliyor. localhost yerine
       # 127.0.0.1: kosucuda localhost once IPv6'ya cozulup baglanti
@@ -121,9 +125,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -136,6 +140,10 @@ jobs:
       - name: Lint
         working-directory: frontend
         run: npm run lint
+
+      - name: Bicim
+        working-directory: frontend
+        run: npm run format:check
 
       - name: Derleme
         working-directory: frontend
