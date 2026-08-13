@@ -12,8 +12,8 @@ import { kategorileriGetir } from "../api/kategoriApi";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
+import { SAYFA_BOYUTU } from "../sabitler";
 
-const SAYFA_BOYUTU = 20;
 const FILTRE_ALANLARI = ["kategori_id", "urun_id", "aktif", "sadece_dusuk"];
 
 function Varyantlar() {

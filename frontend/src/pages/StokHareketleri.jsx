@@ -13,7 +13,7 @@ import LokasyonSecici from "../components/LokasyonSecici";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 
-const SAYFA_BOYUTU = 20;
+import { SAYFA_BOYUTU } from "../sabitler";
 const FILTRE_ALANLARI = ["varyant_id", "tip", "sebep", "baslangic", "bitis"];
 
 function StokHareketleri() {

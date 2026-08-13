@@ -14,7 +14,7 @@ import MarketTripReceipt from "../components/MarketTripReceipt";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 
-const SAYFA_BOYUTU = 20;
+import { SAYFA_BOYUTU } from "../sabitler";
 const BOS_KALEM = { varyant_id: "", miktar: "", birim: "adet" };
 
 function paraFormat(sayi) {

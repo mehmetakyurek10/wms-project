@@ -1,10 +1,11 @@
 const pool = require("../config/db");
 const { reservedQuantity } = require("../utils/reservations");
+const { buildPagination } = require("../utils/pagination");
 
 const listele = async (req, res, next) => {
   try {
-    const { varyant_id, tip, sebep, baslangic, bitis, sayfa, limit } =
-      req.query;
+    const { varyant_id, tip, sebep, baslangic, bitis } = req.query;
+    const { limit, offset } = buildPagination(req.query, 20);
 
     let kosul = " WHERE 1=1";
     const kosulDegerleri = [];
@@ -40,7 +41,7 @@ const listele = async (req, res, next) => {
     );
     res.set("X-Toplam-Kayit", sayim[0].toplam);
 
-    let sorgu =
+    const sorgu =
       `SELECT sh.id, sh.varyant_id, sh.lokasyon_id, sh.tip, sh.sebep,
               sh.miktar, sh.aciklama, sh.tarih,
               u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg,
@@ -51,18 +52,9 @@ const listele = async (req, res, next) => {
        LEFT JOIN kullanicilar k ON sh.olusturan_kullanici_id = k.id
        LEFT JOIN lokasyonlar l ON sh.lokasyon_id = l.id` +
       kosul +
-      " ORDER BY sh.tarih DESC";
+      " ORDER BY sh.tarih DESC LIMIT ? OFFSET ?";
 
-    const degerler = [...kosulDegerleri];
-
-    const sayfaNo = parseInt(sayfa, 10) || 1;
-    const limitSayi = Math.min(parseInt(limit, 10) || 20, 100);
-    const offset = (sayfaNo - 1) * limitSayi;
-
-    sorgu += " LIMIT ? OFFSET ?";
-    degerler.push(limitSayi, offset);
-
-    const [rows] = await pool.query(sorgu, degerler);
+    const [rows] = await pool.query(sorgu, [...kosulDegerleri, limit, offset]);
     res.json(rows);
   } catch (err) {
     next(err);

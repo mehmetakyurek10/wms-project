@@ -14,8 +14,7 @@ import Fis from "../components/Fis";
 import TeslimAlModal from "../components/TeslimAlModal";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
-
-const SAYFA_BOYUTU = 20;
+import { SAYFA_BOYUTU } from "../sabitler";
 
 function SatinalmaSiparisleri() {
   const bildir = useToast();

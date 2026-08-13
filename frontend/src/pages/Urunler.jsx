@@ -5,8 +5,7 @@ import { kategorileriGetir } from "../api/kategoriApi";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
-
-const SAYFA_BOYUTU = 10;
+import { SAYFA_BOYUTU } from "../sabitler";
 
 function Urunler() {
   const bildir = useToast();

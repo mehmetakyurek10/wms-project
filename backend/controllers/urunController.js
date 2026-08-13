@@ -1,8 +1,10 @@
 const pool = require("../config/db");
+const { buildPagination } = require("../utils/pagination");
 
 const listele = async (req, res, next) => {
   try {
-    const { ara, kategori_id, sayfa, limit } = req.query;
+    const { ara, kategori_id } = req.query;
+    const { limit, offset } = buildPagination(req.query);
 
     let kosul = " WHERE 1=1";
     const kosulDegerleri = [];
@@ -23,7 +25,7 @@ const listele = async (req, res, next) => {
     );
     res.set("X-Toplam-Kayit", sayim[0].toplam);
 
-    let sorgu =
+    const sorgu =
       `SELECT u.id, u.ad, u.kategori_id, u.olusturulma_tarihi,
               k.ad AS kategori_adi,
               COUNT(v.id) AS varyant_sayisi,
@@ -32,21 +34,9 @@ const listele = async (req, res, next) => {
        LEFT JOIN kategoriler k ON u.kategori_id = k.id
        LEFT JOIN urun_varyantlari v ON v.urun_id = u.id` +
       kosul +
-      " GROUP BY u.id";
+      " GROUP BY u.id ORDER BY u.ad LIMIT ? OFFSET ?";
 
-    const degerler = [...kosulDegerleri];
-
-    if (sayfa || limit) {
-      const sayfaNo = parseInt(sayfa, 10) || 1;
-      const limitSayi = parseInt(limit, 10) || 10;
-      const offset = (sayfaNo - 1) * limitSayi;
-      sorgu += " ORDER BY u.ad LIMIT ? OFFSET ?";
-      degerler.push(limitSayi, offset);
-    } else {
-      sorgu += " ORDER BY u.ad";
-    }
-
-    const [rows] = await pool.query(sorgu, degerler);
+    const [rows] = await pool.query(sorgu, [...kosulDegerleri, limit, offset]);
     res.json(rows);
   } catch (err) {
     next(err);

@@ -15,8 +15,7 @@ import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
 import AllocationModal from "../components/AllocationModal";
 import DeliveryModal from "../components/DeliveryModal";
-
-const SAYFA_BOYUTU = 20;
+import { SAYFA_BOYUTU } from "../sabitler";
 
 function SatisSiparisleri() {
   const bildir = useToast();

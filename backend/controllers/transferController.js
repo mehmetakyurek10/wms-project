@@ -1,14 +1,10 @@
 const pool = require("../config/db");
 const { reservedQuantity } = require("../utils/reservations");
+const { buildPagination } = require("../utils/pagination");
 
 const listele = async (req, res, next) => {
   try {
-    const { sayfa, limit } = req.query;
-
-    const sayfaNo = parseInt(sayfa, 10) || 1;
-    const limitSayi = Math.min(parseInt(limit, 10) || 50, 200);
-    const offset = (sayfaNo - 1) * limitSayi;
-
+    const { limit, offset } = buildPagination(req.query, 50);
     const [sayim] = await pool.query(
       "SELECT COUNT(*) AS toplam FROM transferler",
     );
@@ -28,7 +24,7 @@ const listele = async (req, res, next) => {
        LEFT JOIN kullanicilar k ON t.olusturan_kullanici_id = k.id
        ORDER BY t.tarih DESC
        LIMIT ? OFFSET ?`,
-      [limitSayi, offset],
+      [limit, offset],
     );
     res.json(rows);
   } catch (err) {
