@@ -77,11 +77,6 @@ const getirTek = async (req, res, next) => {
 const ekle = async (req, res, next) => {
   try {
     const { ad, kategori_id } = req.body;
-
-    if (!ad) {
-      return res.status(400).json({ hata: "Ürün adı zorunludur" });
-    }
-
     const [result] = await pool.query(
       "INSERT INTO urunler (ad, kategori_id) VALUES (?, ?)",
       [ad, kategori_id || null],
@@ -97,11 +92,6 @@ const guncelle = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { ad, kategori_id } = req.body;
-
-    if (!ad) {
-      return res.status(400).json({ hata: "Ürün adı zorunludur" });
-    }
-
     const [sonuc] = await pool.query(
       "UPDATE urunler SET ad=?, kategori_id=? WHERE id=?",
       [ad, kategori_id || null, id],

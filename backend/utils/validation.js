@@ -36,6 +36,21 @@ const aciklama = bosuAtla(
     .max(255, { message: "Açıklama en fazla 255 karakter olabilir" })
     .optional(),
 );
+const metin = (mesaj, enFazla) =>
+  z
+    .string({ message: mesaj })
+    .trim()
+    .min(1, { message: mesaj })
+    .max(enFazla, { message: `En fazla ${enFazla} karakter olabilir` });
+
+const opsiyonelMetin = (enFazla) =>
+  bosuAtla(
+    z
+      .string({ message: "Bu alan metin olmalıdır" })
+      .trim()
+      .max(enFazla, { message: `En fazla ${enFazla} karakter olabilir` })
+      .optional(),
+  );
 
 // Ilk hatayi donduruyoruz cunku mevcut denetleyiciler de ilk gecersiz alanda
 // donuyordu; istemci tarafinda bir davranis degisikligi olmasin diye.
@@ -58,5 +73,7 @@ module.exports = {
   pozitifSayi,
   opsiyonelPozitifSayi,
   negatifOlmayanSayi,
+  metin,
+  opsiyonelMetin,
   aciklama,
 };

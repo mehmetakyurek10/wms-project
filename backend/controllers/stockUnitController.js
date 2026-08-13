@@ -98,27 +98,14 @@ const findByCode = async (req, res, next) => {
 const palletize = async (req, res, next) => {
   const connection = await pool.getConnection();
   try {
-    const { varyant_id, lokasyon_id, miktar, kod } = req.body;
-
-    const paletKodu = String(kod || "").trim();
-    const alinacak = Number(miktar);
-    const varyantId = Number(varyant_id);
-    const lokasyonId = Number(lokasyon_id);
-
-    if (!paletKodu) {
-      return res.status(400).json({ hata: "Palet kodu zorunludur" });
-    }
-    if (paletKodu.length > 30) {
-      return res
-        .status(400)
-        .json({ hata: "Palet kodu en fazla 30 karakter olabilir" });
-    }
-    if (!Number.isInteger(varyantId) || !Number.isInteger(lokasyonId)) {
-      return res.status(400).json({ hata: "Varyant ve lokasyon zorunludur" });
-    }
-    if (!Number.isFinite(alinacak) || alinacak <= 0) {
-      return res.status(400).json({ hata: "Miktar sıfırdan büyük olmalıdır" });
-    }
+    // Govde schemas/stockUnit.js tarafindan dogrulandi: kimlikler pozitif
+    // tam sayi, miktar pozitif, kod kirpilmis ve en fazla 30 karakter.
+    const {
+      varyant_id: varyantId,
+      lokasyon_id: lokasyonId,
+      miktar: alinacak,
+      kod: paletKodu,
+    } = req.body;
 
     await connection.beginTransaction();
 

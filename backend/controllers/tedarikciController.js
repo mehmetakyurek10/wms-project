@@ -26,9 +26,6 @@ const listele = async (req, res, next) => {
 const ekle = async (req, res, next) => {
   try {
     const { ad, yetkili_kisi, telefon, email, adres } = req.body;
-    if (!ad) {
-      return res.status(400).json({ hata: "Tedarikçi adı zorunludur" });
-    }
     const [result] = await pool.query(
       "INSERT INTO tedarikciler (ad, yetkili_kisi, telefon, email, adres) VALUES (?, ?, ?, ?, ?)",
       [ad, yetkili_kisi, telefon, email, adres],

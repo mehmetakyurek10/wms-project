@@ -6,30 +6,10 @@ const {
   setRefreshCookie,
 } = require("../utils/tokens");
 
-const MIN_LENGTH = 6;
-
 const changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const userId = req.kullanici.id;
-
-    if (!currentPassword || !newPassword) {
-      return res
-        .status(400)
-        .json({ hata: "Mevcut şifre ve yeni şifre zorunludur" });
-    }
-
-    if (typeof newPassword !== "string" || newPassword.length < MIN_LENGTH) {
-      return res
-        .status(400)
-        .json({ hata: `Yeni şifre en az ${MIN_LENGTH} karakter olmalıdır` });
-    }
-
-    if (currentPassword === newPassword) {
-      return res
-        .status(400)
-        .json({ hata: "Yeni şifre mevcut şifreyle aynı olamaz" });
-    }
 
     const [rows] = await pool.query(
       "SELECT id, rol, sifre_hash, aktif FROM kullanicilar WHERE id = ?",

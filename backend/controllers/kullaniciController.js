@@ -31,10 +31,6 @@ const guncelle = async (req, res, next) => {
       });
     }
 
-    if (rol !== undefined && !["admin", "depo_sorumlusu"].includes(rol)) {
-      return res.status(400).json({ hata: "Geçersiz rol" });
-    }
-
     const guncellenecek = {};
     if (rol !== undefined) guncellenecek.rol = rol;
     if (aktif !== undefined) guncellenecek.aktif = Boolean(aktif);
@@ -42,10 +38,6 @@ const guncelle = async (req, res, next) => {
     const anahtarlar = Object.keys(guncellenecek).filter((a) =>
       ALANLAR.includes(a),
     );
-
-    if (!anahtarlar.length) {
-      return res.status(400).json({ hata: "Güncellenecek alan gönderilmedi" });
-    }
 
     await connection.beginTransaction();
 

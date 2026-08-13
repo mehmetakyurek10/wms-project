@@ -41,26 +41,9 @@ const stok = async (req, res, next) => {
 
 const ekle = async (req, res, next) => {
   try {
+    // Govde schemas/location.js tarafindan dogrulanip sayiya cevrildi.
     const { kod, ad, tip, satir, kolon, satir_span, kolon_span, kapasite } =
       req.body;
-
-    if (!kod || satir === undefined || kolon === undefined) {
-      return res.status(400).json({ hata: "Kod, satır ve kolon zorunludur" });
-    }
-
-    const satirNo = parseInt(satir, 10);
-    const kolonNo = parseInt(kolon, 10);
-
-    if (!Number.isInteger(satirNo) || satirNo < 1) {
-      return res
-        .status(400)
-        .json({ hata: "Satır 1 veya daha büyük olmalıdır" });
-    }
-    if (!Number.isInteger(kolonNo) || kolonNo < 1) {
-      return res
-        .status(400)
-        .json({ hata: "Kolon 1 veya daha büyük olmalıdır" });
-    }
 
     const [result] = await pool.query(
       `INSERT INTO lokasyonlar
@@ -70,11 +53,11 @@ const ekle = async (req, res, next) => {
         kod,
         ad || null,
         tip || "alan",
-        satirNo,
-        kolonNo,
-        parseInt(satir_span, 10) || 1,
-        parseInt(kolon_span, 10) || 1,
-        Number(kapasite) || 0,
+        satir,
+        kolon,
+        satir_span || 1,
+        kolon_span || 1,
+        kapasite || 0,
       ],
     );
 
@@ -104,12 +87,6 @@ const guncelle = async (req, res, next) => {
       aktif,
     } = req.body;
 
-    if (!kod || !tip || satir === undefined || kolon === undefined) {
-      return res
-        .status(400)
-        .json({ hata: "Kod, tip, satır ve kolon zorunludur" });
-    }
-
     const [sonuc] = await pool.query(
       `UPDATE lokasyonlar
        SET kod=?, ad=?, tip=?, satir=?, kolon=?, satir_span=?, kolon_span=?,
@@ -119,12 +96,12 @@ const guncelle = async (req, res, next) => {
         kod,
         ad || null,
         tip,
-        parseInt(satir, 10),
-        parseInt(kolon, 10),
-        parseInt(satir_span, 10) || 1,
-        parseInt(kolon_span, 10) || 1,
-        Number(kapasite) || 0,
-        aktif === undefined ? true : Boolean(aktif),
+        satir,
+        kolon,
+        satir_span || 1,
+        kolon_span || 1,
+        kapasite || 0,
+        aktif === undefined ? true : aktif,
         id,
       ],
     );
@@ -229,28 +206,16 @@ const blokOlustur = async (req, res, next) => {
       derinlik_ters,
     } = req.body;
 
-    if (!blok || !sira_sayisi || !derinlik || !kat) {
-      return res.status(400).json({
-        hata: "Blok, sıra sayısı, derinlik ve kat zorunludur",
-      });
-    }
-
-    const ilkSira = parseInt(sira_baslangic, 10) || 1;
-    const siraSayisi = parseInt(sira_sayisi, 10);
-    const derinlikSayisi = parseInt(derinlik, 10);
-    const katSayisi = parseInt(kat, 10);
-    const ilkSatir = parseInt(baslangic_satir, 10) || 1;
-    const ilkKolon = parseInt(baslangic_kolon, 10) || 1;
-    const derinlikGenislik = parseInt(derinlik_genislik, 10) || 1;
+    const ilkSira = sira_baslangic || 1;
+    const siraSayisi = sira_sayisi;
+    const derinlikSayisi = derinlik;
+    const katSayisi = kat;
+    const ilkSatir = baslangic_satir || 1;
+    const ilkKolon = baslangic_kolon || 1;
+    const derinlikGenislik = derinlik_genislik || 1;
     const derinlikTers = derinlik_ters === true;
     const dikey = yon !== "yatay";
     const yonCarpani = ters ? -1 : 1;
-
-    if (siraSayisi < 1 || derinlikSayisi < 1 || katSayisi < 1) {
-      return res
-        .status(400)
-        .json({ hata: "Sıra, derinlik ve kat 1 veya daha büyük olmalıdır" });
-    }
 
     const toplamKayit = siraSayisi * derinlikSayisi * katSayisi;
 

@@ -95,10 +95,6 @@ const ekle = async (req, res, next) => {
       perakende_fiyat,
     } = req.body;
 
-    if (!urun_id || !boy) {
-      return res.status(400).json({ hata: "Ürün ve boy (kalibre) zorunludur" });
-    }
-
     const [result] = await pool.query(
       `INSERT INTO urun_varyantlari
        (urun_id, boy, ambalaj_tipi, ambalaj_kg, barkod, miktar, kritik_seviye,

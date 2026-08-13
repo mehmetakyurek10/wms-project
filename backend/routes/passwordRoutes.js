@@ -2,6 +2,8 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const router = express.Router();
 const passwordController = require("../controllers/passwordController");
+const { dogrulaGovde } = require("../utils/validation");
+const { sifreDegistir } = require("../schemas/password");
 
 const passwordChangeLimit = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -13,6 +15,11 @@ const passwordChangeLimit = rateLimit({
   },
 });
 
-router.patch("/sifre", passwordChangeLimit, passwordController.changePassword);
+router.patch(
+  "/sifre",
+  passwordChangeLimit,
+  dogrulaGovde(sifreDegistir),
+  passwordController.changePassword,
+);
 
 module.exports = router;

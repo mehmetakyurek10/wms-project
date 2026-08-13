@@ -26,11 +26,6 @@ const listele = async (req, res, next) => {
 const ekle = async (req, res, next) => {
   try {
     const { ad, yetkili_kisi, telefon, email, adres } = req.body;
-
-    if (!ad) {
-      return res.status(400).json({ hata: "Müşteri adı zorunludur" });
-    }
-
     const [result] = await pool.query(
       "INSERT INTO musteriler (ad, yetkili_kisi, telefon, email, adres) VALUES (?, ?, ?, ?, ?)",
       [ad, yetkili_kisi, telefon, email, adres],
@@ -46,11 +41,6 @@ const guncelle = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { ad, yetkili_kisi, telefon, email, adres } = req.body;
-
-    if (!ad) {
-      return res.status(400).json({ hata: "Müşteri adı zorunludur" });
-    }
-
     const [sonuc] = await pool.query(
       "UPDATE musteriler SET ad=?, yetkili_kisi=?, telefon=?, email=?, adres=? WHERE id=?",
       [ad, yetkili_kisi, telefon, email, adres, id],

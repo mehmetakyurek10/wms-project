@@ -3,6 +3,8 @@ const rateLimit = require("express-rate-limit");
 const router = express.Router();
 const authController = require("../controllers/authController");
 const kayitKorumasi = require("../middleware/kayitKorumasi");
+const { dogrulaGovde } = require("../utils/validation");
+const { kayit, giris } = require("../schemas/auth");
 
 const girisLimiti = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -24,9 +26,19 @@ const yenilemeLimiti = rateLimit({
   },
 });
 
-router.post("/kayit", kayitKorumasi, authController.kayitOl);
 router.get("/kurulum", authController.kurulumDurumu);
-router.post("/giris", girisLimiti, authController.girisYap);
+router.post(
+  "/kayit",
+  kayitKorumasi,
+  dogrulaGovde(kayit),
+  authController.kayitOl,
+);
+router.post(
+  "/giris",
+  girisLimiti,
+  dogrulaGovde(giris),
+  authController.girisYap,
+);
 router.post("/yenile", yenilemeLimiti, authController.yenile);
 router.post("/cikis", authController.cikisYap);
 

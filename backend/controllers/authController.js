@@ -9,28 +9,14 @@ const {
   readRefreshCookie,
 } = require("../utils/tokens");
 
-const GECERLI_ROLLER = ["admin", "depo_sorumlusu"];
-
 const kayitOl = async (req, res, next) => {
   try {
     const { ad, email, sifre, rol } = req.body;
 
-    if (!ad || !email || !sifre) {
-      return res.status(400).json({ hata: "Ad, email ve şifre zorunludur" });
-    }
-
-    if (sifre.length < 6) {
-      return res.status(400).json({ hata: "Şifre en az 6 karakter olmalıdır" });
-    }
-
     let atanacakRol = "depo_sorumlusu";
-
     if (req.ilkKurulum) {
       atanacakRol = "admin";
     } else if (rol) {
-      if (!GECERLI_ROLLER.includes(rol)) {
-        return res.status(400).json({ hata: "Geçersiz rol" });
-      }
       atanacakRol = rol;
     }
 
@@ -53,10 +39,6 @@ const kayitOl = async (req, res, next) => {
 const girisYap = async (req, res, next) => {
   try {
     const { email, sifre } = req.body;
-
-    if (!email || !sifre) {
-      return res.status(400).json({ hata: "Email ve şifre zorunludur" });
-    }
 
     const [rows] = await pool.query(
       "SELECT id, ad, email, sifre_hash, rol, aktif, token_surumu FROM kullanicilar WHERE email = ?",
