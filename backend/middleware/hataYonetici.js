@@ -1,9 +1,19 @@
 const config = require("../config/env");
+const logger = require("../config/logger");
 
 const hataYonetici = (err, req, res, _next) => {
   const durumKodu = err.statusCode || 500;
 
-  console.error(`[HATA] ${req.method} ${req.originalUrl} →`, err);
+  const kayit = req.log || logger;
+
+  if (durumKodu >= 500) {
+    kayit.error({ err }, `${req.method} ${req.originalUrl}`);
+  } else {
+    kayit.warn(
+      { hata: err.message, durumKodu },
+      `${req.method} ${req.originalUrl}`,
+    );
+  }
 
   const mesaj =
     config.uretim && durumKodu >= 500

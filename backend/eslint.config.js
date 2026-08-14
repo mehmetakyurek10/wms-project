@@ -39,6 +39,15 @@ module.exports = [
       // Sonucu kullanilmayan ifadeler: "res.json" yerine "res.json()" gibi
       // cagirma unutmalarini yakalar.
       "no-unused-expressions": "error",
+
+      "no-console": "error",
+    },
+  },
+
+  {
+    files: ["config/env.js", "db/**/*.js"],
+    rules: {
+      "no-console": "off",
     },
   },
 ];

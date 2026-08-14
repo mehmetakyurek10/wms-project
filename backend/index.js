@@ -1,31 +1,30 @@
 const app = require("./app");
 const config = require("./config/env");
+const logger = require("./config/logger");
 const pool = require("./config/db");
 
 const KAPANMA_SURESI = 10000;
 
 const server = app.listen(config.port, () => {
-  console.log(
-    `[server] WMS API http://localhost:${config.port} üzerinde çalışıyor (${config.ortam})`,
-  );
+  logger.info({ port: config.port, ortam: config.ortam }, "WMS API baslatildi");
 });
 
 const kapat = (sinyal) => {
-  console.log(`[server] ${sinyal} alındı, kapanıyor`);
+  logger.info({ sinyal }, "Kapanma sinyali alindi");
 
   server.close(async () => {
     try {
       await pool.end();
-      console.log("[server] Bağlantı havuzu kapatıldı, çıkılıyor");
+      logger.info("Baglanti havuzu kapatildi, cikiliyor");
       process.exit(0);
     } catch (err) {
-      console.error("[server] Havuz kapatılamadı:", err.message);
+      logger.error({ err }, "Havuz kapatilamadi");
       process.exit(1);
     }
   });
 
   setTimeout(() => {
-    console.error("[server] Zaman aşımı, zorla kapatılıyor");
+    logger.error("Zaman asimi, zorla kapatiliyor");
     process.exit(1);
   }, KAPANMA_SURESI).unref();
 };
