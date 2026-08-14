@@ -95,6 +95,7 @@ Sistemde hiç kullanıcı yokken giriş ekranı kendini **kurulum formuna** dön
 | `DB_POOL_SIZE` | Bağlantı havuzu boyutu (varsayılan 20)                          |
 | `JWT_SECRET`   | Token imzalama anahtarı — **en az 32 karakter**                 |
 | `CORS_ORIGIN`  | İzinli kaynaklar, virgülle ayrılmış                             |
+| `LOG_LEVEL`    | Günlük seviyesi — boşsa ortama göre seçilir                     |
 
 Uygulama açılışta bu değişkenleri doğrular. Zorunlu biri eksikse ya da `JWT_SECRET` kısaysa **başlamaz** — hatalı yapılandırmayla çalışmaktansa açıkça durmak tercih edilmiştir.
 
@@ -124,12 +125,15 @@ Docker kurulumunda `backend/.env` ve `frontend/.env` **okunmaz**; değişkenler 
 
 ### Backend
 
-| Komut             | Ne yapar                                     |
-| ----------------- | -------------------------------------------- |
-| `npm run dev`     | nodemon ile geliştirme sunucusu              |
-| `npm start`       | production sunucusu                          |
-| `npm run migrate` | uygulanmamış şema geçişlerini çalıştırır     |
-| `npm test`        | testleri `wms_test` veritabanında çalıştırır |
+| Komut                  | Ne yapar                                     |
+| ---------------------- | -------------------------------------------- |
+| `npm run dev`          | nodemon ile geliştirme sunucusu              |
+| `npm start`            | production sunucusu                          |
+| `npm run migrate`      | uygulanmamış şema geçişlerini çalıştırır     |
+| `npm test`             | testleri `wms_test` veritabanında çalıştırır |
+| `npm run lint`         | ESLint                                       |
+| `npm run format`       | Prettier ile biçimlendirir                   |
+| `npm run format:check` | biçim uyumunu denetler, dosyaya yazmaz       |
 
 ### Frontend
 
@@ -189,6 +193,7 @@ backend/
   config/
     db.js                mysql2 bağlantı havuzu
     env.js               açılışta ortam değişkeni doğrulaması
+    logger.js            pino yapılandırması, seviye ve maskeleme
   middleware/
     auth.js              access token'ı çözer, türünü ve sürümünü doğrular
     izinVer.js           rol bazlı yetkilendirme
@@ -243,6 +248,20 @@ Backend konteyneri açılışta önce şema geçişlerini uygular, sonra sunucuy
 ### Yetkilendirme
 
 `routes/index.js` içinde `/auth` dışındaki **tüm** yönlendiriciler `dogrula` ara katmanının arkasındadır. Yeni bir yönlendirici eklendiğinde ayrıca korumaya alınması gerekmez — varsayılan korumalıdır. Bazı uçlar ek olarak `izinVer("admin")` ister.
+
+### Günlükleme
+
+Uygulama `pino` kullanır. Her HTTP isteği tek satır olarak kaydedilir: yöntem, adres, durum kodu, süre ve isteğe özel bir kimlik.
+
+Geliştirmede çıktı renkli ve okunabilirdir (`pino-pretty`), üretimde satır başına bir JSON nesnesidir. Ayrım `NODE_ENV` üzerinden yapılır — `pino-pretty` yalnızca geliştirme bağımlılığıdır ve üretim imajında hiç bulunmaz. Testlerde günlükleme tamamen kapalıdır, böylece test çıktısı kirlenmez.
+
+Her isteğe `crypto.randomUUID()` ile bir kimlik verilir ve yanıtta `X-Istek-Id` başlığıyla döner. Kullanıcı bir hata bildirdiğinde bu kimlikle günlükteki tek satıra doğrudan gidilebilir.
+
+`authorization` ve `cookie` başlıkları `[gizli]` olarak maskelenir; bir günlük dosyası geçerli oturum anahtarı sızdıran yer olmamalıdır. Sağlık kontrolü (`/saglik`) ve CORS ön kontrol istekleri (`OPTIONS`) kaydedilmez — ikisi de sürekli tekrarlanır ve bilgi taşımaz.
+
+Yanıt kodu 4xx ise seviye `warn`, 5xx ise `error`'dır. Sunucu hatalarında yığın izi de yazılır; istemci hatalarında yalnızca ileti, çünkü doğrulama hatasının yığın izi gürültüden ibarettir.
+
+`config/env.js` ve `db/migrate.js` bilinçli olarak `console` kullanır: ilki günlükleyici kurulmadan önce çalışır, ikincisi insana yönelik bir komut satırı aracıdır. ESLint'in `no-console` kuralı bu iki yer dışında hata üretir.
 
 ### Stok modeli
 
