@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { X } from "lucide-react";
 import {
   stokHareketleriniGetir,
@@ -377,9 +377,21 @@ function StokHareketleri() {
               {hareketler.map((h) => (
                 <tr key={h.id}>
                   <td>{new Date(h.tarih).toLocaleString("tr-TR")}</td>
-                  <td>{h.urun_adi}</td>
                   <td>
-                    {h.boy} · {Number(h.ambalaj_kg)}kg {h.ambalaj_tipi}
+                    <Link
+                      className="tablo-link"
+                      to={`/varyantlar?urun_id=${h.urun_id}`}
+                    >
+                      {h.urun_adi}
+                    </Link>
+                  </td>
+                  <td>
+                    <Link
+                      className="tablo-link"
+                      to={`/stok-hareketleri?varyant_id=${h.varyant_id}`}
+                    >
+                      {h.boy} · {Number(h.ambalaj_kg)}kg {h.ambalaj_tipi}
+                    </Link>
                   </td>
                   <td>{h.lokasyon_kod || "-"}</td>
                   <td>

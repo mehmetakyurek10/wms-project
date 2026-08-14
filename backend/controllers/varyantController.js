@@ -3,55 +3,51 @@ const { buildPagination } = require("../utils/pagination");
 
 const listele = async (req, res, next) => {
   try {
-    const { varyant_id, tip, sebep, baslangic, bitis } = req.query;
-    const { limit, offset } = buildPagination(req.query, 20);
+    const { kategori_id, urun_id, aktif, sadece_dusuk, ara } = req.query;
+    const { limit, offset } = buildPagination(req.query);
 
     let kosul = " WHERE 1=1";
     const kosulDegerleri = [];
 
-    if (varyant_id) {
-      kosul += " AND sh.varyant_id = ?";
-      kosulDegerleri.push(varyant_id);
+    if (kategori_id) {
+      kosul += " AND u.kategori_id = ?";
+      kosulDegerleri.push(kategori_id);
     }
 
-    if (tip) {
-      kosul += " AND sh.tip = ?";
-      kosulDegerleri.push(tip);
+    if (urun_id) {
+      kosul += " AND v.urun_id = ?";
+      kosulDegerleri.push(urun_id);
     }
 
-    if (sebep) {
-      kosul += " AND sh.sebep = ?";
-      kosulDegerleri.push(sebep);
+    if (aktif === "1" || aktif === "0") {
+      kosul += " AND v.aktif = ?";
+      kosulDegerleri.push(aktif === "1");
     }
 
-    if (baslangic) {
-      kosul += " AND sh.tarih >= ?";
-      kosulDegerleri.push(baslangic + " 00:00:00");
+    if (sadece_dusuk === "1") {
+      kosul += " AND v.miktar <= v.kritik_seviye";
     }
 
-    if (bitis) {
-      kosul += " AND sh.tarih <= ?";
-      kosulDegerleri.push(bitis + " 23:59:59");
+    if (ara) {
+      kosul += " AND (u.ad LIKE ? OR v.boy LIKE ? OR v.barkod LIKE ?)";
+      const desen = `%${ara}%`;
+      kosulDegerleri.push(desen, desen, desen);
     }
 
     const [sayim] = await pool.query(
-      "SELECT COUNT(*) AS toplam FROM stok_hareketleri sh" + kosul,
+      `SELECT COUNT(*) AS toplam
+       FROM urun_varyantlari v
+       JOIN urunler u ON v.urun_id = u.id` + kosul,
       kosulDegerleri,
     );
     res.set("X-Toplam-Kayit", sayim[0].toplam);
 
     const sorgu =
-      `SELECT sh.id, sh.varyant_id, sh.lokasyon_id, sh.tip, sh.sebep,
-              sh.miktar, sh.aciklama, sh.tarih,
-              u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg,
-              k.ad AS kullanici_adi, l.kod AS lokasyon_kod
-       FROM stok_hareketleri sh
-       JOIN urun_varyantlari v ON sh.varyant_id = v.id
-       JOIN urunler u ON v.urun_id = u.id
-       LEFT JOIN kullanicilar k ON sh.olusturan_kullanici_id = k.id
-       LEFT JOIN lokasyonlar l ON sh.lokasyon_id = l.id` +
+      `SELECT v.*, u.ad AS urun_adi
+       FROM urun_varyantlari v
+       JOIN urunler u ON v.urun_id = u.id` +
       kosul +
-      " ORDER BY sh.tarih DESC LIMIT ? OFFSET ?";
+      " ORDER BY u.ad, v.boy LIMIT ? OFFSET ?";
 
     const [rows] = await pool.query(sorgu, [...kosulDegerleri, limit, offset]);
     res.json(rows);

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Search, X } from "lucide-react";
 import {
   varyantlariGetir,
@@ -19,6 +19,7 @@ const FILTRE_ALANLARI = ["kategori_id", "urun_id", "aktif", "sadece_dusuk"];
 function Varyantlar() {
   const bildir = useToast();
   const [parametreler, setParametreler] = useSearchParams();
+  const gezin = useNavigate();
 
   // Filtreler ve sayfa numarasi adres cubugunda tutuluyor: sayfa
   // yenilendiginde kayboluyorlardi ve panelden filtreli baglanti
@@ -504,7 +505,14 @@ function Varyantlar() {
                         : ""
                     }
                   >
-                    <td>{v.urun_adi}</td>
+                    <td>
+                      <Link
+                        className="tablo-link"
+                        to={`/varyantlar?urun_id=${v.urun_id}`}
+                      >
+                        {v.urun_adi}
+                      </Link>
+                    </td>
                     <td>{v.boy}</td>
                     <td>
                       {Number(v.ambalaj_kg)} kg {v.ambalaj_tipi}
@@ -518,6 +526,14 @@ function Varyantlar() {
                     <td>
                       <button onClick={() => duzenlemeyeBasla(v)}>
                         Düzenle
+                      </button>
+                      <button
+                        className="ikincil"
+                        onClick={() =>
+                          gezin(`/stok-hareketleri?varyant_id=${v.id}`)
+                        }
+                      >
+                        Hareketler
                       </button>
                       <button
                         onClick={() => setSilinecek(v)}

@@ -44,7 +44,8 @@ const listele = async (req, res, next) => {
     const sorgu =
       `SELECT sh.id, sh.varyant_id, sh.lokasyon_id, sh.tip, sh.sebep,
               sh.miktar, sh.aciklama, sh.tarih,
-              u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg,
+              u.id AS urun_id, u.ad AS urun_adi,
+              v.boy, v.ambalaj_tipi, v.ambalaj_kg,
               k.ad AS kullanici_adi, l.kod AS lokasyon_kod
        FROM stok_hareketleri sh
        JOIN urun_varyantlari v ON sh.varyant_id = v.id
