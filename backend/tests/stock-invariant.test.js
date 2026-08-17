@@ -141,3 +141,68 @@ test("stok degismezi: butun akislar boyunca birim toplami = varyant toplami", as
 
   await kontrol("sayim duzeltmesi", 60);
 });
+
+test("varyant baslangic stogu: birim ve hareket birlikte olusuyor", async () => {
+  await resetDatabase();
+  const token = await getAdminToken(app);
+  const { kabulId } = await seedWarehouse(app, token);
+
+  const auth = (istek) => istek.set("Authorization", `Bearer ${token}`);
+
+  const varyantlar = await auth(request(app).get("/varyantlar")).expect(200);
+  const urunId = varyantlar.body[0].urun_id;
+
+  await auth(request(app).post("/varyantlar"))
+    .send({
+      urun_id: urunId,
+      boy: "LOKASYONSUZ",
+      ambalaj_tipi: "kova",
+      ambalaj_kg: 10,
+      miktar: 50,
+    })
+    .expect(400);
+
+  const redSonrasi = await stockTotals();
+
+  assert.equal(
+    redSonrasi.variantTotal,
+    0,
+    "lokasyonsuz istek reddedildigi halde varyant miktari yazilmis",
+  );
+
+  const varyant = await auth(request(app).post("/varyantlar"))
+    .send({
+      urun_id: urunId,
+      boy: "BASLANGIC",
+      ambalaj_tipi: "kova",
+      ambalaj_kg: 10,
+      miktar: 50,
+      lokasyon_id: kabulId,
+    })
+    .expect(201);
+
+  const { variantTotal, unitTotal } = await stockTotals();
+
+  assert.equal(variantTotal, 50, `varyant toplami 50 olmali, ${variantTotal}`);
+  assert.equal(
+    unitTotal,
+    variantTotal,
+    `SAPMA — varyant toplami ${variantTotal}, birim toplami ${unitTotal}`,
+  );
+
+  const birimler = await auth(
+    request(app).get(`/stok-birimleri?varyant_id=${varyant.body.id}`),
+  ).expect(200);
+
+  assert.equal(birimler.body.length, 1, "stok birimi olusmamis");
+  assert.equal(birimler.body[0].lokasyon_id, kabulId);
+  assert.equal(Number(birimler.body[0].miktar), 50);
+
+  const hareketler = await auth(
+    request(app).get(`/stok-hareketleri?varyant_id=${varyant.body.id}`),
+  ).expect(200);
+
+  assert.equal(hareketler.body.length, 1, "deftere giris hareketi yazilmamis");
+  assert.equal(hareketler.body[0].tip, "giris");
+  assert.equal(Number(hareketler.body[0].miktar), 50);
+});

@@ -72,6 +72,7 @@ const dusukStok = async (req, res, next) => {
 };
 
 const ekle = async (req, res, next) => {
+  const connection = await pool.getConnection();
   try {
     const {
       urun_id,
@@ -80,12 +81,29 @@ const ekle = async (req, res, next) => {
       ambalaj_kg,
       barkod,
       miktar,
+      lokasyon_id,
       kritik_seviye,
       toptan_fiyat,
       perakende_fiyat,
     } = req.body;
 
-    const [result] = await pool.query(
+    const baslangicStogu = Number(miktar) || 0;
+
+    await connection.beginTransaction();
+
+    if (baslangicStogu > 0) {
+      const [lokasyonRows] = await connection.query(
+        "SELECT id FROM lokasyonlar WHERE id = ? AND aktif = TRUE",
+        [lokasyon_id],
+      );
+
+      if (!lokasyonRows.length) {
+        await connection.rollback();
+        return res.status(404).json({ hata: "Lokasyon bulunamadı" });
+      }
+    }
+
+    const [sonuc] = await connection.query(
       `INSERT INTO urun_varyantlari
        (urun_id, boy, ambalaj_tipi, ambalaj_kg, barkod, miktar, kritik_seviye,
         toptan_fiyat, perakende_fiyat)
@@ -96,21 +114,52 @@ const ekle = async (req, res, next) => {
         ambalaj_tipi || "kova",
         ambalaj_kg || 10,
         barkod || null,
-        miktar || 0,
+        baslangicStogu,
         kritik_seviye || 0,
         toptan_fiyat || 0,
         perakende_fiyat || 0,
       ],
     );
 
-    res.status(201).json({ id: result.insertId });
+    const varyantId = sonuc.insertId;
+
+    if (baslangicStogu > 0) {
+      await connection.query(
+        `INSERT INTO stok_birimleri
+         (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
+         VALUES ('dokme', ?, ?, ?, ?)`,
+        [varyantId, lokasyon_id, baslangicStogu, req.kullanici.id],
+      );
+
+      await connection.query(
+        `INSERT INTO stok_hareketleri
+         (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama,
+          olusturan_kullanici_id)
+         VALUES (?, ?, 'giris', 'manuel', ?, ?, ?)`,
+        [
+          varyantId,
+          lokasyon_id,
+          baslangicStogu,
+          "Varyant olusturulurken girilen baslangic stogu",
+          req.kullanici.id,
+        ],
+      );
+    }
+
+    await connection.commit();
+    res.status(201).json({ id: varyantId });
   } catch (err) {
+    await connection.rollback();
+
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({
         hata: "Bu ürün için aynı boy ve ambalajda varyant zaten var, ya da barkod başka bir varyantta kullanılıyor",
       });
     }
+
     next(err);
+  } finally {
+    connection.release();
   }
 };
 

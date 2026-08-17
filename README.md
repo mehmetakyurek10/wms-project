@@ -309,6 +309,8 @@ Sayımın engellenmemesi bilinçli bir tercihtir. Sayımda rezerveden az mal bul
 
 Her pazar bir **konum** olarak tanımlanır (`lokasyonlar.tip = 'pazar'`). Sefer açıldığında mal depodan pazar konumuna taşınır — **toplam stok değişmez**, yalnızca yeri değişir. Mal fiziksel olarak hâlâ işletmenin elindedir ve sistemde görünür kalması gerekir.
 
+- **Varyant başlangıç stoğu** — varyant oluştururken stok girildiğinde lokasyonun zorunlu olduğu, reddedilen isteğin hiçbir iz bırakmadığı, kabul edilen istekte stok biriminin ve giriş hareketinin varyantla aynı işlemde oluştuğu
+
 Sefer kapatılırken dönen miktar girilir. Dönen kısım mal kabul alanına aktarılır, kalan fark gerçek bir çıkış olarak kaydedilir:
 
 ```

@@ -9,6 +9,8 @@ import {
 } from "../api/varyantApi";
 import { urunleriGetir } from "../api/urunApi";
 import { kategorileriGetir } from "../api/kategoriApi";
+import { lokasyonlariGetir } from "../api/lokasyonApi";
+import LokasyonSecici from "../components/LokasyonSecici";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
@@ -43,6 +45,7 @@ function Varyantlar() {
     barkod: "",
     miktar: 0,
     birim: "adet",
+    lokasyon_id: "",
     kritik_seviye: 0,
     toptan_fiyat: 0,
     perakende_fiyat: 0,
@@ -99,6 +102,13 @@ function Varyantlar() {
     errorMessage: "Kategoriler yüklenemedi",
   });
 
+  const { data: tumLokasyonlar } = useFetch(() => lokasyonlariGetir(), [], {
+    initial: [],
+    errorMessage: "Lokasyonlar yüklenemedi",
+  });
+
+  const lokasyonlar = tumLokasyonlar.filter((l) => l.aktif);
+
   const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
   const filtreVar =
     aranan !== "" || FILTRE_ALANLARI.some((alan) => filtre[alan] !== "");
@@ -146,11 +156,12 @@ function Varyantlar() {
         ambalaj_kg: form.ambalaj_kg,
         barkod: form.barkod,
         miktar: miktarAdet,
+        lokasyon_id: miktarAdet > 0 ? form.lokasyon_id : "",
         kritik_seviye: form.kritik_seviye,
         toptan_fiyat: form.toptan_fiyat,
         perakende_fiyat: form.perakende_fiyat,
       });
-      setForm({ ...form, boy: "", barkod: "", miktar: 0 });
+      setForm({ ...form, boy: "", barkod: "", miktar: 0, lokasyon_id: "" });
       bildir("Varyant eklendi");
       varyantlariYukle();
     } catch (err) {
@@ -292,6 +303,19 @@ function Varyantlar() {
             <span className="kucuk-not">= {miktarAdet.toFixed(2)} adet</span>
           )}
         </div>
+
+        {miktarAdet > 0 && (
+          <div className="form-alan">
+            <label>Başlangıç stoğu nereye girsin</label>
+            <LokasyonSecici
+              ad="lokasyon_id"
+              deger={form.lokasyon_id}
+              degisti={handleChange}
+              lokasyonlar={lokasyonlar}
+              zorunlu
+            />
+          </div>
+        )}
 
         <div className="form-alan">
           <label>Kritik seviye (adet)</label>
