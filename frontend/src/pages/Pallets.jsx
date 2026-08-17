@@ -1,32 +1,66 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { ScanLine, Boxes, Search, X } from "lucide-react";
 import { getStockUnits, findPalletByCode } from "../api/stockUnitApi";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
+import Sayfalama from "../components/Sayfalama";
+import { SAYFA_BOYUTU } from "../sabitler";
 
 const sayi = (deger) => Number(deger).toLocaleString("tr-TR");
 
 function Pallets() {
   const bildir = useToast();
+  const [parametreler, setParametreler] = useSearchParams();
 
-  const [arama, setArama] = useState("");
-  const [aranan, setAranan] = useState("");
+  const aranan = parametreler.get("ara") || "";
+  const sayfa = Number(parametreler.get("sayfa")) || 1;
+
+  const [arama, setArama] = useState(aranan);
   const [scanKod, setScanKod] = useState("");
   const [scanSonuc, setScanSonuc] = useState(null);
 
+  const parametreGuncelle = (yeniler) => {
+    const sonraki = new URLSearchParams(parametreler);
+
+    for (const [anahtar, deger] of Object.entries(yeniler)) {
+      if (deger === "" || deger === undefined || deger === null) {
+        sonraki.delete(anahtar);
+      } else {
+        sonraki.set(anahtar, String(deger));
+      }
+    }
+
+    setParametreler(sonraki, { replace: true });
+  };
+
+  const sorguAnahtari = parametreler.toString();
+
   const {
     data: pallets,
+    total: toplam,
     loading,
     error,
   } = useFetch(
-    () => getStockUnits({ tip: "palet", ara: aranan || undefined }),
-    [aranan],
+    () =>
+      getStockUnits({
+        tip: "palet",
+        ara: aranan || undefined,
+        sayfa,
+        limit: SAYFA_BOYUTU,
+      }),
+    [sorguAnahtari],
     { initial: [], errorMessage: "Paletler yüklenemedi" },
   );
 
   useEffect(() => {
-    const zamanlayici = setTimeout(() => setAranan(arama), 400);
+    const zamanlayici = setTimeout(() => {
+      if (arama !== aranan) {
+        parametreGuncelle({ ara: arama, sayfa: "" });
+      }
+    }, 400);
     return () => clearTimeout(zamanlayici);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [arama]);
 
   const scan = async (e) => {
@@ -144,6 +178,13 @@ function Pallets() {
           </tbody>
         </table>
       )}
+
+      <Sayfalama
+        sayfa={sayfa}
+        toplam={toplam}
+        sayfaBoyutu={SAYFA_BOYUTU}
+        degisti={(yeniSayfa) => parametreGuncelle({ sayfa: yeniSayfa })}
+      />
     </div>
   );
 }

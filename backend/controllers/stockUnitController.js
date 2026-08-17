@@ -1,9 +1,11 @@
 const pool = require("../config/db");
 const { reservedQuantity } = require("../utils/reservations");
+const { buildPagination } = require("../utils/pagination");
 
 const list = async (req, res, next) => {
   try {
     const { varyant_id, lokasyon_id, tip, ara } = req.query;
+    const { limit, offset } = buildPagination(req.query);
 
     let kosul = " WHERE 1=1";
     const degerler = [];
@@ -54,8 +56,8 @@ const list = async (req, res, next) => {
        ) r ON r.birim_id = sb.id
        ${kosul}
        ORDER BY sb.tip, sb.kod, l.kod
-       LIMIT 500`,
-      degerler,
+       LIMIT ? OFFSET ?`,
+      [...degerler, limit, offset],
     );
 
     res.json(rows);

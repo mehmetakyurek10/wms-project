@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   tedarikcileriGetir,
   tedarikciEkle,
@@ -8,9 +9,14 @@ import {
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
+import Sayfalama from "../components/Sayfalama";
+import { SAYFA_BOYUTU } from "../sabitler";
 
 function Tedarikciler() {
   const bildir = useToast();
+  const [parametreler, setParametreler] = useSearchParams();
+  const sayfa = Number(parametreler.get("sayfa")) || 1;
+
   const [form, setForm] = useState({
     ad: "",
     yetkili_kisi: "",
@@ -23,15 +29,29 @@ function Tedarikciler() {
   const [silinecek, setSilinecek] = useState(null);
   const [gonderiliyor, setGonderiliyor] = useState(false);
 
+  const sayfaDegisti = (yeniSayfa) => {
+    const sonraki = new URLSearchParams(parametreler);
+
+    if (yeniSayfa <= 1) {
+      sonraki.delete("sayfa");
+    } else {
+      sonraki.set("sayfa", String(yeniSayfa));
+    }
+
+    setParametreler(sonraki, { replace: true });
+  };
+
   const {
     data: tedarikciler,
+    total: toplam,
     loading: yukleniyor,
     error: hata,
     refresh: veriGetir,
-  } = useFetch(() => tedarikcileriGetir(), [], {
-    initial: [],
-    errorMessage: "Tedarikçiler yüklenemedi",
-  });
+  } = useFetch(
+    () => tedarikcileriGetir({ sayfa, limit: SAYFA_BOYUTU }),
+    [sayfa],
+    { initial: [], errorMessage: "Tedarikçiler yüklenemedi" },
+  );
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -236,6 +256,13 @@ function Tedarikciler() {
           </tbody>
         </table>
       )}
+
+      <Sayfalama
+        sayfa={sayfa}
+        toplam={toplam}
+        sayfaBoyutu={SAYFA_BOYUTU}
+        degisti={sayfaDegisti}
+      />
 
       <OnayModal
         acik={silinecek !== null}

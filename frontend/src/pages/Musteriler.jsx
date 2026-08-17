@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import {
   musterileriGetir,
   musteriEkle,
@@ -8,9 +9,14 @@ import {
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
+import Sayfalama from "../components/Sayfalama";
+import { SAYFA_BOYUTU } from "../sabitler";
 
 function Musteriler() {
   const bildir = useToast();
+  const [parametreler, setParametreler] = useSearchParams();
+  const sayfa = Number(parametreler.get("sayfa")) || 1;
+
   const [form, setForm] = useState({
     ad: "",
     yetkili_kisi: "",
@@ -23,15 +29,29 @@ function Musteriler() {
   const [silinecek, setSilinecek] = useState(null);
   const [gonderiliyor, setGonderiliyor] = useState(false);
 
+  const sayfaDegisti = (yeniSayfa) => {
+    const sonraki = new URLSearchParams(parametreler);
+
+    if (yeniSayfa <= 1) {
+      sonraki.delete("sayfa");
+    } else {
+      sonraki.set("sayfa", String(yeniSayfa));
+    }
+
+    setParametreler(sonraki, { replace: true });
+  };
+
   const {
     data: musteriler,
+    total: toplam,
     loading: yukleniyor,
     error: hata,
     refresh: veriGetir,
-  } = useFetch(() => musterileriGetir(), [], {
-    initial: [],
-    errorMessage: "Müşteriler yüklenemedi",
-  });
+  } = useFetch(
+    () => musterileriGetir({ sayfa, limit: SAYFA_BOYUTU }),
+    [sayfa],
+    { initial: [], errorMessage: "Müşteriler yüklenemedi" },
+  );
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -239,6 +259,13 @@ function Musteriler() {
           </tbody>
         </table>
       )}
+
+      <Sayfalama
+        sayfa={sayfa}
+        toplam={toplam}
+        sayfaBoyutu={SAYFA_BOYUTU}
+        degisti={sayfaDegisti}
+      />
 
       <OnayModal
         acik={silinecek !== null}
