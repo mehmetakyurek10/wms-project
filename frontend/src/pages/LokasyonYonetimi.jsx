@@ -18,8 +18,10 @@ import {
 } from "../api/lokasyonApi";
 import Etiket from "../components/Etiket";
 import OnayModal from "../components/OnayModal";
+import Sayfalama from "../components/Sayfalama";
 import { useToast } from "../context/ToastContext";
 import useAuth from "../hooks/useAuth";
+import { SAYFA_BOYUTU } from "../sabitler";
 
 const BOS_ALAN = {
   kod: "",
@@ -56,6 +58,7 @@ function LokasyonYonetimi() {
 
   const [tipFiltre, setTipFiltre] = useState("");
   const [blokFiltre, setBlokFiltre] = useState("");
+  const [sayfa, setSayfa] = useState(1);
 
   const [alanForm, setAlanForm] = useState(BOS_ALAN);
   const [duzenlenenId, setDuzenlenenId] = useState(null);
@@ -184,6 +187,13 @@ function LokasyonYonetimi() {
     if (blokFiltre && l.blok !== blokFiltre) return false;
     return true;
   });
+
+  const toplamSayfa = Math.max(1, Math.ceil(gorunenler.length / SAYFA_BOYUTU));
+  const gecerliSayfa = Math.min(sayfa, toplamSayfa);
+  const sayfadakiler = gorunenler.slice(
+    (gecerliSayfa - 1) * SAYFA_BOYUTU,
+    gecerliSayfa * SAYFA_BOYUTU,
+  );
 
   return (
     <div>
@@ -516,7 +526,7 @@ function LokasyonYonetimi() {
           </tr>
         </thead>
         <tbody>
-          {gorunenler.map((l) => (
+          {sayfadakiler.map((l) => (
             <tr key={l.id}>
               <td>{l.kod}</td>
               <td>{l.ad || "-"}</td>
@@ -550,6 +560,13 @@ function LokasyonYonetimi() {
           ))}
         </tbody>
       </table>
+
+      <Sayfalama
+        sayfa={gecerliSayfa}
+        toplam={gorunenler.length}
+        sayfaBoyutu={SAYFA_BOYUTU}
+        degisti={setSayfa}
+      />
 
       <OnayModal
         acik={silinecek !== null}
