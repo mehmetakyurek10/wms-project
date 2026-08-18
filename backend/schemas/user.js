@@ -14,4 +14,10 @@ const kullaniciGuncelle = z
     message: "Güncellenecek alan gönderilmedi",
   });
 
-module.exports = { kullaniciGuncelle };
+const sifreSifirla = z.object({
+  yeniSifre: z
+    .string({ message: "Yeni şifre zorunludur" })
+    .min(6, { message: "Yeni şifre en az 6 karakter olmalıdır" }),
+});
+
+module.exports = { kullaniciGuncelle, sifreSifirla };

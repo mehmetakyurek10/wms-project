@@ -1,17 +1,25 @@
 import { useState } from "react";
 import { Navigate } from "react-router-dom";
-import { kullanicilariGetir, kullaniciGuncelle } from "../api/kullaniciApi";
+import {
+  kullanicilariGetir,
+  kullaniciGuncelle,
+  kullaniciSifreSifirla,
+} from "../api/kullaniciApi";
 import { kayitOl } from "../api/authApi";
 import { useToast } from "../context/ToastContext";
 import useAuth from "../hooks/useAuth";
 import useFetch from "../hooks/useFetch";
 import Etiket from "../components/Etiket";
+import Modal from "../components/Modal";
 
 function Kullanicilar() {
   const bildir = useToast();
   const { kullanici: mevcutKullanici } = useAuth();
 
   const [gonderiliyor, setGonderiliyor] = useState(false);
+  const [sifirlanacak, setSifirlanacak] = useState(null);
+  const [yeniSifre, setYeniSifre] = useState("");
+  const [sifirlaniyor, setSifirlaniyor] = useState(false);
   const [form, setForm] = useState({
     ad: "",
     email: "",
@@ -80,6 +88,26 @@ function Kullanicilar() {
       veriGetir();
     } catch (err) {
       bildir(err.response?.data?.hata || "Güncellenemedi", "hata");
+    }
+  };
+
+  const sifirlamaKapat = () => {
+    setSifirlanacak(null);
+    setYeniSifre("");
+  };
+
+  const sifreSifirlaGonder = async (e) => {
+    e.preventDefault();
+    if (sifirlaniyor) return;
+    setSifirlaniyor(true);
+    try {
+      await kullaniciSifreSifirla(sifirlanacak.id, { yeniSifre });
+      bildir(`${sifirlanacak.ad} için şifre sıfırlandı`);
+      sifirlamaKapat();
+    } catch (err) {
+      bildir(err.response?.data?.hata || "Şifre sıfırlanamadı", "hata");
+    } finally {
+      setSifirlaniyor(false);
     }
   };
 
@@ -175,12 +203,58 @@ function Kullanicilar() {
                   >
                     {k.aktif ? "Pasife Al" : "Aktifleştir"}
                   </button>
+                  <button
+                    className="ikincil"
+                    onClick={() => setSifirlanacak(k)}
+                    disabled={kendisi}
+                    title={
+                      kendisi
+                        ? "Kendi şifreniz için Şifre Değiştir ekranını kullanın"
+                        : ""
+                    }
+                  >
+                    Şifre Sıfırla
+                  </button>
                 </td>
               </tr>
             );
           })}
         </tbody>
       </table>
+
+      <Modal
+        acik={sifirlanacak !== null}
+        kapat={sifirlamaKapat}
+        baslik="Şifre sıfırla"
+        kirli={yeniSifre.length > 0}
+      >
+        <h3>Şifre sıfırla</h3>
+        <p className="kucuk-not">
+          {sifirlanacak?.ad} için yeni bir şifre belirleyin. Kullanıcının açık
+          oturumları kapanacak ve yeni şifreyle giriş yapması gerekecek.
+        </p>
+
+        <form onSubmit={sifreSifirlaGonder}>
+          <div className="form-alan">
+            <label>Yeni şifre</label>
+            <input
+              type="text"
+              value={yeniSifre}
+              onChange={(e) => setYeniSifre(e.target.value)}
+              minLength={6}
+              required
+              autoFocus
+            />
+          </div>
+
+          <button type="submit" disabled={sifirlaniyor}>
+            {sifirlaniyor ? "Sıfırlanıyor..." : "Sıfırla"}
+          </button>
+          <button type="button" className="ikincil" onClick={sifirlamaKapat}>
+            Vazgeç
+          </button>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -311,6 +311,8 @@ Her pazar bir **konum** olarak tanımlanır (`lokasyonlar.tip = 'pazar'`). Sefer
 
 - **Varyant başlangıç stoğu** — varyant oluştururken stok girildiğinde lokasyonun zorunlu olduğu, reddedilen isteğin hiçbir iz bırakmadığı, kabul edilen istekte stok biriminin ve giriş hareketinin varyantla aynı işlemde oluştuğu
 
+- **Parola sıfırlama** — yöneticinin sıfırladığı hesapta eski access token'ın düştüğü, eski parolayla girilemediği ve yenisinin geçerli olduğu; yöneticinin kendi parolasını bu uçtan sıfırlayamadığı, kısa parolanın ve token'sız isteğin reddedildiği
+
 Sefer kapatılırken dönen miktar girilir. Dönen kısım mal kabul alanına aktarılır, kalan fark gerçek bir çıkış olarak kaydedilir:
 
 ```
@@ -379,7 +381,7 @@ Her yenilemede refresh çerezi yenisiyle değiştirilir (rotation), böylece ele
 | **Lokasyonlar**              | Lokasyon tanımları ve blok üreteci                                                                             |
 | **Raporlar**                 | Tarih aralığına göre hareket özeti, çalışan ve kalem kırılımı                                                  |
 | **Sistem Sağlığı**           | Stok sapması, negatif stok, karşılanamayan rezervasyon, pazarda kalıntı, pasif lokasyonda stok, kapasite aşımı |
-| **Kullanıcılar**             | Kullanıcı yönetimi, rol atama, parola değiştirme                                                               |
+| **Kullanıcılar**             | Kullanıcı yönetimi, rol atama, parola değiştirme, yönetici tarafından parola sıfırlama                         |
 
 ### Roller
 

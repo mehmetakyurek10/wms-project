@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const bcrypt = require("bcryptjs");
 const ALANLAR = ["rol", "aktif"];
 
 const listele = async (req, res, next) => {
@@ -90,4 +91,39 @@ const guncelle = async (req, res, next) => {
   }
 };
 
-module.exports = { listele, guncelle };
+const sifreSifirla = async (req, res, next) => {
+  try {
+    const hedefId = parseInt(req.params.id, 10);
+
+    if (!Number.isInteger(hedefId)) {
+      return res.status(400).json({ hata: "Geçersiz kullanıcı" });
+    }
+
+    if (hedefId === req.kullanici.id) {
+      return res.status(400).json({
+        hata: "Kendi şifrenizi buradan sıfırlayamazsınız, Şifre Değiştir ekranını kullanın",
+      });
+    }
+
+    const hash = await bcrypt.hash(req.body.yeniSifre, 10);
+
+    const [sonuc] = await pool.query(
+      `UPDATE kullanicilar
+       SET sifre_hash = ?, token_surumu = token_surumu + 1
+       WHERE id = ?`,
+      [hash, hedefId],
+    );
+
+    if (sonuc.affectedRows === 0) {
+      return res.status(404).json({ hata: "Kullanıcı bulunamadı" });
+    }
+
+    res.json({
+      mesaj: "Şifre sıfırlandı, kullanıcının açık oturumları kapatıldı",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { listele, guncelle, sifreSifirla };
