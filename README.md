@@ -304,6 +304,14 @@ Bunun pratik sonuçları:
 
 Sayımın engellenmemesi bilinçli bir tercihtir. Sayımda rezerveden az mal bulunursa kayıt yine de kabul edilir; çelişki sistem sağlığı ekranında `karsilanamayan_rezervasyon` olarak görünür ve ilgili siparişin teslimatı `409` ile reddedilir. Sayımı reddetmek, gerçekte olan bir farkı sisteme hiç girilmemiş hale getirirdi. Doğru davranış çelişkiyi yutmak ya da engellemek değil, **görünür kılmaktır**.
 
+### Kapasite
+
+Lokasyon tanımındaki `kapasite` alanı **palet sayısı** cinsindendir. Bu değer stok girişini, paletlemeyi veya transferi **engellemez**; aşıldığında sistem sağlığı ekranında `Kapasite Aşımı` uyarısı olarak görünür.
+
+Gerekçe sayımdaki tercihle aynıdır: depoda fiziksel olarak duran bir mal, sistem izin vermediği için kayıtsız kalamaz. Rafa altıncı palet konulduysa gerçek budur; sistemin işi bunu reddetmek değil, sorumluya bildirmektir. Aksi hâlde kullanıcı malı sisteme hiç girmez ve kayıt gerçeklikten kopar — bir depo yönetim sisteminin kaçınması gereken tek şey de budur.
+
+Kapasitesi `0` olan lokasyonlar sınırsız sayılır ve kontrole hiç girmez; mal kabul, sevkiyat gibi geçiş alanları için varsayılan budur. Kontrol yalnızca `tip = 'palet'` olan stok birimlerini sayar, dökme mal kapasiteye dahil edilmez.
+
 ### Pazar seferi
 
 İşletme haftada dört gün pazara mal götürüyor, bir kısmını perakende satıyor, kalanı depoya döndürüyor. Bu akış satış siparişine benzemez: miktar önceden belli değildir ve satış ancak dönüş kaydedildiğinde ortaya çıkar.
