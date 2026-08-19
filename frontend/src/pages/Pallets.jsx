@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { ScanLine, Boxes, Search, X } from "lucide-react";
 import { getStockUnits, findPalletByCode } from "../api/stockUnitApi";
+import PaletEtiketi from "../components/PaletEtiketi";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import Sayfalama from "../components/Sayfalama";
@@ -19,6 +20,7 @@ function Pallets() {
   const [arama, setArama] = useState(aranan);
   const [scanKod, setScanKod] = useState("");
   const [scanSonuc, setScanSonuc] = useState(null);
+  const [etiketPalet, setEtiketPalet] = useState(null);
 
   const parametreGuncelle = (yeniler) => {
     const sonraki = new URLSearchParams(parametreler);
@@ -158,6 +160,7 @@ function Pallets() {
               <th>Lokasyon</th>
               <th>Miktar</th>
               <th>Oluşturan</th>
+              <th>Etiket</th>
             </tr>
           </thead>
           <tbody>
@@ -173,6 +176,11 @@ function Pallets() {
                 <td>{p.lokasyon_kod}</td>
                 <td>{sayi(p.miktar)}</td>
                 <td>{p.olusturan_adi || "—"}</td>
+                <td>
+                  <button className="ikincil" onClick={() => setEtiketPalet(p)}>
+                    Etiket
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -184,6 +192,12 @@ function Pallets() {
         toplam={toplam}
         sayfaBoyutu={SAYFA_BOYUTU}
         degisti={(yeniSayfa) => parametreGuncelle({ sayfa: yeniSayfa })}
+      />
+
+      <PaletEtiketi
+        acik={etiketPalet !== null}
+        palet={etiketPalet}
+        kapat={() => setEtiketPalet(null)}
       />
     </div>
   );

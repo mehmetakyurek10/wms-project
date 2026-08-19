@@ -381,7 +381,7 @@ Her yenilemede refresh çerezi yenisiyle değiştirilir (rotation), böylece ele
 | **Panel**                    | Özet kartlar, son 14 gün giriş/çıkış grafiği, en çok hareket gören kalemler, bölge bazlı dağılım               |
 | **Ürünler / Stok Kalemleri** | Ürün ve varyant tanımları (boy, ambalaj tipi, ambalaj kg, barkod, kritik seviye)                               |
 | **Depo Haritası**            | Kuş bakışı yerleşim planı, kat katmanları, lokasyon detayı, paletleme ve taşıma                                |
-| **Palet Sorgula**            | Barkod ile palet arama, depodaki paletlerin listesi                                                            |
+| **Palet Sorgula**            | Barkod ile palet arama, depodaki paletlerin listesi, Code128 barkod etiketi yazdırma                           |     |
 | **Stok Hareketleri**         | Giriş/çıkış kaydı, birim seçimi, filtreleme ve sayfalama                                                       |
 | **Sayım**                    | Lokasyon bazlı sayım; her palet ve dökme yığın ayrı satır                                                      |
 | **Satınalma**                | Sipariş oluşturma, teslim alma, fiş                                                                            |

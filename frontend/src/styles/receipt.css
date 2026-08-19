@@ -183,3 +183,74 @@
     display: none;
   }
 }
+
+.etiket {
+  max-width: 380px;
+}
+
+.etiket-baslik {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.etiket-barkod {
+  width: 100%;
+  height: auto;
+  background: #fff;
+  border-radius: 6px;
+  padding: 10px 8px;
+}
+
+.etiket-bilgi {
+  display: grid;
+  gap: 9px;
+  margin-top: 16px;
+}
+
+.etiket-bilgi > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.etiket-bilgi span {
+  color: var(--renk-metin-soluk);
+}
+
+.etiket-aksiyon {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media print {
+  .etiket,
+  .etiket * {
+    visibility: visible;
+  }
+
+  .etiket {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: none;
+    border: none;
+    box-shadow: none;
+    animation: none;
+    color: #000;
+    background: #fff;
+  }
+
+  .etiket-barkod {
+    padding: 0;
+  }
+
+  .etiket-aksiyon,
+  .etiket-kapat {
+    display: none;
+  }
+}
