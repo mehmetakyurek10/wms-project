@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const { reservedQuantity } = require("../utils/reservations");
 const { buildPagination } = require("../utils/pagination");
+const { paletGozuDolu } = require("../utils/paletGozu");
 
 const list = async (req, res, next) => {
   try {
@@ -112,13 +113,23 @@ const palletize = async (req, res, next) => {
     await connection.beginTransaction();
 
     const [lokasyonRows] = await connection.query(
-      "SELECT id FROM lokasyonlar WHERE id = ? AND aktif = TRUE",
+      "SELECT id, tip FROM lokasyonlar WHERE id = ? AND aktif = TRUE",
       [lokasyonId],
     );
 
     if (!lokasyonRows.length) {
       await connection.rollback();
       return res.status(404).json({ hata: "Lokasyon bulunamadı" });
+    }
+
+    if (
+      lokasyonRows[0].tip === "palet" &&
+      (await paletGozuDolu(connection, lokasyonId))
+    ) {
+      await connection.rollback();
+      return res.status(409).json({
+        hata: "Bu palet gözünde zaten bir palet var, önce onu başka yere taşıyın",
+      });
     }
 
     const [dokmeRows] = await connection.query(
@@ -179,5 +190,107 @@ const palletize = async (req, res, next) => {
     connection.release();
   }
 };
+const addToPallet = async (req, res, next) => {
+  const connection = await pool.getConnection();
+  try {
+    const paletId = parseInt(req.params.id, 10);
+    const { miktar: eklenecek, yeni_kod: yeniKod } = req.body;
 
-module.exports = { list, findByCode, palletize };
+    if (!Number.isInteger(paletId)) {
+      return res.status(400).json({ hata: "Geçersiz palet" });
+    }
+
+    await connection.beginTransaction();
+
+    const [paletRows] = await connection.query(
+      `SELECT id, kod, varyant_id, lokasyon_id, miktar
+       FROM stok_birimleri
+       WHERE id = ? AND tip = 'palet'
+       FOR UPDATE`,
+      [paletId],
+    );
+
+    if (!paletRows.length) {
+      await connection.rollback();
+      return res.status(404).json({ hata: "Palet bulunamadı" });
+    }
+
+    const palet = paletRows[0];
+
+    const [dokmeRows] = await connection.query(
+      `SELECT id, miktar FROM stok_birimleri
+       WHERE tip = 'dokme' AND varyant_id = ? AND lokasyon_id = ?
+       FOR UPDATE`,
+      [palet.varyant_id, palet.lokasyon_id],
+    );
+
+    if (!dokmeRows.length) {
+      await connection.rollback();
+      return res.status(400).json({
+        hata: "Bu lokasyonda paletle aynı üründen dökme stok yok",
+      });
+    }
+
+    const mevcut = Number(dokmeRows[0].miktar);
+    const rezerve = await reservedQuantity(connection, dokmeRows[0].id);
+    const kullanilabilir = mevcut - rezerve;
+
+    if (kullanilabilir < eklenecek) {
+      await connection.rollback();
+      return res.status(400).json({
+        hata: `Eklenecek kadar serbest dökme stok yok (mevcut ${mevcut.toFixed(0)}, ${rezerve.toFixed(0)} adedi siparişlere ayrılmış)`,
+      });
+    }
+
+    const [dususSonuc] = await connection.query(
+      `UPDATE stok_birimleri SET miktar = miktar - ?
+       WHERE id = ? AND miktar >= ?`,
+      [eklenecek, dokmeRows[0].id, eklenecek],
+    );
+
+    if (dususSonuc.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(409).json({
+        hata: "Stok bu sırada değişmiş, işlem geri alındı. Tekrar deneyin.",
+      });
+    }
+
+    await connection.query(
+      "DELETE FROM stok_birimleri WHERE id = ? AND miktar = 0",
+      [dokmeRows[0].id],
+    );
+
+    await connection.query(
+      "UPDATE stok_birimleri SET miktar = miktar + ? WHERE id = ?",
+      [eklenecek, paletId],
+    );
+
+    if (yeniKod && yeniKod !== palet.kod) {
+      await connection.query("UPDATE stok_birimleri SET kod = ? WHERE id = ?", [
+        yeniKod,
+        paletId,
+      ]);
+    }
+
+    await connection.commit();
+
+    const sonKod = yeniKod || palet.kod;
+    const sonMiktar = Number(palet.miktar) + Number(eklenecek);
+
+    res.json({
+      mesaj: `${sonKod} paleti ${sonMiktar.toFixed(0)} adede çıkarıldı`,
+    });
+  } catch (err) {
+    await connection.rollback().catch(() => {});
+
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ hata: "Bu palet kodu zaten kullanılıyor" });
+    }
+
+    next(err);
+  } finally {
+    connection.release();
+  }
+};
+
+module.exports = { list, findByCode, palletize, addToPallet };

@@ -1,6 +1,7 @@
 const pool = require("../config/db");
 const { reservedQuantity } = require("../utils/reservations");
 const { buildPagination } = require("../utils/pagination");
+const { paletGozuDolu } = require("../utils/paletGozu");
 
 const listele = async (req, res, next) => {
   try {
@@ -90,6 +91,17 @@ const olustur = async (req, res, next) => {
       await connection.rollback();
       return res.status(400).json({
         hata: "Pazara transferle mal gönderilemez, Pazar Seferleri ekranını kullanın",
+      });
+    }
+
+    if (
+      birim.tip === "palet" &&
+      hedefRows[0].tip === "palet" &&
+      (await paletGozuDolu(connection, hedefId))
+    ) {
+      await connection.rollback();
+      return res.status(409).json({
+        hata: "Hedef palet gözünde zaten bir palet var, önce onu başka yere taşıyın",
       });
     }
 

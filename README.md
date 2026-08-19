@@ -176,6 +176,7 @@ Her çalıştırmada şema sıfırdan kurulur. Kapsam:
 - **Pazar seferi** — sefer açılışının toplam stoğu değiştirmediği, açık sefer varken ikincisinin açılamadığı, rezerve malın pazara çıkamadığı, kapanışta dönenin mal kabule girip kalanın satış olarak düştüğü, sefer sonrası pazar konumunun boşaldığı, pazardaki mala sayım ve transfer yapılamadığı
 - **Girdi doğrulama** — arayüzün boş metin olarak gönderdiği alanların "gönderilmemiş" sayıldığı, hata iletilerinin değişmediği, şemada tanımsız alanların isteği reddettirmediği, satış fiyatının kayıtlı fiyattan çok sapmasının engellendiği
 - **Sistem sağlığı ve kurulum** — sağlık ucunun veritabanı bağlantısını doğru bildirdiği, ilk kullanıcının admin olduğu, kurulum ucunun kullanıcı oluşana kadar kurulum gerektiğini bildirdiği; normal işleyişte altı sağlık kontrolünün hiçbirinin yanlış alarm üretmediği, pasife alınan lokasyonda kalan stoğun raporlandığı, kapasite aşımında sınır davranışının doğru olduğu (tanımsız kapasitenin sayılmadığı, kapasite tam doluyken uyarı çıkmadığı, ancak aşıldığında çıktığı)
+- **Palet gözü kuralı** — palet tipi lokasyona ikinci paletin transfer edilemediği ve orada yeni palet oluşturulamadığı, alan tipi lokasyonun birden fazla palet alabildiği, dökme malın palet gözüne taşınmasının engellenmediği
 
 Arayüz testi yoktur; frontend elle doğrulanır.
 
@@ -280,7 +281,11 @@ Stok **iki katmanda** tutulur:
 
 Palet başına miktar sabit değildir — aynı üründen bir palette 75, diğerinde 80 kova olabilir. Her palet kendi miktarını taşıdığı için palet sayısı bölme işlemiyle tahmin edilmez, doğrudan sayılır.
 
-Dökme stokta aynı varyant + lokasyon çifti için yalnızca bir satır bulunabilir; bu, üretilmiş bir kolon üzerindeki `dokme_tek` UNIQUE indeksiyle zorunlu kılınmıştır. Paletlerde böyle bir kısıt yoktur, aynı üründen aynı yerde birden fazla palet olabilir.
+Dökme stokta aynı varyant + lokasyon çifti için yalnızca bir satır bulunabilir; bu, üretilmiş bir kolon üzerindeki `dokme_tek` UNIQUE indeksiyle zorunlu kılınmıştır.
+
+Paletlerde kural lokasyon tipine bağlıdır: `tip = 'palet'` olan lokasyonlar (palet gözleri) yalnızca **tek bir palet** alır; ikinci bir paletin oraya taşınması ya da orada oluşturulması reddedilir. Raf, alan ve kabul gibi lokasyonlarda böyle bir sınır yoktur. Ayrım fizikseldir: palet gözü tanım gereği tek palet alan bir adrestir, oraya ikinci paleti yazmak veri hatasıdır; raf alanına altıncı paletin konması ise gerçekten olabilir, engellenmez ve yalnızca kapasite aşımı olarak raporlanır.
+
+Palet gözünde palet varken oraya dökme mal getirilebilir; depo haritası ekranında lokasyon açıldığında dökme satırından bu mal paletin üzerine eklenebilir. Paletin miktarı artar, dökme satırı erir, barkod varsayılan olarak korunur ve istenirse yenisi verilir. Böylece kural malın gözde birikmesini engellemez, yalnızca ikinci bir palet kimliğinin oluşmasını engeller.
 
 ### Rezervasyon
 
@@ -380,7 +385,7 @@ Her yenilemede refresh çerezi yenisiyle değiştirilir (rotation), böylece ele
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------- | --- |
 | **Panel**                    | Özet kartlar, son 14 gün giriş/çıkış grafiği, en çok hareket gören kalemler, bölge bazlı dağılım               |
 | **Ürünler / Stok Kalemleri** | Ürün ve varyant tanımları (boy, ambalaj tipi, ambalaj kg, barkod, kritik seviye)                               |
-| **Depo Haritası**            | Kuş bakışı yerleşim planı, kat katmanları, lokasyon detayı, paletleme ve taşıma                                |
+| **Depo Haritası**            | Kuş bakışı yerleşim planı, kat katmanları, lokasyon detayı, paletleme, palete mal ekleme ve taşıma             |
 | **Palet Sorgula**            | Barkod ile palet arama, depodaki paletlerin listesi, Code128 barkod etiketi yazdırma                           |     |
 | **Stok Hareketleri**         | Giriş/çıkış kaydı, birim seçimi, filtreleme ve sayfalama                                                       |
 | **Sayım**                    | Lokasyon bazlı sayım; her palet ve dökme yığın ayrı satır                                                      |

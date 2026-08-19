@@ -108,7 +108,7 @@ test("kapasite asimi: tanimsiz kapasite sayilmaz, sinir asilinca uyari cikar", a
   );
 
   const darRaf = await auth(request(app).post("/lokasyonlar"))
-    .send({ kod: "TEST-DAR", tip: "palet", satir: 3, kolon: 1, kapasite: 1 })
+    .send({ kod: "TEST-DAR", tip: "raf", satir: 3, kolon: 1, kapasite: 1 })
     .expect(201);
 
   await girisYap(darRaf.body.id, 60).expect(201);

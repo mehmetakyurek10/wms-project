@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { X, Layers, MoveRight, Package2 } from "lucide-react";
+import { X, Layers, MoveRight, Package2, PackagePlus } from "lucide-react";
 import { lokasyonlariGetir, lokasyonStok } from "../api/lokasyonApi";
-import { palletize } from "../api/stockUnitApi";
+import { palletize, paleteEkle } from "../api/stockUnitApi";
 import { useToast } from "../context/ToastContext";
 import Etiket from "../components/Etiket";
 import TransferModal from "../components/TransferModal";
@@ -40,6 +40,10 @@ function DepoHaritasi() {
   const [paletlenenId, setPaletlenenId] = useState(null);
   const [paletForm, setPaletForm] = useState({ kod: "", miktar: "" });
   const [paletKaydediliyor, setPaletKaydediliyor] = useState(false);
+
+  const [eklenenId, setEklenenId] = useState(null);
+  const [ekleForm, setEkleForm] = useState({ miktar: "", yeniKod: "" });
+  const [ekleKaydediliyor, setEkleKaydediliyor] = useState(false);
 
   const veriGetir = async () => {
     try {
@@ -88,6 +92,7 @@ function DepoHaritasi() {
     setSecili(lokasyon);
     setSeciliStok([]);
     setPaletlenenId(null);
+    setEklenenId(null);
     stokGetir(lokasyon.id);
   };
 
@@ -103,6 +108,49 @@ function DepoHaritasi() {
   const paletlemeyeBasla = (satir) => {
     setPaletlenenId(satir.id);
     setPaletForm({ kod: "", miktar: satir.miktar });
+  };
+
+  const hedefPaletBul = (satir) =>
+    seciliStok.find(
+      (s) => s.birim_tipi === "palet" && s.varyant_id === satir.varyant_id,
+    );
+
+  const eklemeyeBasla = (satir) => {
+    setEklenenId(satir.id);
+    setEkleForm({ miktar: satir.miktar, yeniKod: "" });
+  };
+
+  const eklemeKaydet = async (satir) => {
+    const hedef = hedefPaletBul(satir);
+    const miktar = Number(ekleForm.miktar);
+
+    if (!hedef) {
+      bildir("Bu lokasyonda aynı üründen palet yok", "hata");
+      return;
+    }
+    if (!Number.isFinite(miktar) || miktar <= 0) {
+      bildir("Miktar sıfırdan büyük olmalıdır", "hata");
+      return;
+    }
+
+    setEkleKaydediliyor(true);
+    try {
+      const yanit = await paleteEkle(hedef.id, {
+        miktar,
+        yeni_kod: ekleForm.yeniKod.trim(),
+      });
+      bildir(yanit.data.mesaj);
+      setEklenenId(null);
+      const yeniListe = await veriGetir();
+      if (yeniListe) {
+        setSecili(yeniListe.find((l) => l.id === secili.id) || null);
+      }
+      stokGetir(secili.id);
+    } catch (err) {
+      bildir(err.response?.data?.hata || "Palete eklenemedi", "hata");
+    } finally {
+      setEkleKaydediliyor(false);
+    }
   };
 
   const paletlemeKaydet = async (satir) => {
@@ -311,7 +359,56 @@ function DepoHaritasi() {
               </thead>
               <tbody>
                 {seciliStok.map((s) =>
-                  paletlenenId === s.id ? (
+                  eklenenId === s.id ? (
+                    <tr key={s.id}>
+                      <td>
+                        <input
+                          value={ekleForm.yeniKod}
+                          onChange={(e) =>
+                            setEkleForm({
+                              ...ekleForm,
+                              yeniKod: e.target.value,
+                            })
+                          }
+                          placeholder={hedefPaletBul(s)?.birim_kodu || "Kod"}
+                          autoFocus
+                        />
+                      </td>
+                      <td>{s.urun_adi}</td>
+                      <td>
+                        {s.boy} · {Number(s.ambalaj_kg)}kg {s.ambalaj_tipi}
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          value={ekleForm.miktar}
+                          onChange={(e) =>
+                            setEkleForm({
+                              ...ekleForm,
+                              miktar: e.target.value,
+                            })
+                          }
+                        />
+                      </td>
+                      <td>—</td>
+                      <td>
+                        <button
+                          onClick={() => eklemeKaydet(s)}
+                          disabled={ekleKaydediliyor}
+                        >
+                          {ekleKaydediliyor ? "Ekleniyor..." : "Ekle"}
+                        </button>
+                        <button
+                          className="ikincil"
+                          onClick={() => setEklenenId(null)}
+                        >
+                          İptal
+                        </button>
+                      </td>
+                    </tr>
+                  ) : paletlenenId === s.id ? (
                     <tr key={s.id}>
                       <td>
                         <input
@@ -390,6 +487,14 @@ function DepoHaritasi() {
                             onClick={() => paletlemeyeBasla(s)}
                           >
                             <Package2 size={14} /> Paletle
+                          </button>
+                        )}
+                        {s.birim_tipi === "dokme" && hedefPaletBul(s) && (
+                          <button
+                            className="ikincil"
+                            onClick={() => eklemeyeBasla(s)}
+                          >
+                            <PackagePlus size={14} /> Palete Ekle
                           </button>
                         )}
                       </td>

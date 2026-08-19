@@ -6,3 +6,5 @@ export const findPalletByCode = (kod) =>
   api.get(`/stok-birimleri/kod/${encodeURIComponent(kod)}`);
 
 export const palletize = (data) => api.post("/stok-birimleri/paletle", data);
+export const paleteEkle = (id, data) =>
+  api.post(`/stok-birimleri/${id}/ekle`, data);

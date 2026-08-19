@@ -1,5 +1,10 @@
 const { z } = require("zod");
-const { kimlik, pozitifSayi, metin } = require("../utils/validation");
+const {
+  kimlik,
+  pozitifSayi,
+  metin,
+  opsiyonelMetin,
+} = require("../utils/validation");
 
 const paletle = z.object({
   varyant_id: kimlik("Varyant ve lokasyon zorunludur"),
@@ -8,4 +13,9 @@ const paletle = z.object({
   kod: metin("Palet kodu zorunludur", 30),
 });
 
-module.exports = { paletle };
+const paleteEkle = z.object({
+  miktar: pozitifSayi("Miktar sıfırdan büyük olmalıdır"),
+  yeni_kod: opsiyonelMetin(30),
+});
+
+module.exports = { paletle, paleteEkle };
