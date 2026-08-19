@@ -100,6 +100,11 @@
   color: #fb923c;
 }
 
+.kart-mor .kart-ikon {
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+
 .kart-deger {
   font-size: 26px;
   font-weight: 700;

@@ -377,7 +377,7 @@ Her yenilemede refresh çerezi yenisiyle değiştirilir (rotation), böylece ele
 ## Modüller
 
 | Modül                        | İçerik                                                                                                         |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- | --- |
 | **Panel**                    | Özet kartlar, son 14 gün giriş/çıkış grafiği, en çok hareket gören kalemler, bölge bazlı dağılım               |
 | **Ürünler / Stok Kalemleri** | Ürün ve varyant tanımları (boy, ambalaj tipi, ambalaj kg, barkod, kritik seviye)                               |
 | **Depo Haritası**            | Kuş bakışı yerleşim planı, kat katmanları, lokasyon detayı, paletleme ve taşıma                                |
@@ -388,7 +388,7 @@ Her yenilemede refresh çerezi yenisiyle değiştirilir (rotation), böylece ele
 | **Satış**                    | Sipariş oluşturma, birim bazlı toplama, teslim, iptal, fiş                                                     |
 | **Pazar Seferleri**          | Pazara götürülen malın sevki, dönüşün kaydı, sevk fişi, pazar bazlı yıl özeti                                  |
 | **Lokasyonlar**              | Lokasyon tanımları ve blok üreteci                                                                             |
-| **Raporlar**                 | Tarih aralığına göre hareket özeti, çalışan ve kalem kırılımı                                                  |
+| **Raporlar**                 | Tarih aralığına göre hareket özeti, çalışan ve kalem kırılımı, satınalma ve satış tutarları, CSV dışa aktarma  |     |
 | **Sistem Sağlığı**           | Stok sapması, negatif stok, karşılanamayan rezervasyon, pazarda kalıntı, pasif lokasyonda stok, kapasite aşımı |
 | **Kullanıcılar**             | Kullanıcı yönetimi, rol atama, parola değiştirme, yönetici tarafından parola sıfırlama                         |
 

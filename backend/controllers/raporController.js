@@ -66,9 +66,16 @@ const gunluk = async (req, res, next) => {
       [altSinir, ustSinir],
     );
 
-    const [siparis] = await pool.query(
+    const [satinalma] = await pool.query(
       `SELECT COUNT(*) AS adet, COALESCE(SUM(toplam_tutar), 0) AS tutar
        FROM satinalma_siparisleri
+       WHERE siparis_tarihi >= ? AND siparis_tarihi < ?`,
+      [altSinir, ustSinir],
+    );
+
+    const [satis] = await pool.query(
+      `SELECT COUNT(*) AS adet, COALESCE(SUM(toplam_tutar), 0) AS tutar
+       FROM satis_siparisleri
        WHERE siparis_tarihi >= ? AND siparis_tarihi < ?`,
       [altSinir, ustSinir],
     );
@@ -79,7 +86,8 @@ const gunluk = async (req, res, next) => {
       ozet,
       kullanicilar,
       kalemler,
-      siparis: siparis[0],
+      satinalma: satinalma[0],
+      satis: satis[0],
     });
   } catch (err) {
     next(err);
