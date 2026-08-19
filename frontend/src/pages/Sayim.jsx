@@ -297,7 +297,7 @@ function Sayim() {
               </table>
 
               <div className="sayim-alt">
-                <span className="kucuk-not">
+                <span className="onemli-not">
                   {girilenKalemler.length} birim sayıldı ·{" "}
                   {farkliKalemler.length} birimde fark var
                 </span>

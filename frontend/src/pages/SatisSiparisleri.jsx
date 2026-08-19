@@ -326,7 +326,7 @@ function SatisSiparisleri() {
               </div>
 
               {kalem.varyant_id && Number(kalem.miktar) > 0 && (
-                <span className={yetersiz ? "hata-metni" : "kucuk-not"}>
+                <span className={yetersiz ? "hata-metni" : "onemli-not"}>
                   {hesap.miktarAdet.toFixed(2)} adet ·{" "}
                   {hesap.miktarKg.toFixed(0)} kg
                   {hesap.fiyatKg > 0 &&

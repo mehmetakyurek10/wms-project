@@ -53,13 +53,18 @@
 
 .hata-metni {
   color: var(--renk-tehlike);
-  font-size: 13px;
+  font-size: 14px;
   margin: 8px 0 0;
 }
 
 .kucuk-not {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--renk-metin-soluk);
+}
+
+.onemli-not {
+  font-size: 14px;
+  color: var(--renk-metin);
 }
 
 .spinner {

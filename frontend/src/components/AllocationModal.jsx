@@ -144,7 +144,7 @@ function AllocationModal({
                   {grup.ambalaj_tipi}
                 </h4>
 
-                <span className={tamam ? "kucuk-not" : "hata-metni"}>
+                <span className={tamam ? "onemli-not" : "hata-metni"}>
                   Gereken {grup.gereken.toFixed(0)} · Ayrılan{" "}
                   {secilen.toFixed(0)}
                   {!tamam &&
