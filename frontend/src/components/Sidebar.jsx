@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
+import useTema from "../hooks/useTema";
 import {
   Warehouse,
   LayoutDashboard,
@@ -110,9 +111,7 @@ function Sidebar() {
   const { kullanici, cikis } = useAuth();
   const [acik, setAcik] = useState(false);
   const [cikiliyor, setCikiliyor] = useState(false);
-  const [tema, setTema] = useState(
-    () => document.documentElement.getAttribute("data-tema") || "dark",
-  );
+  const { tema, temaDegistir } = useTema();
 
   const gruplar = menuGruplari(kullanici);
   const rolAdi = ROL_ADLARI[kullanici?.rol] || kullanici?.rol;
@@ -126,13 +125,6 @@ function Sidebar() {
     } finally {
       setCikiliyor(false);
     }
-  };
-
-  const temaDegistir = () => {
-    const yeni = tema === "dark" ? "light" : "dark";
-    document.documentElement.setAttribute("data-tema", yeni);
-    localStorage.setItem("tema", yeni);
-    setTema(yeni);
   };
 
   return (

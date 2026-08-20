@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Package, AlertTriangle, Truck, ShoppingCart } from "lucide-react";
 import {
@@ -18,12 +18,12 @@ import { dusukStokGetir, varyantlariGetir } from "../api/varyantApi";
 import { tedarikcileriGetir } from "../api/tedarikciApi";
 import { siparisleriGetir } from "../api/satinalmaApi";
 import { panelGrafikleri } from "../api/dashboardApi";
+import useTema from "../hooks/useTema";
 
 const RENK_GIRIS = "#22c55e";
 const RENK_CIKIS = "#ef4444";
 const RENK_BAR = "#3b82f6";
 const RENK_DOLULUK = "#f59e0b";
-const EKSEN = { fill: "#94a3b8", fontSize: 12 };
 
 const gunEtiketi = (gun) => {
   const [, ay, gunNo] = gun.split("-");
@@ -36,6 +36,22 @@ const basliktanSayi = (response) =>
   parseInt(response.headers["x-toplam-kayit"], 10) || 0;
 
 function Panel() {
+  const { renkler } = useTema();
+
+  const grafikStili = useMemo(
+    () => ({
+      eksen: { fill: renkler.metinSoluk, fontSize: 12 },
+      izgara: renkler.kenar,
+      ipucu: {
+        background: renkler.yuzey,
+        border: `1px solid ${renkler.kenar}`,
+        borderRadius: 8,
+        color: renkler.metin,
+      },
+    }),
+    [renkler],
+  );
+
   const [veri, setVeri] = useState({
     urun: 0,
     varyant: 0,
@@ -158,18 +174,20 @@ function Panel() {
               data={gunluk}
               margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
-              <XAxis dataKey="gun" tickFormatter={gunEtiketi} tick={EKSEN} />
-              <YAxis tick={EKSEN} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={grafikStili.izgara}
+              />
+              <XAxis
+                dataKey="gun"
+                tickFormatter={gunEtiketi}
+                tick={grafikStili.eksen}
+              />
+              <YAxis tick={grafikStili.eksen} />
               <Tooltip
                 labelFormatter={gunEtiketi}
                 formatter={(deger) => sayiBicimle(deger)}
-                contentStyle={{
-                  background: "#18181b",
-                  border: "1px solid #3f3f46",
-                  borderRadius: 8,
-                  color: "#e4e4e7",
-                }}
+                contentStyle={grafikStili.ipucu}
               />
               <Legend />
               <Line
@@ -204,23 +222,25 @@ function Panel() {
               layout="vertical"
               margin={{ top: 10, right: 20, left: 10, bottom: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
-              <XAxis type="number" tick={EKSEN} allowDecimals={false} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={grafikStili.izgara}
+              />
+              <XAxis
+                type="number"
+                tick={grafikStili.eksen}
+                allowDecimals={false}
+              />
               <YAxis
                 type="category"
                 dataKey="ad"
                 width={170}
-                tick={EKSEN}
+                tick={grafikStili.eksen}
                 interval={0}
               />
               <Tooltip
                 formatter={(deger) => [sayiBicimle(deger), "Hareket"]}
-                contentStyle={{
-                  background: "#18181b",
-                  border: "1px solid #3f3f46",
-                  borderRadius: 8,
-                  color: "#e4e4e7",
-                }}
+                contentStyle={grafikStili.ipucu}
               />
               <Bar
                 dataKey="hareket_sayisi"
@@ -243,17 +263,15 @@ function Panel() {
               data={doluluk}
               margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#3f3f46" />
-              <XAxis dataKey="bolge" tick={EKSEN} interval={0} />
-              <YAxis tick={EKSEN} />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke={grafikStili.izgara}
+              />
+              <XAxis dataKey="bolge" tick={grafikStili.eksen} interval={0} />
+              <YAxis tick={grafikStili.eksen} />
               <Tooltip
                 formatter={(deger) => [sayiBicimle(deger), "Adet"]}
-                contentStyle={{
-                  background: "#18181b",
-                  border: "1px solid #3f3f46",
-                  borderRadius: 8,
-                  color: "#e4e4e7",
-                }}
+                contentStyle={grafikStili.ipucu}
               />
               <Bar
                 dataKey="miktar"

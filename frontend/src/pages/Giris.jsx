@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
+import useTema from "../hooks/useTema";
 import {
   Warehouse,
   Mail,
@@ -24,9 +25,7 @@ function Giris() {
   const [sifreGorunur, setSifreGorunur] = useState(false);
   const [hata, setHata] = useState("");
   const [gonderiliyor, setGonderiliyor] = useState(false);
-  const [tema, setTema] = useState(
-    () => document.documentElement.getAttribute("data-tema") || "dark",
-  );
+  const { tema, temaDegistir } = useTema();
 
   // Sunucuya ulasilamazsa varsayilan olarak giris formu gosteriliyor;
   // kullanici denedigi anda gercek hatayi zaten gorecek.
@@ -47,13 +46,6 @@ function Giris() {
   useEffect(() => {
     sessionStorage.removeItem("oturumBitti");
   }, []);
-
-  const temaDegistir = () => {
-    const yeni = tema === "dark" ? "light" : "dark";
-    document.documentElement.setAttribute("data-tema", yeni);
-    localStorage.setItem("tema", yeni);
-    setTema(yeni);
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
