@@ -8,6 +8,7 @@ import {
 import { lazy, Suspense, useEffect } from "react";
 import KorumaliRota from "./components/KorumaliRota";
 import HataSiniri from "./components/HataSiniri";
+import NotFound from "./pages/NotFound";
 import { ToastSaglayici } from "./context/ToastSaglayici";
 import AuthProvider from "./context/AuthProvider";
 
@@ -102,12 +103,7 @@ function App() {
                     element={<SatisSiparisleri />}
                   />
                   <Route path="/pazar-seferleri" element={<MarketTrips />} />
-                  <Route path="/kullanicilar" element={<Kullanicilar />} />
                   <Route path="/sayim" element={<Sayim />} />
-                  <Route
-                    path="/lokasyon-yonetimi"
-                    element={<LokasyonYonetimi />}
-                  />
                   <Route path="/depo-haritasi" element={<DepoHaritasi />} />
                   <Route path="/paletler" element={<Pallets />} />
                   <Route path="/tedarikciler" element={<Tedarikciler />} />
@@ -116,11 +112,19 @@ function App() {
                     element={<StokHareketleri />}
                   />
                   <Route path="/sifre-degistir" element={<ChangePassword />} />
-                  <Route path="/sistem-sagligi" element={<SystemHealth />} />
                   <Route
                     path="/satinalma-siparisleri"
                     element={<SatinalmaSiparisleri />}
                   />
+                  <Route path="*" element={<NotFound />} />
+                </Route>
+                <Route element={<KorumaliRota rol="admin" />}>
+                  <Route path="/kullanicilar" element={<Kullanicilar />} />
+                  <Route
+                    path="/lokasyon-yonetimi"
+                    element={<LokasyonYonetimi />}
+                  />
+                  <Route path="/sistem-sagligi" element={<SystemHealth />} />
                 </Route>
                 <Route path="/" element={<Navigate to="/panel" replace />} />
               </Routes>

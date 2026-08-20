@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
 import {
   ShieldCheck,
   ShieldAlert,
@@ -20,7 +19,6 @@ import Etiket from "../components/Etiket";
 import OnayModal from "../components/OnayModal";
 import Sayfalama from "../components/Sayfalama";
 import { useToast } from "../context/ToastContext";
-import useAuth from "../hooks/useAuth";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 const BOS_ALAN = {
@@ -49,7 +47,6 @@ const BOS_BLOK = {
 
 function LokasyonYonetimi() {
   const bildir = useToast();
-  const { kullanici } = useAuth();
 
   const [lokasyonlar, setLokasyonlar] = useState([]);
   const [sapmalar, setSapmalar] = useState([]);
@@ -90,10 +87,6 @@ function LokasyonYonetimi() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     veriGetir();
   }, []);
-
-  if (kullanici?.rol !== "admin") {
-    return <Navigate to="/panel" />;
-  }
 
   const alanDegisti = (e) => {
     setAlanForm({ ...alanForm, [e.target.name]: e.target.value });

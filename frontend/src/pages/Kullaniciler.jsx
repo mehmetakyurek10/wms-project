@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
 import {
   kullanicilariGetir,
   kullaniciGuncelle,
@@ -36,10 +35,6 @@ function Kullanicilar() {
     initial: [],
     errorMessage: "Kullanıcılar yüklenemedi",
   });
-
-  if (mevcutKullanici?.rol !== "admin") {
-    return <Navigate to="/panel" />;
-  }
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });

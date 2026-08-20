@@ -4,7 +4,7 @@ import Sidebar from "./Sidebar";
 import HataSiniri from "./HataSiniri";
 import useAuth from "../hooks/useAuth";
 
-function KorumaliRota() {
+function KorumaliRota({ rol }) {
   const { kullanici, hazir } = useAuth();
 
   if (!hazir) {
@@ -13,6 +13,10 @@ function KorumaliRota() {
 
   if (!kullanici) {
     return <Navigate to="/giris" replace />;
+  }
+
+  if (rol && kullanici.rol !== rol) {
+    return <Navigate to="/panel" replace />;
   }
 
   return (
