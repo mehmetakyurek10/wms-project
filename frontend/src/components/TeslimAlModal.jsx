@@ -14,7 +14,6 @@ function TeslimAlModal({ acik, siparis, lokasyonlar, kapat, onayla }) {
     setGonderiliyor(true);
     await onayla(lokasyonId);
     setGonderiliyor(false);
-    setLokasyonId("");
   };
 
   return (

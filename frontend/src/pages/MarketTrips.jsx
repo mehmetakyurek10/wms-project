@@ -485,20 +485,24 @@ function MarketTrips() {
         </>
       )}
 
-      <AllocationModal
-        acik={tahsisAcik}
-        kalemler={tahsisKalemleri}
-        gonderiliyor={gonderiliyor}
-        kapat={() => setTahsisAcik(false)}
-        tamamlandi={seferiOlustur}
-      />
+      {tahsisAcik && (
+        <AllocationModal
+          acik
+          kalemler={tahsisKalemleri}
+          gonderiliyor={gonderiliyor}
+          kapat={() => setTahsisAcik(false)}
+          tamamlandi={seferiOlustur}
+        />
+      )}
 
-      <MarketReturnModal
-        acik={donusAcik}
-        sefer={acikSefer}
-        kapat={() => setDonusAcik(false)}
-        tamamlandi={donusTamamlandi}
-      />
+      {donusAcik && (
+        <MarketReturnModal
+          acik
+          sefer={acikSefer}
+          kapat={() => setDonusAcik(false)}
+          tamamlandi={donusTamamlandi}
+        />
+      )}
 
       <MarketTripReceipt
         acik={fisSefer !== null}

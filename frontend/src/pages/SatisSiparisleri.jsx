@@ -501,20 +501,24 @@ function SatisSiparisleri() {
         </>
       )}
 
-      <AllocationModal
-        acik={tahsisAcik}
-        kalemler={tahsisKalemleri}
-        gonderiliyor={gonderiliyor}
-        kapat={() => setTahsisAcik(false)}
-        tamamlandi={siparisiOlustur}
-      />
+      {tahsisAcik && (
+        <AllocationModal
+          acik
+          kalemler={tahsisKalemleri}
+          gonderiliyor={gonderiliyor}
+          kapat={() => setTahsisAcik(false)}
+          tamamlandi={siparisiOlustur}
+        />
+      )}
 
-      <DeliveryModal
-        acik={teslimEdilecek !== null}
-        siparis={teslimEdilecek}
-        kapat={() => setTeslimEdilecek(null)}
-        tamamlandi={teslimTamamlandi}
-      />
+      {teslimEdilecek && (
+        <DeliveryModal
+          acik
+          siparis={teslimEdilecek}
+          kapat={() => setTeslimEdilecek(null)}
+          tamamlandi={teslimTamamlandi}
+        />
+      )}
 
       <OnayModal
         acik={iptalEdilecek !== null}

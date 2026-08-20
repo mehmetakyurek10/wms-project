@@ -507,14 +507,16 @@ function DepoHaritasi() {
         </div>
       )}
 
-      <TransferModal
-        acik={transferSatiri !== null}
-        kaynak={secili}
-        stokSatiri={transferSatiri}
-        lokasyonlar={lokasyonlar}
-        kapat={() => setTransferSatiri(null)}
-        tamamlandi={transferTamamlandi}
-      />
+      {transferSatiri && (
+        <TransferModal
+          acik
+          kaynak={secili}
+          stokSatiri={transferSatiri}
+          lokasyonlar={lokasyonlar}
+          kapat={() => setTransferSatiri(null)}
+          tamamlandi={transferTamamlandi}
+        />
+      )}
     </div>
   );
 }

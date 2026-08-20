@@ -447,13 +447,15 @@ function SatinalmaSiparisleri() {
         </>
       )}
 
-      <TeslimAlModal
-        acik={teslimAlinacak !== null}
-        siparis={teslimAlinacak}
-        lokasyonlar={lokasyonlar}
-        kapat={() => setTeslimAlinacak(null)}
-        onayla={teslimAlOnayla}
-      />
+      {teslimAlinacak && (
+        <TeslimAlModal
+          acik
+          siparis={teslimAlinacak}
+          lokasyonlar={lokasyonlar}
+          kapat={() => setTeslimAlinacak(null)}
+          onayla={teslimAlOnayla}
+        />
+      )}
 
       <Fis
         acik={fisSiparis !== null}
