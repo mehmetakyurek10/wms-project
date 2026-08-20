@@ -9,6 +9,7 @@ import { useToast } from "../context/ToastContext";
 import useAuth from "../hooks/useAuth";
 import useFetch from "../hooks/useFetch";
 import Etiket from "../components/Etiket";
+import OnayModal from "../components/OnayModal";
 import Modal from "../components/Modal";
 
 function Kullanicilar() {
@@ -17,6 +18,7 @@ function Kullanicilar() {
 
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [sifirlanacak, setSifirlanacak] = useState(null);
+  const [rolDegisimi, setRolDegisimi] = useState(null);
   const [yeniSifre, setYeniSifre] = useState("");
   const [sifirlaniyor, setSifirlaniyor] = useState(false);
   const [form, setForm] = useState({
@@ -56,7 +58,15 @@ function Kullanicilar() {
     }
   };
 
-  const rolDegistir = async (kullanici, yeniRol) => {
+  const rolSecildi = (kullanici, yeniRol) => {
+    if (kullanici.rol === yeniRol) return;
+    setRolDegisimi({ kullanici, yeniRol });
+  };
+
+  const rolOnayla = async () => {
+    const { kullanici, yeniRol } = rolDegisimi;
+    setRolDegisimi(null);
+
     try {
       await kullaniciGuncelle(kullanici.id, {
         rol: yeniRol,
@@ -180,7 +190,7 @@ function Kullanicilar() {
                   <select
                     value={k.rol}
                     disabled={kendisi}
-                    onChange={(e) => rolDegistir(k, e.target.value)}
+                    onChange={(e) => rolSecildi(k, e.target.value)}
                   >
                     <option value="depo_sorumlusu">Depo Sorumlusu</option>
                     <option value="admin">Yönetici</option>
@@ -216,6 +226,19 @@ function Kullanicilar() {
           })}
         </tbody>
       </table>
+
+      <OnayModal
+        acik={rolDegisimi !== null}
+        baslik="Rolü değiştir"
+        mesaj={
+          rolDegisimi?.yeniRol === "admin"
+            ? `${rolDegisimi?.kullanici.ad} yönetici yapılacak. Yönetici tüm kullanıcıları, lokasyonları ve sistem sağlığını yönetebilir, kayıt silebilir.`
+            : `${rolDegisimi?.kullanici.ad} depo sorumlusu yapılacak, yönetici yetkileri kaldırılacak.`
+        }
+        onayMetni="Değiştir"
+        onayla={rolOnayla}
+        iptal={() => setRolDegisimi(null)}
+      />
 
       <Modal
         acik={sifirlanacak !== null}

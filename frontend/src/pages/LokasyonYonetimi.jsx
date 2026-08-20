@@ -63,6 +63,7 @@ function LokasyonYonetimi() {
   const [silinecek, setSilinecek] = useState(null);
   const [alanGonderiliyor, setAlanGonderiliyor] = useState(false);
   const [blokGonderiliyor, setBlokGonderiliyor] = useState(false);
+  const [blokOnay, setBlokOnay] = useState(false);
 
   const veriGetir = async () => {
     try {
@@ -134,9 +135,14 @@ function LokasyonYonetimi() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const blokKaydet = async (e) => {
+  const blokKaydet = (e) => {
     e.preventDefault();
     if (blokGonderiliyor) return;
+    setBlokOnay(true);
+  };
+
+  const blokOnayla = async () => {
+    setBlokOnay(false);
     setBlokGonderiliyor(true);
     try {
       const response = await blokOlustur({ ...blokForm, yon: "dikey" });
@@ -180,6 +186,11 @@ function LokasyonYonetimi() {
     if (blokFiltre && l.blok !== blokFiltre) return false;
     return true;
   });
+
+  const blokSayisi =
+    Number(blokForm.sira_sayisi || 0) *
+    Number(blokForm.derinlik || 0) *
+    Number(blokForm.kat || 0);
 
   const toplamSayfa = Math.max(1, Math.ceil(gorunenler.length / SAYFA_BOYUTU));
   const gecerliSayfa = Math.min(sayfa, toplamSayfa);
@@ -466,7 +477,13 @@ function LokasyonYonetimi() {
             onChange={blokDegisti}
           />
         </div>
-        <button type="submit" disabled={blokGonderiliyor}>
+        <p className="onemli-not">
+          {blokSayisi > 0
+            ? `${blokSayisi} palet yeri oluşturulacak (${blokForm.sira_sayisi} sıra × ${blokForm.derinlik} derinlik × ${blokForm.kat} kat).`
+            : "Sıra, derinlik ve kat değerlerini girin."}
+        </p>
+
+        <button type="submit" disabled={blokGonderiliyor || blokSayisi === 0}>
           <Grid3x3 size={15} />{" "}
           {blokGonderiliyor ? "Üretiliyor..." : "Blok Üret"}
         </button>
@@ -561,6 +578,15 @@ function LokasyonYonetimi() {
         toplam={gorunenler.length}
         sayfaBoyutu={SAYFA_BOYUTU}
         degisti={setSayfa}
+      />
+
+      <OnayModal
+        acik={blokOnay}
+        baslik="Blok üret"
+        mesaj={`${blokForm.blok || "?"} bloğunda ${blokSayisi} palet yeri oluşturulacak (${blokForm.sira_sayisi} sıra × ${blokForm.derinlik} derinlik × ${blokForm.kat} kat). Bu işlem toplu olarak geri alınamaz, lokasyonların tek tek silinmesi gerekir.`}
+        onayMetni="Üret"
+        onayla={blokOnayla}
+        iptal={() => setBlokOnay(false)}
       />
 
       <OnayModal
