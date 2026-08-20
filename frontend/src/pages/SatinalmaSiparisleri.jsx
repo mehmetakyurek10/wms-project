@@ -332,6 +332,7 @@ function SatinalmaSiparisleri() {
                         className="ikincil ikon-btn"
                         onClick={() => detayAc(s.id)}
                         title="Kalemleri göster"
+                        aria-label="Sipariş kalemlerini göster"
                       >
                         {acikDetay === s.id ? (
                           <ChevronDown size={15} />
@@ -356,6 +357,7 @@ function SatinalmaSiparisleri() {
                         className="ikincil ikon-btn"
                         onClick={() => fisAc(s)}
                         title="Fiş"
+                        aria-label="Alım fişini aç"
                       >
                         <Receipt size={15} />
                       </button>

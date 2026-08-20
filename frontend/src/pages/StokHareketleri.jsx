@@ -345,6 +345,7 @@ function StokHareketleri() {
               setParametreler(new URLSearchParams(), { replace: true })
             }
             title="Filtreleri temizle"
+            aria-label="Filtreleri temizle"
           >
             <X size={15} />
           </button>

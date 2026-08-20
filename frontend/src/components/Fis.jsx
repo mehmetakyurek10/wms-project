@@ -57,7 +57,11 @@ function Fis({ acik, tip, siparis, kalemler, kapat }) {
           <h3>{baslik}</h3>
           <span className="fis-no">#{siparis.id}</span>
         </div>
-        <button className="ikincil ikon-btn fis-kapat" onClick={kapat}>
+        <button
+          className="ikincil ikon-btn fis-kapat"
+          onClick={kapat}
+          aria-label="Fişi kapat"
+        >
           <X size={16} />
         </button>
       </div>

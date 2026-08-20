@@ -30,7 +30,11 @@ function PaletEtiketi({ acik, palet, kapat }) {
     >
       <div className="etiket-baslik">
         <h3>Palet Etiketi</h3>
-        <button className="ikincil ikon-btn etiket-kapat" onClick={kapat}>
+        <button
+          className="ikincil ikon-btn etiket-kapat"
+          onClick={kapat}
+          aria-label="Etiketi kapat"
+        >
           <X size={16} />
         </button>
       </div>

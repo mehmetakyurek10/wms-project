@@ -334,6 +334,7 @@ function DepoHaritasi() {
               className="ikincil ikon-btn"
               onClick={() => setSecili(null)}
               title="Kapat"
+              aria-label="Lokasyon detayını kapat"
             >
               <X size={15} />
             </button>

@@ -96,6 +96,7 @@ function Giris() {
         className="ikincil ikon-btn giris-tema"
         onClick={temaDegistir}
         title="Tema değiştir"
+        aria-label="Tema değiştir"
       >
         {tema === "dark" ? <Sun size={15} /> : <Moon size={15} />}
       </button>

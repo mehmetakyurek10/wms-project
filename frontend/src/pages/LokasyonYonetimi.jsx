@@ -545,6 +545,7 @@ function LokasyonYonetimi() {
                   className="ikincil ikon-btn"
                   onClick={() => duzenlemeyeBasla(l)}
                   title="Düzenle"
+                  aria-label="Lokasyonu düzenle"
                 >
                   <Pencil size={14} />
                 </button>
@@ -552,6 +553,7 @@ function LokasyonYonetimi() {
                   className="tehlike ikon-btn"
                   onClick={() => setSilinecek(l)}
                   title="Sil"
+                  aria-label="Lokasyonu sil"
                 >
                   <Trash2 size={14} />
                 </button>

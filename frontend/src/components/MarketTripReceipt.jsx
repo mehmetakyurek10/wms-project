@@ -79,7 +79,11 @@ function MarketTripReceipt({ acik, sefer, kalemler, kapat }) {
           <h3>PAZAR SEVK FİŞİ</h3>
           <span className="fis-no">{sefer.fis_no}</span>
         </div>
-        <button className="ikincil ikon-btn fis-kapat" onClick={kapat}>
+        <button
+          className="ikincil ikon-btn fis-kapat"
+          onClick={kapat}
+          aria-label="Fişi kapat"
+        >
           <X size={16} />
         </button>
       </div>

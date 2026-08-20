@@ -301,6 +301,7 @@ function MarketTrips() {
                             setKalemler(kalemler.filter((_, i) => i !== index))
                           }
                           title="Kalemi sil"
+                          aria-label="Kalemi listeden çıkar"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -454,6 +455,7 @@ function MarketTrips() {
                       className="ikincil ikon-btn"
                       onClick={() => fisAc(s)}
                       title="Fiş"
+                      aria-label="Sevk fişini aç"
                     >
                       <Receipt size={14} />
                     </button>

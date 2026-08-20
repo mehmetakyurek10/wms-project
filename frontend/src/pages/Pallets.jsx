@@ -142,6 +142,7 @@ function Pallets() {
             className="ikincil ikon-btn"
             onClick={() => setArama("")}
             title="Aramayı temizle"
+            aria-label="Aramayı temizle"
           >
             <X size={15} />
           </button>

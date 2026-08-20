@@ -423,6 +423,7 @@ function Varyantlar() {
             className="ikincil ikon-btn"
             onClick={filtreleriTemizle}
             title="Filtreleri temizle"
+            aria-label="Filtreleri temizle"
           >
             <X size={15} />
           </button>

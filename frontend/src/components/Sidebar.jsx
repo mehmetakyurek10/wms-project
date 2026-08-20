@@ -183,6 +183,7 @@ function Sidebar() {
               className="ikincil ikon-btn"
               onClick={() => navigate("/sifre-degistir")}
               title="Şifre Değiştir"
+              aria-label="Şifre değiştir"
             >
               <KeyRound size={15} />
             </button>
@@ -190,6 +191,7 @@ function Sidebar() {
               className="ikincil ikon-btn"
               onClick={temaDegistir}
               title="Tema"
+              aria-label="Tema değiştir"
             >
               {tema === "dark" ? <Sun size={15} /> : <Moon size={15} />}
             </button>
@@ -198,6 +200,7 @@ function Sidebar() {
               onClick={cikisYap}
               disabled={cikiliyor}
               title="Çıkış"
+              aria-label="Oturumu kapat"
             >
               <LogOut size={15} />
             </button>
