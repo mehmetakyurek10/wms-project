@@ -13,7 +13,7 @@ function LokasyonSecici({
   const paletler = lokasyonlar.filter((l) => l.blok);
   const alanlar = lokasyonlar.filter((l) => !l.blok);
 
-  const katlar = [...new Set(paletler.map((l) => l.kat))].sort();
+  const katlar = [...new Set(paletler.map((l) => l.kat))].sort((a, b) => a - b);
 
   const gorunenPaletler = kat
     ? paletler.filter((l) => String(l.kat) === kat)

@@ -201,7 +201,10 @@ function DepoHaritasi() {
   const alanlar = lokasyonlar.filter(
     (l) => l.tip !== "palet" && l.tip !== "pazar",
   );
-  const katlar = [...new Set(tumPaletler.map((l) => l.kat))].sort();
+
+  const katlar = [...new Set(tumPaletler.map((l) => l.kat))].sort(
+    (a, b) => a - b,
+  );
 
   const tumGorunur = [...paletler, ...alanlar];
   const maxSatir = Math.max(
