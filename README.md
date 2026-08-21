@@ -6,6 +6,21 @@ Zeytin toptancılığı için geliştirilmiş depo yönetim sistemi. Stok takibi
 
 **Yığın:** Express 5 + MySQL 8 (backend) · React 19 + Vite (frontend) · Docker
 
+**Durum:** Backend 61, frontend 14 otomatik test; her ikisi de lint ve biçim denetiminden geçiyor, sürekli tümleştirme her gönderimde çalışıyor.
+
+---
+
+## İçindekiler
+
+- [Kurulum](#kurulum) · [Docker](#docker-ile-önerilen) · [yerel](#yerel-kurulum-geliştirme) · [ilk kullanıcı](#ilk-kullanıcı) · [tanıma turu](#sistemi-tanıma-turu)
+- [Ortam değişkenleri](#ortam-değişkenleri)
+- [Komutlar](#komutlar)
+- [Testler](#testler) · [arayüz testleri](#arayüz-testleri)
+- [Mimari](#mimari) — [dağıtım](#dağıtım), [yetkilendirme](#yetkilendirme), [günlükleme](#günlükleme), [stok modeli](#stok-modeli), [rezervasyon](#rezervasyon), [sayım kaydı](#sayım-kaydı), [kapasite](#kapasite), [pazar seferi](#pazar-seferi), [işlem güvenliği](#işlem-güvenliği), [oturum yönetimi](#oturum-yönetimi)
+- [Modüller](#modüller) · [roller](#roller) · [lokasyon adresleme](#lokasyon-adresleme)
+- [Şema değişiklikleri](#şema-değişiklikleri)
+- [Bilinen sınırlar](#bilinen-sınırlar)
+
 ---
 
 ## Kurulum
@@ -46,7 +61,7 @@ docker compose down -v
 
 ### Yerel kurulum (geliştirme)
 
-Gereksinimler: Node.js 20.6 veya üstü, MySQL 8.0.19 veya üstü.
+Gereksinimler: Node.js 24 veya üstü (`.nvmrc` ile sabitlenmiştir), MySQL 8.0.19 veya üstü.
 
 ```bash
 mysql -u root -e "CREATE DATABASE wms; CREATE DATABASE wms_test;"
@@ -76,6 +91,19 @@ Arayüz `http://localhost:5173`, API `http://localhost:3000` üzerinde çalış�
 ### İlk kullanıcı
 
 Sistemde hiç kullanıcı yokken giriş ekranı kendini **kurulum formuna** dönüştürür ve oluşturulan ilk hesap otomatik olarak `admin` rolü alır. Bunun arkasında `POST /auth/kayit` ucunun yalnızca kullanıcı tablosu boşken herkese açık olması vardır; ilk kayıttan sonra uç kapanır ve yeni kullanıcı ancak yönetici tarafından eklenebilir.
+
+### Sistemi tanıma turu
+
+Boş bir kurulumda aşağıdaki sıra, sistemin tüm temel akışlarını uçtan uca gezdirir. Her adım bir öncekine dayanır.
+
+1. **Kategori ve ürün** — Kategoriler ekranından bir kategori (örn. "Yeşil Zeytin"), Ürünler ekranından o kategoriye bağlı bir ürün ekleyin.
+2. **Stok kalemi** — Stok Kalemleri ekranında ürüne bir varyant tanımlayın (boy, ambalaj tipi, ambalaj kg). Başlangıç stoğu girerseniz konum seçmeniz istenir; girmezseniz kalem sıfır stokla açılır.
+3. **Lokasyon** — Lokasyonlar ekranından mal kabul ve sevkiyat için birer alan tanımlayın, ardından blok üreteciyle palet gözleri oluşturun. Üretim öncesinde kaç kayıt oluşacağı gösterilir ve onay istenir.
+4. **Mal kabul** — Stok Hareketleri ekranından mal kabul alanına giriş yapın. Stok, o lokasyonda dökme olarak durur.
+5. **Paletleme ve yerleştirme** — Depo Haritası'nda mal kabul alanını açın, dökme satırından "Paletle" deyip bir palet kodu verin. Sonra paleti bir palet gözüne taşıyın. Palet Sorgula ekranından o palete barkod etiketi bastırabilirsiniz.
+6. **Sayım** — Sayım ekranında bir lokasyon seçip birimleri sayın. Fark girerseniz stok düzeltilir ve deftere hareket yazılır; fark girmezseniz de sayım kaydı tutulur. Alttaki geçmiş listesinden sonucu görebilirsiniz.
+7. **Satış** — Bir müşteri tanımlayın, Satış Siparişleri'nden sipariş oluşturun ve hangi birimden ne kadar çıkacağını seçin (rezervasyon). Ardından siparişi teslim edin; stok ancak bu adımda fiziksel olarak düşer.
+8. **Rapor ve sağlık** — Raporlar ekranından tarih aralığı seçip özeti görün ve CSV indirin. Sistem Sağlığı ekranı, tüm bu işlemlerden sonra hiçbir tutarsızlık bildirmiyor olmalıdır.
 
 ---
 
@@ -131,20 +159,22 @@ Docker kurulumunda `backend/.env` ve `frontend/.env` **okunmaz**; değişkenler 
 | `npm start`            | production sunucusu                          |
 | `npm run migrate`      | uygulanmamış şema geçişlerini çalıştırır     |
 | `npm test`             | testleri `wms_test` veritabanında çalıştırır |
-| `npm test`             | Vitest testlerini bir kez çalıştırır         |
-| `npm run test:watch`   | değişiklikleri izleyerek çalıştırır          |
 | `npm run lint`         | ESLint                                       |
 | `npm run format`       | Prettier ile biçimlendirir                   |
 | `npm run format:check` | biçim uyumunu denetler, dosyaya yazmaz       |
 
 ### Frontend
 
-| Komut             | Ne yapar                   |
-| ----------------- | -------------------------- |
-| `npm run dev`     | Vite geliştirme sunucusu   |
-| `npm run build`   | üretim derlemesi (`dist/`) |
-| `npm run preview` | derlenmiş sürümü önizle    |
-| `npm run lint`    | ESLint                     |
+| Komut                  | Ne yapar                               |
+| ---------------------- | -------------------------------------- |
+| `npm run dev`          | Vite geliştirme sunucusu               |
+| `npm run build`        | üretim derlemesi (`dist/`)             |
+| `npm run preview`      | derlenmiş sürümü önizle                |
+| `npm test`             | Vitest testlerini bir kez çalıştırır   |
+| `npm run test:watch`   | değişiklikleri izleyerek çalıştırır    |
+| `npm run lint`         | ESLint                                 |
+| `npm run format`       | Prettier ile biçimlendirir             |
+| `npm run format:check` | biçim uyumunu denetler, dosyaya yazmaz |
 
 ### Docker
 
@@ -179,6 +209,9 @@ Her çalıştırmada şema sıfırdan kurulur. Kapsam:
 - **Girdi doğrulama** — arayüzün boş metin olarak gönderdiği alanların "gönderilmemiş" sayıldığı, hata iletilerinin değişmediği, şemada tanımsız alanların isteği reddettirmediği, satış fiyatının kayıtlı fiyattan çok sapmasının engellendiği
 - **Sistem sağlığı ve kurulum** — sağlık ucunun veritabanı bağlantısını doğru bildirdiği, ilk kullanıcının admin olduğu, kurulum ucunun kullanıcı oluşana kadar kurulum gerektiğini bildirdiği; normal işleyişte altı sağlık kontrolünün hiçbirinin yanlış alarm üretmediği, pasife alınan lokasyonda kalan stoğun raporlandığı, kapasite aşımında sınır davranışının doğru olduğu (tanımsız kapasitenin sayılmadığı, kapasite tam doluyken uyarı çıkmadığı, ancak aşıldığında çıktığı)
 - **Palet gözü kuralı** — palet tipi lokasyona ikinci paletin transfer edilemediği ve orada yeni palet oluşturulamadığı, alan tipi lokasyonun birden fazla palet alabildiği, dökme malın palet gözüne taşınmasının engellenmediği
+- **Varyant başlangıç stoğu** — varyant oluştururken stok girildiğinde lokasyonun zorunlu olduğu, reddedilen isteğin hiçbir iz bırakmadığı, kabul edilen istekte stok biriminin ve giriş hareketinin varyantla aynı işlemde oluştuğu
+- **Parola sıfırlama** — yöneticinin sıfırladığı hesapta eski access token'ın düştüğü, eski parolayla girilemediği ve yenisinin geçerli olduğu; yöneticinin kendi parolasını bu uçtan sıfırlayamadığı, kısa parolanın ve token'sız isteğin reddedildiği
+- **Sayım kaydı** — sayımın kendisinin kayıt altına alındığı, ürettiği stok hareketlerinin bu kayda bağlandığı, fark çıkmayan sayımların da kaydedildiği (hareket yazılmadan), geçmişin duruma göre süzülebildiği ve süzmenin toplam sayacı da etkilediği
 
 ### Arayüz testleri
 
@@ -225,8 +258,9 @@ backend/
     validation.js        şema doğrulama ara katmanı ve ortak alan tanımları
     tokens.js            token üretimi ve refresh çerezi ayarları
     tarih.js             yerel tarih ve yarı açık aralık yardımcıları
-    pagination.js        sayfalama
+    pagination.js        sayfalama, istemci limitine üst sınır
     reservations.js      rezerve miktar hesabı
+    paletGozu.js         palet gözünün dolu olup olmadığı kontrolü
   db/
     schema.sql           güncel şemanın anlık görüntüsü (testler bunu kurar)
     migrate.js           uygulanmamış geçişleri sırayla çalıştırır
@@ -249,13 +283,19 @@ frontend/
     hooks/
       useAuth.js         oturuma erişim
       useFetch.js        veri çekme, ilk yükleme ve yeniden çekme ayrımı
+      useTema.js         tema durumu ve tema renklerinin tek kaynağı
     pages/               sayfa bileşenleri (tembel yüklenir)
     components/
       HataSiniri.jsx     paket yüklenemediğinde boş ekran yerine uyarı
       *.jsx              paylaşılan bileşenler
-    utils/               tarih yardımcıları
+    utils/
+      date.js            yerel tarih biçimlendirme
+      csv.js             CSV metni üretimi ve indirme
+    test/
+      setup.js           Vitest kurulumu, her testten sonra DOM temizliği
     styles/              konuya göre ayrılmış stil dosyaları
     index.css            yalnızca stil dosyalarını sırayla içe aktarır
+    *.test.js(x)         testler kaynak dosyaların yanında durur
 ```
 
 ### Dağıtım
@@ -326,6 +366,14 @@ Bunun pratik sonuçları:
 
 Sayımın engellenmemesi bilinçli bir tercihtir. Sayımda rezerveden az mal bulunursa kayıt yine de kabul edilir; çelişki sistem sağlığı ekranında `karsilanamayan_rezervasyon` olarak görünür ve ilgili siparişin teslimatı `409` ile reddedilir. Sayımı reddetmek, gerçekte olan bir farkı sisteme hiç girilmemiş hale getirirdi. Doğru davranış çelişkiyi yutmak ya da engellemek değil, **görünür kılmaktır**.
 
+### Sayım kaydı
+
+Her sayım `sayimlar` tablosunda bir olay olarak tutulur: hangi lokasyon, kim, ne zaman, kaç kalem sayıldı, kaçında fark çıktı ve net fark ne kadar. Sayımın ürettiği stok hareketleri `stok_hareketleri.sayim_id` ile bu kayda bağlanır; böylece aynı gün aynı raf iki kez sayılsa bile hangi hareketin hangi sayımdan geldiği kesindir.
+
+Fark çıkmayan sayımlar da kaydedilir, yalnızca stok hareketi yazılmaz. Bunun sebebi, sayımın değerinin yalnızca düzeltme üretmesi olmamasıdır: bir lokasyonun en son ne zaman doğrulandığı bilgisi, farkın kendisi kadar önemlidir. "Bu raf üç aydır sayılmadı" sorusu ancak fark çıkmayan sayımlar da kayıtlıysa cevaplanabilir.
+
+Sayım geçmişi `GET /sayim` ile listelenir ve `durum` parametresiyle süzülebilir (`uyumlu`, `farkli`). `GET /sayim/:id` tek bir sayımın özetini ve ürettiği hareketleri birlikte döndürür.
+
 ### Kapasite
 
 Lokasyon tanımındaki `kapasite` alanı **palet sayısı** cinsindendir. Bu değer stok girişini, paletlemeyi veya transferi **engellemez**; aşıldığında sistem sağlığı ekranında `Kapasite Aşımı` uyarısı olarak görünür.
@@ -339,10 +387,6 @@ Kapasitesi `0` olan lokasyonlar sınırsız sayılır ve kontrole hiç girmez; m
 İşletme haftada dört gün pazara mal götürüyor, bir kısmını perakende satıyor, kalanı depoya döndürüyor. Bu akış satış siparişine benzemez: miktar önceden belli değildir ve satış ancak dönüş kaydedildiğinde ortaya çıkar.
 
 Her pazar bir **konum** olarak tanımlanır (`lokasyonlar.tip = 'pazar'`). Sefer açıldığında mal depodan pazar konumuna taşınır — **toplam stok değişmez**, yalnızca yeri değişir. Mal fiziksel olarak hâlâ işletmenin elindedir ve sistemde görünür kalması gerekir.
-
-- **Varyant başlangıç stoğu** — varyant oluştururken stok girildiğinde lokasyonun zorunlu olduğu, reddedilen isteğin hiçbir iz bırakmadığı, kabul edilen istekte stok biriminin ve giriş hareketinin varyantla aynı işlemde oluştuğu
-
-- **Parola sıfırlama** — yöneticinin sıfırladığı hesapta eski access token'ın düştüğü, eski parolayla girilemediği ve yenisinin geçerli olduğu; yöneticinin kendi parolasını bu uçtan sıfırlayamadığı, kısa parolanın ve token'sız isteğin reddedildiği
 
 Sefer kapatılırken dönen miktar girilir. Dönen kısım mal kabul alanına aktarılır, kalan fark gerçek bir çıkış olarak kaydedilir:
 
@@ -398,21 +442,21 @@ Her yenilemede refresh çerezi yenisiyle değiştirilir (rotation), böylece ele
 
 ## Modüller
 
-| Modül                        | İçerik                                                                                                         |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------- | --- |
-| **Panel**                    | Özet kartlar, son 14 gün giriş/çıkış grafiği, en çok hareket gören kalemler, bölge bazlı dağılım               |
-| **Ürünler / Stok Kalemleri** | Ürün ve varyant tanımları (boy, ambalaj tipi, ambalaj kg, barkod, kritik seviye)                               |
-| **Depo Haritası**            | Kuş bakışı yerleşim planı, kat katmanları, lokasyon detayı, paletleme, palete mal ekleme ve taşıma             |
-| **Palet Sorgula**            | Barkod ile palet arama, depodaki paletlerin listesi, Code128 barkod etiketi yazdırma                           |     |
-| **Stok Hareketleri**         | Giriş/çıkış kaydı, birim seçimi, filtreleme ve sayfalama                                                       |
-| **Sayım**                    | Lokasyon bazlı sayım; her palet ve dökme yığın ayrı satır                                                      |
-| **Satınalma**                | Sipariş oluşturma, teslim alma, fiş                                                                            |
-| **Satış**                    | Sipariş oluşturma, birim bazlı toplama, teslim, iptal, fiş                                                     |
-| **Pazar Seferleri**          | Pazara götürülen malın sevki, dönüşün kaydı, sevk fişi, pazar bazlı yıl özeti                                  |
-| **Lokasyonlar**              | Lokasyon tanımları ve blok üreteci                                                                             |
-| **Raporlar**                 | Tarih aralığına göre hareket özeti, çalışan ve kalem kırılımı, satınalma ve satış tutarları, CSV dışa aktarma  |     |
+| Modül                        | İçerik                                                                                                        |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Panel**                    | Özet kartlar, son 14 gün giriş/çıkış grafiği, en çok hareket gören kalemler, bölge bazlı dağılım              |
+| **Ürünler / Stok Kalemleri** | Ürün ve varyant tanımları (boy, ambalaj tipi, ambalaj kg, barkod, kritik seviye)                              |
+| **Depo Haritası**            | Kuş bakışı yerleşim planı, kat katmanları, lokasyon detayı, paletleme, palete mal ekleme ve taşıma            |
+| **Palet Sorgula**            | Barkod ile palet arama, depodaki paletlerin listesi, Code128 barkod etiketi yazdırma                          |
+| **Stok Hareketleri**         | Giriş/çıkış kaydı, birim seçimi, filtreleme ve sayfalama                                                      |
+| **Sayım**                    | Lokasyon bazlı sayım; her palet ve dökme yığın ayrı satır, sayım geçmişi ve fark dökümü                       |
+| **Satınalma**                | Sipariş oluşturma, teslim alma, fiş                                                                           |
+| **Satış**                    | Sipariş oluşturma, birim bazlı toplama, teslim, iptal, fiş                                                    |
+| **Pazar Seferleri**          | Pazara götürülen malın sevki, dönüşün kaydı, sevk fişi, pazar bazlı yıl özeti                                 |
+| **Lokasyonlar**              | Lokasyon tanımları ve blok üreteci (önizleme ve onaylı)                                                       |
+| **Raporlar**                 | Tarih aralığına göre hareket özeti, çalışan ve kalem kırılımı, satınalma ve satış tutarları, CSV dışa aktarma |
 | **Sistem Sağlığı**           | Stok sapması, negatif stok, karşılanamayan rezervasyon, pazarda kalıntı, pasif lokasyonda stok, kapasite aşımı |
-| **Kullanıcılar**             | Kullanıcı yönetimi, rol atama, parola değiştirme, yönetici tarafından parola sıfırlama                         |
+| **Kullanıcılar**             | Kullanıcı yönetimi, rol atama, parola değiştirme, yönetici tarafından parola sıfırlama                        |
 
 ### Roller
 

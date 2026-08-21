@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { buildPagination } = require("../utils/pagination");
 
 const yuvarla = (sayi) => Math.round(sayi * 100) / 100;
 
@@ -191,6 +192,28 @@ const kaydet = async (req, res, next) => {
       });
     }
 
+    const netFark = [...varyantFarklari.values()].reduce(
+      (toplam, fark) => toplam + fark,
+      0,
+    );
+
+    const [sayimSonuc] = await connection.query(
+      `INSERT INTO sayimlar
+       (lokasyon_id, olusturan_kullanici_id, aciklama, sayilan_kalem,
+        farkli_kalem, net_fark)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        lokasyonId,
+        req.kullanici.id,
+        aciklama || null,
+        kalemler.length,
+        sonuclar.length,
+        yuvarla(netFark),
+      ],
+    );
+
+    const sayimId = sayimSonuc.insertId;
+
     if (birimGuncellemeleri.length) {
       const birimIdleri = birimGuncellemeleri.map(([birimId]) => birimId);
       const birimCase = birimGuncellemeleri
@@ -246,15 +269,17 @@ const kaydet = async (req, res, next) => {
 
       await connection.query(
         `INSERT INTO stok_hareketleri
-         (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama, olusturan_kullanici_id)
+         (varyant_id, lokasyon_id, tip, sebep, miktar, aciklama,
+          olusturan_kullanici_id, sayim_id)
          VALUES ?`,
-        [hareketSatirlari],
+        [hareketSatirlari.map((satir) => [...satir, sayimId])],
       );
     }
 
     await connection.commit();
 
     res.json({
+      sayim_id: sayimId,
       mesaj: sonuclar.length
         ? `${sonuclar.length} birimde düzeltme yapıldı`
         : "Fark bulunamadı, stoklar zaten doğru",
@@ -268,4 +293,76 @@ const kaydet = async (req, res, next) => {
   }
 };
 
-module.exports = { kaydet };
+const listele = async (req, res, next) => {
+  try {
+    const { durum } = req.query;
+    const { limit, offset } = buildPagination(req.query, 20);
+
+    let kosul = "";
+    if (durum === "uyumlu") kosul = " WHERE s.farkli_kalem = 0";
+    else if (durum === "farkli") kosul = " WHERE s.farkli_kalem > 0";
+
+    const [sayim] = await pool.query(
+      `SELECT COUNT(*) AS toplam FROM sayimlar s${kosul}`,
+    );
+    res.set("X-Toplam-Kayit", sayim[0].toplam);
+
+    const [rows] = await pool.query(
+      `SELECT s.id, s.tarih, s.aciklama, s.sayilan_kalem, s.farkli_kalem,
+              s.net_fark, l.kod AS lokasyon_kod, l.ad AS lokasyon_adi,
+              k.ad AS kullanici_adi
+       FROM sayimlar s
+       JOIN lokasyonlar l ON s.lokasyon_id = l.id
+       LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id${kosul}
+       ORDER BY s.tarih DESC, s.id DESC
+       LIMIT ? OFFSET ?`,
+      [limit, offset],
+    );
+
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const detay = async (req, res, next) => {
+  try {
+    const sayimId = parseInt(req.params.id, 10);
+
+    if (!Number.isInteger(sayimId)) {
+      return res.status(400).json({ hata: "Geçersiz sayım" });
+    }
+
+    const [sayimRows] = await pool.query(
+      `SELECT s.id, s.tarih, s.aciklama, s.sayilan_kalem, s.farkli_kalem,
+              s.net_fark, l.kod AS lokasyon_kod, l.ad AS lokasyon_adi,
+              k.ad AS kullanici_adi
+       FROM sayimlar s
+       JOIN lokasyonlar l ON s.lokasyon_id = l.id
+       LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
+       WHERE s.id = ?`,
+      [sayimId],
+    );
+
+    if (!sayimRows.length) {
+      return res.status(404).json({ hata: "Sayım bulunamadı" });
+    }
+
+    const [hareketler] = await pool.query(
+      `SELECT sh.id, sh.tip, sh.miktar, sh.aciklama,
+              u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg
+       FROM stok_hareketleri sh
+       JOIN urun_varyantlari v ON sh.varyant_id = v.id
+       JOIN urunler u ON v.urun_id = u.id
+       WHERE sh.sayim_id = ?
+       ORDER BY sh.id`,
+      [sayimId],
+    );
+
+    res.json({ ...sayimRows[0], hareketler });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { kaydet, listele, detay };

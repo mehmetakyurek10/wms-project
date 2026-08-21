@@ -2,9 +2,11 @@ import { useEffect, useState } from "react";
 import { ClipboardCheck, Plus } from "lucide-react";
 import { lokasyonlariGetir, lokasyonStok } from "../api/lokasyonApi";
 import { varyantlariGetir } from "../api/varyantApi";
-import { sayimKaydet } from "../api/sayimApi";
+import { sayimKaydet, sayimGecmisi } from "../api/sayimApi";
 import LokasyonSecici from "../components/LokasyonSecici";
 import OnayModal from "../components/OnayModal";
+import StocktakeDetailModal from "../components/StocktakeDetailModal";
+import useFetch from "../hooks/useFetch";
 import { useToast } from "../context/ToastContext";
 
 function Sayim() {
@@ -13,6 +15,8 @@ function Sayim() {
   const [varyantlar, setVaryantlar] = useState([]);
   const [lokasyonId, setLokasyonId] = useState("");
   const [satirlar, setSatirlar] = useState([]);
+  const [detayId, setDetayId] = useState(null);
+  const [durumFiltre, setDurumFiltre] = useState("");
   const [yukleniyor, setYukleniyor] = useState(true);
   const [stokYukleniyor, setStokYukleniyor] = useState(false);
   const [hata, setHata] = useState("");
@@ -117,6 +121,12 @@ function Sayim() {
     (kalem) => kalem.sayilan !== Number(kalem.satir.miktar),
   );
 
+  const { data: gecmis, refresh: gecmisiYenile } = useFetch(
+    () => sayimGecmisi({ limit: 20, durum: durumFiltre || undefined }),
+    [durumFiltre],
+    { initial: [], errorMessage: "Sayım geçmişi yüklenemedi" },
+  );
+
   const kaydet = async () => {
     setOnayAcik(false);
     try {
@@ -136,6 +146,7 @@ function Sayim() {
       setSayimlar({});
       setAciklama("");
       lokasyonSecildi({ target: { value: lokasyonId } });
+      gecmisiYenile();
     } catch (err) {
       bildir(err.response?.data?.hata || "Sayım kaydedilemedi", "hata");
     }
@@ -313,18 +324,93 @@ function Sayim() {
         </>
       )}
 
+      <h2 className="bolum-basligi">Son Sayımlar</h2>
+
+      <div className="filtre-cubugu">
+        <div className="form-alan">
+          <label>Durum</label>
+          <select
+            value={durumFiltre}
+            onChange={(e) => setDurumFiltre(e.target.value)}
+          >
+            <option value="">Tümü</option>
+            <option value="uyumlu">Uyumlu</option>
+            <option value="farkli">Fark çıkanlar</option>
+          </select>
+        </div>
+      </div>
+
+      {gecmis.length === 0 ? (
+        <div className="bos-durum">
+          {durumFiltre
+            ? "Bu filtreye uyan sayım yok."
+            : "Henüz sayım kaydı yok."}
+        </div>
+      ) : (
+        <table>
+          <thead>
+            <tr>
+              <th>Tarih</th>
+              <th>Lokasyon</th>
+              <th>Sayan</th>
+              <th>Kalem</th>
+              <th>Farklı</th>
+              <th>Net Fark</th>
+              <th>Detay</th>
+            </tr>
+          </thead>
+          <tbody>
+            {gecmis.map((s) => (
+              <tr key={s.id}>
+                <td>{new Date(s.tarih).toLocaleString("tr-TR")}</td>
+                <td>{s.lokasyon_kod}</td>
+                <td>{s.kullanici_adi || "—"}</td>
+                <td>{s.sayilan_kalem}</td>
+                <td>{s.farkli_kalem}</td>
+                <td>
+                  {s.farkli_kalem === 0 ? (
+                    <span className="kucuk-not">Uyumlu</span>
+                  ) : (
+                    <strong
+                      className={
+                        Number(s.net_fark) > 0 ? "fark-arti" : "fark-eksi"
+                      }
+                    >
+                      {Number(s.net_fark) > 0 ? "+" : ""}
+                      {Number(s.net_fark).toFixed(0)}
+                    </strong>
+                  )}
+                </td>
+                <td>
+                  <button className="ikincil" onClick={() => setDetayId(s.id)}>
+                    Detay
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+
       <OnayModal
         acik={onayAcik}
         baslik="Sayımı kaydet"
         mesaj={
           farkliKalemler.length === 0
-            ? `${girilenKalemler.length} birim sayıldı, hiçbirinde fark yok. Kayıt oluşturulmayacak.`
+            ? `${girilenKalemler.length} birim sayıldı, hiçbirinde fark yok. Sayım kaydı yine de tutulacak.`
             : `${secilenLokasyon?.kod} lokasyonunda ${farkliKalemler.length} birimde fark tespit edildi. Onaylarsan bu birimlerin miktarları sayılan değerlere güncellenecek.`
         }
         onayMetni="Kaydet"
         onayla={kaydet}
         iptal={() => setOnayAcik(false)}
       />
+
+      {detayId && (
+        <StocktakeDetailModal
+          sayimId={detayId}
+          kapat={() => setDetayId(null)}
+        />
+      )}
     </div>
   );
 }
