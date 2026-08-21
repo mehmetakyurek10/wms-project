@@ -16,7 +16,7 @@ Zeytin toptancılığı için geliştirilmiş depo yönetim sistemi. Stok takibi
 - [Ortam değişkenleri](#ortam-değişkenleri)
 - [Komutlar](#komutlar)
 - [Testler](#testler) · [arayüz testleri](#arayüz-testleri)
-- [Mimari](#mimari) — [dağıtım](#dağıtım), [saat dilimi](#saat-dilimi), [yetkilendirme](#yetkilendirme), [günlükleme](#günlükleme), [stok modeli](#stok-modeli), [rezervasyon](#rezervasyon), [sayım kaydı](#sayım-kaydı), [kapasite](#kapasite), [pazar seferi](#pazar-seferi), [işlem güvenliği](#işlem-güvenliği), [oturum yönetimi](#oturum-yönetimi)
+- [Mimari](#mimari) — [dağıtım](#dağıtım), [saat dilimi](#saat-dilimi), [yetkilendirme](#yetkilendirme), [günlükleme](#günlükleme), [stok modeli](#stok-modeli), [rezervasyon](#rezervasyon), [sayım kaydı](#sayım-kaydı), [kapasite](#kapasite), [pazar seferi](#pazar-seferi), [işlem güvenliği](#işlem-güvenliği), [onay tasarımı](#onay-tasarımı), [oturum yönetimi](#oturum-yönetimi)
 - [Modüller](#modüller) · [roller](#roller) · [lokasyon adresleme](#lokasyon-adresleme)
 - [Şema değişiklikleri](#şema-değişiklikleri)
 - [Bilinen sınırlar](#bilinen-sınırlar)
@@ -425,6 +425,24 @@ Stok değiştiren tüm akışlar aynı kalıbı izler:
 4. `try/finally` ile bağlantının her koşulda havuza dönmesi
 
 Birden fazla satır kilitlenecekse **her zaman aynı ölçüte göre sıralı** kilitlenir (`ORDER BY id` / `ORDER BY lokasyon_id`). Bu, karşılıklı transferlerde deadlock oluşmasını yapısal olarak engeller.
+
+### Onay tasarımı
+
+Onay penceresi istemenin ölçütü işlemin **geri alınabilirliği** ve **yetki değiştirip değiştirmediğidir**, sıklığı değil. Onay isteyen işlemler:
+
+| İşlem                       | Gerekçe                                                        |
+| --------------------------- | -------------------------------------------------------------- |
+| Kayıt silme                 | Geri alınamaz                                                  |
+| Sipariş iptali              | Rezervasyonları serbest bırakır                                |
+| Rol değiştirme              | Yetki yükseltir; mesaj yeni yetkilerin ne olduğunu açıklar     |
+| Kullanıcıyı pasife alma     | Erişimi keser                                                  |
+| Blok üretme                 | Binlerce kayıt oluşturabilir ve toplu geri alma yolu yoktur    |
+
+Onay istemeyen iki işlem bilinçli olarak dışarıda bırakılmıştır. **Kullanıcıyı aktifleştirmek** erişim verir, geri alınabilir ve zararsızdır; pasife almanın onay istemesi, aktifleştirmenin istememesi riskin asimetrik olmasındandır. **Paletleme** ise günlük bir depo işlemidir ve kullanıcı zaten kod girip miktar yazarak bilinçli bir eylemde bulunur; her paletlemede onay istemek, onayların okunmadan geçilmesine alışkanlık kazandırır ve asıl kritik uyarıları da etkisizleştirir.
+
+**Teslim etme** için ayrı bir onay katmanı yerine, işlemin yapıldığı pencerede hangi birimden ne kadar çıkacağı listelenir ve geri alınamazlığı açıkça yazılır. Kullanıcının zaten ayrıntıyı gördüğü bir ekranın üstüne ikinci bir pencere koymak bilgi eklemez, yalnızca tıklama sayısını artırır.
+
+Onay metinleri somut sayı içerir: "480 palet yeri oluşturulacak", "3 birimde toplam 240 adet düşülecek". Etkiyi kullanıcının kafasında hesaplamasını beklemek, onayı biçimsel bir engele indirger.
 
 ### Oturum yönetimi
 

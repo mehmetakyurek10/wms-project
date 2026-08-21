@@ -64,7 +64,10 @@ function DeliveryModal({ acik, siparis, kapat, tamamlandi }) {
         <PackageCheck size={22} />
       </div>
       <h3>#{siparis.id} · Teslim Et</h3>
-      <p>Sipariş oluşturulurken ayrılan stok aşağıdaki birimlerden çıkacak.</p>
+      <p>
+        Sipariş oluşturulurken ayrılan stok aşağıdaki birimlerden çıkacak.{" "}
+        <strong>Bu işlem geri alınamaz.</strong>
+      </p>
 
       {yukleniyor ? (
         <div className="yukleniyor-kutu">

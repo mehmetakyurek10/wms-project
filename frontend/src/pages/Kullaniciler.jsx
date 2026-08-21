@@ -20,6 +20,7 @@ function Kullanicilar() {
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [sifirlanacak, setSifirlanacak] = useState(null);
   const [rolDegisimi, setRolDegisimi] = useState(null);
+  const [pasifeAlinacak, setPasifeAlinacak] = useState(null);
   const [yeniSifre, setYeniSifre] = useState("");
   const [sifirlaniyor, setSifirlaniyor] = useState(false);
   const [form, setForm] = useState({
@@ -78,6 +79,22 @@ function Kullanicilar() {
     } catch (err) {
       bildir(err.response?.data?.hata || "Güncellenemedi", "hata");
     }
+  };
+
+  // Aktiflestirme erisim verir ve geri alinabilir, onay istemez. Pasife
+  // alma kullanicinin sisteme girisini keser; asimetrik risk.
+  const durumSecildi = (kullanici) => {
+    if (kullanici.aktif) {
+      setPasifeAlinacak(kullanici);
+      return;
+    }
+    durumDegistir(kullanici);
+  };
+
+  const pasifeAlOnayla = async () => {
+    const kullanici = pasifeAlinacak;
+    setPasifeAlinacak(null);
+    await durumDegistir(kullanici);
   };
 
   const durumDegistir = async (kullanici) => {
@@ -202,7 +219,7 @@ function Kullanicilar() {
                 </td>
                 <td>
                   <button
-                    onClick={() => durumDegistir(k)}
+                    onClick={() => durumSecildi(k)}
                     disabled={kendisi}
                     className={k.aktif ? "tehlike" : ""}
                     title={kendisi ? "Kendi durumunuzu değiştiremezsiniz" : ""}
@@ -227,6 +244,15 @@ function Kullanicilar() {
           })}
         </tbody>
       </table>
+
+      <OnayModal
+        acik={pasifeAlinacak !== null}
+        baslik="Kullanıcıyı pasife al"
+        mesaj={`${pasifeAlinacak?.ad} pasife alınacak ve sisteme giriş yapamayacak. Kayıtları ve geçmiş işlemleri silinmez, istediğiniz zaman yeniden aktifleştirebilirsiniz.`}
+        onayMetni="Pasife al"
+        onayla={pasifeAlOnayla}
+        iptal={() => setPasifeAlinacak(null)}
+      />
 
       <OnayModal
         acik={rolDegisimi !== null}
