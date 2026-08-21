@@ -9,7 +9,7 @@ import {
   Download,
 } from "lucide-react";
 import { gunlukRapor } from "../api/raporApi";
-import { yerelTarih } from "../utils/tarih";
+import { yerelTarih } from "../utils/date";
 import { csvIndir } from "../utils/csv";
 import useFetch from "../hooks/useFetch";
 

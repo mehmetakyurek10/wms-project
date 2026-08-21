@@ -5,7 +5,7 @@ import { getStockUnits, findPalletByCode } from "../api/stockUnitApi";
 import PaletEtiketi from "../components/PaletEtiketi";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
-import Sayfalama from "../components/Sayfalama";
+import Pagination from "../components/Pagination";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 const sayi = (deger) => Number(deger).toLocaleString("tr-TR");
@@ -188,7 +188,7 @@ function Pallets() {
         </table>
       )}
 
-      <Sayfalama
+      <Pagination
         sayfa={sayfa}
         toplam={toplam}
         sayfaBoyutu={SAYFA_BOYUTU}

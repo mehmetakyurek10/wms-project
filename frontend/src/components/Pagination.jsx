@@ -1,4 +1,4 @@
-function Sayfalama({ sayfa, toplam, sayfaBoyutu, degisti }) {
+function Pagination({ sayfa, toplam, sayfaBoyutu, degisti }) {
   const toplamSayfa = Math.ceil(toplam / sayfaBoyutu);
 
   if (toplam <= sayfaBoyutu) return null;
@@ -21,4 +21,4 @@ function Sayfalama({ sayfa, toplam, sayfaBoyutu, degisti }) {
   );
 }
 
-export default Sayfalama;
+export default Pagination;

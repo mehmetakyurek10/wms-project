@@ -17,7 +17,7 @@ import {
 } from "../api/lokasyonApi";
 import Etiket from "../components/Etiket";
 import OnayModal from "../components/OnayModal";
-import Sayfalama from "../components/Sayfalama";
+import Pagination from "../components/Pagination";
 import { useToast } from "../context/ToastContext";
 import { SAYFA_BOYUTU } from "../sabitler";
 
@@ -573,7 +573,7 @@ function LokasyonYonetimi() {
         </tbody>
       </table>
 
-      <Sayfalama
+      <Pagination
         sayfa={gecerliSayfa}
         toplam={gorunenler.length}
         sayfaBoyutu={SAYFA_BOYUTU}

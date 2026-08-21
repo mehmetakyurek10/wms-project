@@ -9,7 +9,7 @@ import {
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
-import Sayfalama from "../components/Sayfalama";
+import Pagination from "../components/Pagination";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 function Musteriler() {
@@ -260,7 +260,7 @@ function Musteriler() {
         </table>
       )}
 
-      <Sayfalama
+      <Pagination
         sayfa={sayfa}
         toplam={toplam}
         sayfaBoyutu={SAYFA_BOYUTU}

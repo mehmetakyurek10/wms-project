@@ -131,6 +131,8 @@ Docker kurulumunda `backend/.env` ve `frontend/.env` **okunmaz**; değişkenler 
 | `npm start`            | production sunucusu                          |
 | `npm run migrate`      | uygulanmamış şema geçişlerini çalıştırır     |
 | `npm test`             | testleri `wms_test` veritabanında çalıştırır |
+| `npm test`             | Vitest testlerini bir kez çalıştırır         |
+| `npm run test:watch`   | değişiklikleri izleyerek çalıştırır          |
 | `npm run lint`         | ESLint                                       |
 | `npm run format`       | Prettier ile biçimlendirir                   |
 | `npm run format:check` | biçim uyumunu denetler, dosyaya yazmaz       |
@@ -178,7 +180,22 @@ Her çalıştırmada şema sıfırdan kurulur. Kapsam:
 - **Sistem sağlığı ve kurulum** — sağlık ucunun veritabanı bağlantısını doğru bildirdiği, ilk kullanıcının admin olduğu, kurulum ucunun kullanıcı oluşana kadar kurulum gerektiğini bildirdiği; normal işleyişte altı sağlık kontrolünün hiçbirinin yanlış alarm üretmediği, pasife alınan lokasyonda kalan stoğun raporlandığı, kapasite aşımında sınır davranışının doğru olduğu (tanımsız kapasitenin sayılmadığı, kapasite tam doluyken uyarı çıkmadığı, ancak aşıldığında çıktığı)
 - **Palet gözü kuralı** — palet tipi lokasyona ikinci paletin transfer edilemediği ve orada yeni palet oluşturulamadığı, alan tipi lokasyonun birden fazla palet alabildiği, dökme malın palet gözüne taşınmasının engellenmediği
 
-Arayüz testi yoktur; frontend elle doğrulanır.
+### Arayüz testleri
+
+```bash
+cd frontend
+npm test
+```
+
+Frontend testleri Vitest ve React Testing Library ile çalışır, veritabanı ya da çalışan bir sunucu gerektirmez; DOM `jsdom` üzerinde canlandırılır. Kapsam:
+
+- **CSV üretimi** — alan ayracının noktalı virgül, satır ayracının CRLF olduğu; ayraç, tırnak veya satır sonu içeren değerlerin tırnaklanıp iç tırnakların ikilendiği; boş değerlerin boş hücre yazdığı
+- **Yerel tarih biçimlendirme** — sıfır doldurma ve gece yarısına yakın saatlerde günün kaymadığı (UTC'ye çevirmenin tarihi bir gün kaydırdığı klasik hata)
+- **Sayfalama bileşeni** — tek sayfalık veride hiç çizilmediği, sayfa ve toplam bilgisinin doğru gösterildiği, ilk ve son sayfada ilgili düğmenin kapandığı, düğmelerin komşu sayfa numarasıyla geri bildirdiği
+
+Sorgular öğeleri rol ve erişilebilir adlarıyla arar (`getByRole("button", { name: "Önceki" })`), yani testler ekran okuyucunun gördüğü arayüzü doğrular; erişilebilir adlar bozulursa testler de kırılır.
+
+Sayfa bileşenlerinin uçtan uca akışları hâlâ elle doğrulanmaktadır.
 
 ---
 
@@ -459,6 +476,6 @@ mysqldump -u root --no-data --skip-comments --set-gtid-purged=OFF wms > backend/
 - **Sunucu tarafı idempotanlık yok.** Çift gönderim arayüzde buton kilidiyle, çift işleme ise koşullu `UPDATE`'lerle engellenir. Ağ kopması sonrası otomatik tekrar için işlem anahtarı (idempotency key) mekanizması yoktur; el terminali kullanılmaya başlandığında gerekecektir.
 - **Satınalma fiyatı denetlenmez.** Satış siparişinde girilen fiyat, varyantın kayıtlı toptan fiyatından en fazla %20 sapabilir. Satınalmada böyle bir kontrol bilinçli olarak yoktur: alış fiyatı piyasaya göre değiştiği için kayıtlı satış fiyatıyla karşılaştırmak sürekli yanlış alarm üretir.
 - **Dosya adlandırması iki dilli.** İş alanı dosyaları çoğunlukla Türkçe (`varyantController.js`, `DepoHaritasi.jsx`), altyapı dosyaları İngilizce (`validation.js`, `pagination.js`, `useFetch.js`); `schemas/` klasörünün tamamı İngilizce. Sayım yapıldığında 67 dosya Türkçe, 55 dosya İngilizce adlandırılmış durumdadır. Tek bir dile geçirmek 68 dosyanın yeniden adlandırılmasını ve tüm içe aktarma zincirinin güncellenmesini gerektirdiğinden, kalan sürede işlevsel eksiklere öncelik verilerek bilinçli olarak ertelenmiştir.
-- **Arayüz testi yok.** Backend akışları otomatik test edilir, frontend elle doğrulanır.
+- **Arayüz testleri yüzeysel.** Saf yardımcı işlevler ve paylaşılan bileşenler için Vitest testleri vardır, ancak sayfa düzeyindeki akışlar (sipariş oluşturma, sayım, pazar seferi) uçtan uca test edilmez; bunlar elle doğrulanır.
 - **Stil dosyaları konuya göre ayrıldı ama içerik yeniden düzenlenmedi.** `styles/` altındaki dosyalar özgün sırayı birebir korur; bu yüzden açık tema kuralları ve medya sorguları hâlâ birden fazla dosyaya dağılmış durumdadır.
 - **Panel ekranının paketi büyük.** Sayfalar tembel yüklendiği için ilk açılış hafiftir, ancak panel grafik kütüphanesiyle birlikte yaklaşık 390 kB'lık ayrı bir paket oluşturur. Yalnızca panele girildiğinde iner.

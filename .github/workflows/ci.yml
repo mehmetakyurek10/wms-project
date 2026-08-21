@@ -121,7 +121,7 @@ jobs:
           JS
 
   frontend:
-    name: Frontend (lint + build)
+    name: Frontend (lint + test + build)
     runs-on: ubuntu-latest
 
     steps:
@@ -144,6 +144,10 @@ jobs:
       - name: Bicim
         working-directory: frontend
         run: npm run format:check
+
+      - name: Testler
+        working-directory: frontend
+        run: npm test
 
       - name: Derleme
         working-directory: frontend
