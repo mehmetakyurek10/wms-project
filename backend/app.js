@@ -9,6 +9,7 @@ const logger = require("./config/logger");
 const pool = require("./config/db");
 const routes = require("./routes");
 const hataYonetici = require("./middleware/hataYonetici");
+const { yerelZaman } = require("./utils/tarih");
 
 const app = express();
 
@@ -58,8 +59,19 @@ app.use(cookieParser());
 
 app.get("/saglik", async (req, res) => {
   try {
-    await pool.query("SELECT 1");
-    res.json({ durum: "ok", veritabani: "bagli" });
+    const [[zaman]] = await pool.query(
+      `SELECT DATE_FORMAT(NOW(), '%Y-%m-%d %H:%i:%s') AS veritabani_saati,
+              @@session.time_zone AS veritabani_dilimi`,
+    );
+
+    res.json({
+      durum: "ok",
+      veritabani: "bagli",
+      sunucu_saati: yerelZaman(),
+      sunucu_dilimi: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      veritabani_saati: zaman.veritabani_saati,
+      veritabani_dilimi: zaman.veritabani_dilimi,
+    });
   } catch (err) {
     req.log.error({ err }, "Saglik kontrolu: veritabanina baglanilamadi");
     res.status(503).json({ durum: "hata", veritabani: "baglanamadi" });

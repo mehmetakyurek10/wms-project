@@ -50,3 +50,22 @@ test("kurulum ucu ilk kullanici olusana kadar kurulum bildirir", async () => {
   const sonra = await request(app).get("/auth/kurulum").expect(200);
   assert.equal(sonra.body.ilkKurulum, false, "kullanici varken kurulum bitmis");
 });
+
+test("saglik ucu sunucu ve veritabani saatini birlikte bildirir", async () => {
+  const yanit = await request(app).get("/saglik").expect(200);
+
+  assert.ok(yanit.body.sunucu_saati, "sunucu saati bildirilmeli");
+  assert.ok(yanit.body.veritabani_saati, "veritabani saati bildirilmeli");
+  assert.ok(yanit.body.sunucu_dilimi, "sunucu dilimi bildirilmeli");
+  assert.ok(yanit.body.veritabani_dilimi, "veritabani dilimi bildirilmeli");
+
+  const oku = (metin) => new Date(metin.replace(" ", "T")).getTime();
+  const fark = Math.abs(
+    oku(yanit.body.sunucu_saati) - oku(yanit.body.veritabani_saati),
+  );
+
+  assert.ok(
+    fark < 60_000,
+    `sunucu ve veritabani saati ${Math.round(fark / 1000)} saniye ayrisiyor`,
+  );
+});

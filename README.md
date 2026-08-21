@@ -6,7 +6,7 @@ Zeytin toptancılığı için geliştirilmiş depo yönetim sistemi. Stok takibi
 
 **Yığın:** Express 5 + MySQL 8 (backend) · React 19 + Vite (frontend) · Docker
 
-**Durum:** Backend 61, frontend 14 otomatik test; her ikisi de lint ve biçim denetiminden geçiyor, sürekli tümleştirme her gönderimde çalışıyor.
+**Durum:** Backend 62, frontend 14 otomatik test; her ikisi de lint ve biçim denetiminden geçiyor, sürekli tümleştirme her gönderimde çalışıyor.
 
 ---
 
@@ -16,7 +16,7 @@ Zeytin toptancılığı için geliştirilmiş depo yönetim sistemi. Stok takibi
 - [Ortam değişkenleri](#ortam-değişkenleri)
 - [Komutlar](#komutlar)
 - [Testler](#testler) · [arayüz testleri](#arayüz-testleri)
-- [Mimari](#mimari) — [dağıtım](#dağıtım), [yetkilendirme](#yetkilendirme), [günlükleme](#günlükleme), [stok modeli](#stok-modeli), [rezervasyon](#rezervasyon), [sayım kaydı](#sayım-kaydı), [kapasite](#kapasite), [pazar seferi](#pazar-seferi), [işlem güvenliği](#işlem-güvenliği), [oturum yönetimi](#oturum-yönetimi)
+- [Mimari](#mimari) — [dağıtım](#dağıtım), [saat dilimi](#saat-dilimi), [yetkilendirme](#yetkilendirme), [günlükleme](#günlükleme), [stok modeli](#stok-modeli), [rezervasyon](#rezervasyon), [sayım kaydı](#sayım-kaydı), [kapasite](#kapasite), [pazar seferi](#pazar-seferi), [işlem güvenliği](#işlem-güvenliği), [oturum yönetimi](#oturum-yönetimi)
 - [Modüller](#modüller) · [roller](#roller) · [lokasyon adresleme](#lokasyon-adresleme)
 - [Şema değişiklikleri](#şema-değişiklikleri)
 - [Bilinen sınırlar](#bilinen-sınırlar)
@@ -124,6 +124,7 @@ Boş bir kurulumda aşağıdaki sıra, sistemin tüm temel akışlarını uçtan
 | `JWT_SECRET`   | Token imzalama anahtarı — **en az 32 karakter**                 |
 | `CORS_ORIGIN`  | İzinli kaynaklar, virgülle ayrılmış                             |
 | `LOG_LEVEL`    | Günlük seviyesi — boşsa ortama göre seçilir                     |
+| `DB_TIMEZONE`  | MySQL bağlantısının saat dilimi — boşsa sürecin yerel saati     |
 
 Uygulama açılışta bu değişkenleri doğrular. Zorunlu biri eksikse ya da `JWT_SECRET` kısaysa **başlamaz** — hatalı yapılandırmayla çalışmaktansa açıkça durmak tercih edilmiştir.
 
@@ -144,6 +145,8 @@ Uygulama açılışta bu değişkenleri doğrular. Zorunlu biri eksikse ya da `J
 | `JWT_SECRET`       | Token imzalama anahtarı, en az 32 karakter        |
 | `APP_PORT`         | Uygulamanın yayınlanacağı port (varsayılan 8080)  |
 | `APP_ORIGIN`       | Uygulamanın adresi, örn. `http://localhost:8080`  |
+| `TZ`               | Konteynerlerin saat dilimi (varsayılan `Europe/Istanbul`) |
+| `DB_TIMEZONE`      | MySQL sunucusunun saat dilimi (varsayılan `+03:00`) |
 
 Docker kurulumunda `backend/.env` ve `frontend/.env` **okunmaz**; değişkenler doğrudan Compose tarafından verilir. Arayüzün API adresi de derleme sırasında `/api` olarak sabitlenir, çünkü her ikisi de aynı adres üzerinden sunulur.
 
@@ -207,7 +210,7 @@ Her çalıştırmada şema sıfırdan kurulur. Kapsam:
 - **Yetkilendirme** — on altı ucun token'sız erişime kapalı olduğu, depo sorumlusunun admin uçlarına ve kullanıcı kaydına erişemediği, günlük işlem uçlarına erişebildiği
 - **Pazar seferi** — sefer açılışının toplam stoğu değiştirmediği, açık sefer varken ikincisinin açılamadığı, rezerve malın pazara çıkamadığı, kapanışta dönenin mal kabule girip kalanın satış olarak düştüğü, sefer sonrası pazar konumunun boşaldığı, pazardaki mala sayım ve transfer yapılamadığı
 - **Girdi doğrulama** — arayüzün boş metin olarak gönderdiği alanların "gönderilmemiş" sayıldığı, hata iletilerinin değişmediği, şemada tanımsız alanların isteği reddettirmediği, satış fiyatının kayıtlı fiyattan çok sapmasının engellendiği
-- **Sistem sağlığı ve kurulum** — sağlık ucunun veritabanı bağlantısını doğru bildirdiği, ilk kullanıcının admin olduğu, kurulum ucunun kullanıcı oluşana kadar kurulum gerektiğini bildirdiği; normal işleyişte altı sağlık kontrolünün hiçbirinin yanlış alarm üretmediği, pasife alınan lokasyonda kalan stoğun raporlandığı, kapasite aşımında sınır davranışının doğru olduğu (tanımsız kapasitenin sayılmadığı, kapasite tam doluyken uyarı çıkmadığı, ancak aşıldığında çıktığı)
+- **Sistem sağlığı ve kurulum** — sağlık ucunun veritabanı bağlantısını doğru bildirdiği, ilk kullanıcının admin olduğu, kurulum ucunun kullanıcı oluşana kadar kurulum gerektiğini bildirdiği; normal işleyişte altı sağlık kontrolünün hiçbirinin yanlış alarm üretmediği, pasife alınan lokasyonda kalan stoğun raporlandığı, kapasite aşımında sınır davranışının doğru olduğu (tanımsız kapasitenin sayılmadığı, kapasite tam doluyken uyarı çıkmadığı, ancak aşıldığında çıktığı); sunucu ve veritabanı saatlerinin bir dakikadan fazla ayrışmadığı
 - **Palet gözü kuralı** — palet tipi lokasyona ikinci paletin transfer edilemediği ve orada yeni palet oluşturulamadığı, alan tipi lokasyonun birden fazla palet alabildiği, dökme malın palet gözüne taşınmasının engellenmediği
 - **Varyant başlangıç stoğu** — varyant oluştururken stok girildiğinde lokasyonun zorunlu olduğu, reddedilen isteğin hiçbir iz bırakmadığı, kabul edilen istekte stok biriminin ve giriş hareketinin varyantla aynı işlemde oluştuğu
 - **Parola sıfırlama** — yöneticinin sıfırladığı hesapta eski access token'ın düştüğü, eski parolayla girilemediği ve yenisinin geçerli olduğu; yöneticinin kendi parolasını bu uçtan sıfırlayamadığı, kısa parolanın ve token'sız isteğin reddedildiği
@@ -303,6 +306,16 @@ frontend/
 Docker kurulumunda üç konteyner çalışır. Nginx hem statik dosyaları sunar hem `/api` ile başlayan istekleri backend'e yönlendirir; böylece tarayıcı tek bir adres görür ve CORS ile çerez kısıtları devreye girmez. Refresh çerezinin yolu geçiş sırasında `/api/auth` olarak yeniden yazılır.
 
 Backend konteyneri açılışta önce şema geçişlerini uygular, sonra sunucuyu başlatır. Veritabanının hazır olmasını sağlık kontrolü bekler — konteynerin başlaması ile bağlantı kabul etmeye hazır olması aynı şey değildir.
+
+### Saat dilimi
+
+Tarih işlemleri kod tarafında yerel saate göre yapılır: `utils/tarih.js` gün sınırlarını yerel takvimden üretir ve rapor sorguları yarı açık aralık (`>= başlangıç AND < ertesi gün`) kullanır. Bu yaklaşım kendi içinde tutarlıdır, ancak **çalıştığı ortama bağımlıdır** — Node süreci ile MySQL sunucusu farklı saat dilimlerindeyse kayıtlar kayar.
+
+Docker kurulumunda her iki konteyner de `TZ` ile aynı dilime sabitlenir; MySQL ayrıca `--default-time-zone` ile açıkça ayarlanır, çünkü resmi imaj saat dilimi tablolarını yüklü getirmez ve tek başına `TZ` değişkenine güvenmek yeterli olmaz. Bağlantı katmanında `DB_TIMEZONE` boş bırakılırsa `mysql2` sürecin yerel saatini kullanır; yerel geliştirmede doğru davranış budur.
+
+Varsayılan `+03:00` sabit ofsettir. Türkiye 2016'dan beri kalıcı olarak UTC+3 kullandığı ve yaz saati uygulaması bulunmadığı için bu güvenlidir; başka bir ülkeye kurulum yapılacaksa `.env` üzerinden değiştirilmelidir.
+
+Yanlış yapılandırmanın sessiz kalmaması için `/saglik` ucu hem sunucunun hem veritabanının saatini ve dilimini döndürür. Testler bu iki saatin bir dakikadan fazla ayrışmadığını doğrular — diller ayrışmışsa fark bir saatin katı olarak ortaya çıkar ve sürekli tümleştirme bunu yakalar.
 
 ### Yetkilendirme
 

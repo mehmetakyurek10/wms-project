@@ -5,6 +5,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
+      TZ: ${TZ:-Europe/Istanbul}
+    command: --default-time-zone=${DB_TIMEZONE:-+03:00}
     volumes:
       - db_data:/var/lib/mysql
     healthcheck:
@@ -28,12 +30,14 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      TZ: ${TZ:-Europe/Istanbul}
       DB_HOST: db
       DB_USER: root
       DB_PASSWORD: ${DB_ROOT_PASSWORD}
       DB_NAME: ${DB_NAME}
       DB_PORT: 3306
       DB_POOL_SIZE: 20
+      DB_TIMEZONE: ${DB_TIMEZONE:-+03:00}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: ${APP_ORIGIN}
     depends_on:
