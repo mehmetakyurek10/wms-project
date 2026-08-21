@@ -48,7 +48,6 @@ function Varyantlar() {
     birim: "adet",
     lokasyon_id: "",
     kritik_seviye: 0,
-    toptan_fiyat: 0,
     perakende_fiyat: 0,
   });
 
@@ -159,7 +158,6 @@ function Varyantlar() {
         miktar: miktarAdet,
         lokasyon_id: miktarAdet > 0 ? form.lokasyon_id : "",
         kritik_seviye: form.kritik_seviye,
-        toptan_fiyat: form.toptan_fiyat,
         perakende_fiyat: form.perakende_fiyat,
       });
       setForm({ ...form, boy: "", barkod: "", miktar: 0, lokasyon_id: "" });
@@ -180,7 +178,6 @@ function Varyantlar() {
       ambalaj_kg: v.ambalaj_kg,
       barkod: v.barkod || "",
       kritik_seviye: v.kritik_seviye,
-      toptan_fiyat: v.toptan_fiyat,
       perakende_fiyat: v.perakende_fiyat,
       aktif: v.aktif,
     });
@@ -325,17 +322,6 @@ function Varyantlar() {
             type="number"
             step="0.01"
             value={form.kritik_seviye}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div className="form-alan">
-          <label>Toptan fiyat (adet)</label>
-          <input
-            name="toptan_fiyat"
-            type="number"
-            step="0.01"
-            value={form.toptan_fiyat}
             onChange={handleChange}
           />
         </div>

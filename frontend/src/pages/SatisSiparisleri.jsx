@@ -141,17 +141,6 @@ function SatisSiparisleri() {
   const kalemDegistir = (index, alan, deger) => {
     const yeniKalemler = [...kalemler];
     yeniKalemler[index] = { ...yeniKalemler[index], [alan]: deger };
-
-    if (alan === "varyant_id") {
-      const varyant = varyantlar.find((v) => v.id === parseInt(deger, 10));
-      if (varyant && !yeniKalemler[index].birim_fiyat) {
-        const ambalajKg = Number(varyant.ambalaj_kg) || 1;
-        yeniKalemler[index].birim_fiyat = (
-          Number(varyant.toptan_fiyat) / ambalajKg
-        ).toFixed(2);
-      }
-    }
-
     setKalemler(yeniKalemler);
   };
 

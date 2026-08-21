@@ -1,0 +1,1 @@
+ALTER TABLE urun_varyantlari DROP COLUMN toptan_fiyat;

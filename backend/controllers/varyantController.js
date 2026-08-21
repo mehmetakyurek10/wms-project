@@ -83,7 +83,6 @@ const ekle = async (req, res, next) => {
       miktar,
       lokasyon_id,
       kritik_seviye,
-      toptan_fiyat,
       perakende_fiyat,
     } = req.body;
 
@@ -105,9 +104,9 @@ const ekle = async (req, res, next) => {
 
     const [sonuc] = await connection.query(
       `INSERT INTO urun_varyantlari
-       (urun_id, boy, ambalaj_tipi, ambalaj_kg, barkod, miktar, kritik_seviye,
-        toptan_fiyat, perakende_fiyat)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         (urun_id, boy, ambalaj_tipi, ambalaj_kg, barkod, miktar, kritik_seviye,
+          perakende_fiyat)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         urun_id,
         boy,
@@ -116,7 +115,6 @@ const ekle = async (req, res, next) => {
         barkod || null,
         baslangicStogu,
         kritik_seviye || 0,
-        toptan_fiyat || 0,
         perakende_fiyat || 0,
       ],
     );
@@ -172,15 +170,14 @@ const guncelle = async (req, res, next) => {
       ambalaj_kg,
       barkod,
       kritik_seviye,
-      toptan_fiyat,
       perakende_fiyat,
       aktif,
     } = req.body;
 
     const [sonuc] = await pool.query(
       `UPDATE urun_varyantlari
-       SET boy=?, ambalaj_tipi=?, ambalaj_kg=?, barkod=?, kritik_seviye=?,
-           toptan_fiyat=?, perakende_fiyat=?, aktif=?
+              SET boy=?, ambalaj_tipi=?, ambalaj_kg=?, barkod=?, kritik_seviye=?,
+           perakende_fiyat=?, aktif=?
        WHERE id=?`,
       [
         boy,
@@ -188,7 +185,6 @@ const guncelle = async (req, res, next) => {
         ambalaj_kg,
         barkod || null,
         kritik_seviye,
-        toptan_fiyat ?? 0,
         perakende_fiyat ?? 0,
         aktif ?? true,
         id,

@@ -235,33 +235,3 @@ test("transferde hedef lokasyon zorunlu, miktar degil", async () => {
 
   assert.equal(yanit.body.hata, "Taşınacak birim ve hedef lokasyon zorunludur");
 });
-
-test("satis fiyati kayitli fiyattan cok saparsa reddedilir", async () => {
-  const birimler = await auth(
-    request(app).get(`/stok-birimleri?varyant_id=${seed.varyantId}`),
-  ).expect(200);
-
-  const dokme = birimler.body.find((b) => Number(b.kullanilabilir) > 0);
-  assert.ok(dokme, "kullanilabilir stok olmali");
-
-  // seedWarehouse varyanti 100 birim toptan fiyatla olusturuyor.
-  // 10 degeri %90 sapma demek, esigin disinda.
-  const sapan = await auth(request(app).post("/satis-siparisleri"))
-    .send({
-      musteri_id: seed.musteriId,
-      kalemler: [{ varyant_id: seed.varyantId, miktar: 1, birim_fiyat: 10 }],
-      tahsisler: [{ birim_id: dokme.id, miktar: 1 }],
-    })
-    .expect(400);
-
-  assert.match(sapan.body.hata, /çok farklı/i);
-
-  // 110 ise %10 sapma; pazarlik payi icinde kalir ve kabul edilir.
-  await auth(request(app).post("/satis-siparisleri"))
-    .send({
-      musteri_id: seed.musteriId,
-      kalemler: [{ varyant_id: seed.varyantId, miktar: 1, birim_fiyat: 110 }],
-      tahsisler: [{ birim_id: dokme.id, miktar: 1 }],
-    })
-    .expect(201);
-});
