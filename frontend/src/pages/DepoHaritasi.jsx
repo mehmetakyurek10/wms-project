@@ -5,6 +5,7 @@ import { palletize, paleteEkle } from "../api/stockUnitApi";
 import { useToast } from "../context/ToastContext";
 import Etiket from "../components/Etiket";
 import TransferModal from "../components/TransferModal";
+import ErrorState from "../components/ErrorState";
 
 function dolulukSinifi(lokasyon) {
   const miktar = Number(lokasyon.toplam_miktar);
@@ -46,6 +47,7 @@ function DepoHaritasi() {
   const [ekleKaydediliyor, setEkleKaydediliyor] = useState(false);
 
   const veriGetir = async () => {
+    setHata("");
     try {
       const response = await lokasyonlariGetir();
       setLokasyonlar(response.data);
@@ -194,7 +196,7 @@ function DepoHaritasi() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={veriGetir} />;
 
   const tumPaletler = lokasyonlar.filter((l) => l.tip === "palet");
   const paletler = tumPaletler.filter((l) => l.kat === kat);

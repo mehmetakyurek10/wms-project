@@ -6,6 +6,7 @@ import PaletEtiketi from "../components/PaletEtiketi";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import Pagination from "../components/Pagination";
+import ErrorState from "../components/ErrorState";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 const sayi = (deger) => Number(deger).toLocaleString("tr-TR");
@@ -43,6 +44,7 @@ function Pallets() {
     total: toplam,
     loading,
     error,
+    refresh: paletleriYenile,
   } = useFetch(
     () =>
       getStockUnits({
@@ -88,7 +90,7 @@ function Pallets() {
       </div>
     );
 
-  if (error) return <p className="hata-metni">{error}</p>;
+  if (error) return <ErrorState mesaj={error} tekrarDene={paletleriYenile} />;
 
   return (
     <div>

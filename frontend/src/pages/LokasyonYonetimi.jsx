@@ -18,6 +18,7 @@ import {
 import Etiket from "../components/Etiket";
 import OnayModal from "../components/OnayModal";
 import Pagination from "../components/Pagination";
+import ErrorState from "../components/ErrorState";
 import { useToast } from "../context/ToastContext";
 import { SAYFA_BOYUTU } from "../sabitler";
 
@@ -66,6 +67,7 @@ function LokasyonYonetimi() {
   const [blokOnay, setBlokOnay] = useState(false);
 
   const veriGetir = async () => {
+    setHata("");
     try {
       const [lokasyonRes, tutarlilikRes] = await Promise.all([
         lokasyonlariGetir(),
@@ -175,7 +177,7 @@ function LokasyonYonetimi() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={veriGetir} />;
 
   const bloklar = [
     ...new Set(lokasyonlar.filter((l) => l.blok).map((l) => l.blok)),

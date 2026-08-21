@@ -7,6 +7,7 @@ import LokasyonSecici from "../components/LokasyonSecici";
 import OnayModal from "../components/OnayModal";
 import StocktakeDetailModal from "../components/StocktakeDetailModal";
 import useFetch from "../hooks/useFetch";
+import ErrorState from "../components/ErrorState";
 import { useToast } from "../context/ToastContext";
 
 function Sayim() {
@@ -28,6 +29,8 @@ function Sayim() {
   const [onayAcik, setOnayAcik] = useState(false);
 
   const tanimlariYukle = async () => {
+    setHata("");
+    setYukleniyor(true);
     try {
       const [lokasyonRes, varyantRes] = await Promise.all([
         lokasyonlariGetir(),
@@ -159,7 +162,7 @@ function Sayim() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={tanimlariYukle} />;
 
   const secilenLokasyon = lokasyonlar.find(
     (l) => l.id === parseInt(lokasyonId, 10),

@@ -7,6 +7,7 @@ import {
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
+import ErrorState from "../components/ErrorState";
 
 function Kategoriler() {
   const bildir = useToast();
@@ -59,7 +60,7 @@ function Kategoriler() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={veriGetir} />;
 
   return (
     <div>

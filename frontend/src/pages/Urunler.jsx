@@ -5,6 +5,7 @@ import { kategorileriGetir } from "../api/kategoriApi";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
+import ErrorState from "../components/ErrorState";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 function Urunler() {
@@ -105,7 +106,7 @@ function Urunler() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={urunleriYukle} />;
 
   return (
     <div>

@@ -15,6 +15,7 @@ import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
 import AllocationModal from "../components/AllocationModal";
 import DeliveryModal from "../components/DeliveryModal";
+import ErrorState from "../components/ErrorState";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 function SatisSiparisleri() {
@@ -234,7 +235,7 @@ function SatisSiparisleri() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={siparisleriYukle} />;
 
   return (
     <div>

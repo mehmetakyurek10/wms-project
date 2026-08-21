@@ -1,6 +1,7 @@
 import { RefreshCw, CheckCircle2, AlertTriangle } from "lucide-react";
 import { getSystemChecks } from "../api/healthApi";
 import useFetch from "../hooks/useFetch";
+import ErrorState from "../components/ErrorState";
 
 const LEVEL = {
   kritik: { sinif: "etiket etiket-kirmizi", metin: "Kritik" },
@@ -22,7 +23,7 @@ function SystemHealth() {
     { initial: null, errorMessage: "Kontroller yüklenemedi" },
   );
 
-  if (error) return <p className="hata-metni">{error}</p>;
+  if (error) return <ErrorState mesaj={error} tekrarDene={refresh} />;
 
   if (loading || !data) {
     return (

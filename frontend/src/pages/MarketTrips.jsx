@@ -13,6 +13,7 @@ import MarketReturnModal from "../components/MarketReturnModal";
 import MarketTripReceipt from "../components/MarketTripReceipt";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
+import ErrorState from "../components/ErrorState";
 
 import { SAYFA_BOYUTU } from "../sabitler";
 const BOS_KALEM = { varyant_id: "", miktar: "", birim: "adet" };
@@ -190,7 +191,7 @@ function MarketTrips() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={seferleriYukle} />;
 
   return (
     <div>

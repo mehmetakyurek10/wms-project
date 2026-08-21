@@ -12,6 +12,7 @@ import Etiket from "../components/Etiket";
 import LokasyonSecici from "../components/LokasyonSecici";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
+import ErrorState from "../components/ErrorState";
 
 import { SAYFA_BOYUTU } from "../sabitler";
 const FILTRE_ALANLARI = ["varyant_id", "tip", "sebep", "baslangic", "bitis"];
@@ -157,7 +158,7 @@ function StokHareketleri() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={hareketleriYukle} />;
 
   const cikisModu = form.tip === "cikis";
 

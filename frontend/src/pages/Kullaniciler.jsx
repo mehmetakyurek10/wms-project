@@ -11,6 +11,7 @@ import useFetch from "../hooks/useFetch";
 import Etiket from "../components/Etiket";
 import OnayModal from "../components/OnayModal";
 import Modal from "../components/Modal";
+import ErrorState from "../components/ErrorState";
 
 function Kullanicilar() {
   const bildir = useToast();
@@ -123,7 +124,7 @@ function Kullanicilar() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={veriGetir} />;
 
   return (
     <div>

@@ -14,6 +14,7 @@ import Fis from "../components/Fis";
 import TeslimAlModal from "../components/TeslimAlModal";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
+import ErrorState from "../components/ErrorState";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 function SatinalmaSiparisleri() {
@@ -192,7 +193,7 @@ function SatinalmaSiparisleri() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={siparisleriYukle} />;
 
   return (
     <div>

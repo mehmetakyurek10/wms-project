@@ -12,6 +12,7 @@ import { gunlukRapor } from "../api/raporApi";
 import { yerelTarih } from "../utils/date";
 import { csvIndir } from "../utils/csv";
 import useFetch from "../hooks/useFetch";
+import ErrorState from "../components/ErrorState";
 
 function Raporlar() {
   const [parametreler, setParametreler] = useSearchParams();
@@ -40,6 +41,7 @@ function Raporlar() {
     data: rapor,
     fetching: yukleniyor,
     error: hata,
+    refresh: raporuYenile,
   } = useFetch(() => gunlukRapor({ baslangic, bitis }), [baslangic, bitis], {
     initial: null,
     errorMessage: "Rapor yüklenemedi",
@@ -51,7 +53,7 @@ function Raporlar() {
       toplam_miktar: 0,
     };
 
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={raporuYenile} />;
 
   const kartlar = rapor
     ? [

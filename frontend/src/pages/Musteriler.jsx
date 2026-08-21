@@ -10,6 +10,7 @@ import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
 import Pagination from "../components/Pagination";
+import ErrorState from "../components/ErrorState";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 function Musteriler() {
@@ -114,7 +115,7 @@ function Musteriler() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={veriGetir} />;
 
   return (
     <div>

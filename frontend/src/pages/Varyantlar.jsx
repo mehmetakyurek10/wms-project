@@ -14,6 +14,7 @@ import LokasyonSecici from "../components/LokasyonSecici";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
+import ErrorState from "../components/ErrorState";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 const FILTRE_ALANLARI = ["kategori_id", "urun_id", "aktif", "sadece_dusuk"];
@@ -215,7 +216,7 @@ function Varyantlar() {
         <span>Yükleniyor...</span>
       </div>
     );
-  if (hata) return <p className="hata-metni">{hata}</p>;
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={varyantlariYukle} />;
 
   return (
     <div>
