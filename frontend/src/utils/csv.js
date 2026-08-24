@@ -1,6 +1,17 @@
+const SAYI_KALIBI = /^-?\d+(?:[.,]\d+)?$/;
+
 export function csvOlustur(basliklar, satirlar) {
   const kacir = (deger) => {
-    const metin = String(deger ?? "");
+    let metin = String(deger ?? "");
+
+    const formulRiski =
+      /^[=+@\t\r]/.test(metin) ||
+      (metin.startsWith("-") && !SAYI_KALIBI.test(metin));
+
+    if (formulRiski) {
+      metin = `'${metin}`;
+    }
+
     return /[";\n\r]/.test(metin) ? `"${metin.replace(/"/g, '""')}"` : metin;
   };
 
