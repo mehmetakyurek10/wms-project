@@ -18,11 +18,43 @@ if (process.env.JWT_SECRET.length < 32) {
   process.exit(1);
 }
 
+const uretim = process.env.NODE_ENV === "production";
+
+const corsOrigin = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map((k) => k.trim())
+  : ["http://localhost:5173"];
+
+// Tarayicilar Secure cerezi yalnizca guvenli kaynaklardan kabul eder.
+// localhost ve 127.0.0.1 istisnadir; onlar duz HTTP olsa da guvenilir sayilir.
+const guvenilirYerel = (adres) =>
+  /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(adres);
+
+const cookieSecure =
+  process.env.COOKIE_SECURE === undefined
+    ? uretim
+    : process.env.COOKIE_SECURE === "true";
+
+const guvensizAdresler = corsOrigin.filter(
+  (adres) => adres.startsWith("http://") && !guvenilirYerel(adres),
+);
+
+if (cookieSecure && guvensizAdresler.length) {
+  console.error(
+    `[BAŞLATMA HATASI] Çerez "secure" bayrağı açık ama uygulama HTTPS dışından yayınlanıyor: ${guvensizAdresler.join(", ")}`,
+  );
+  console.error(
+    "Tarayıcı oturum çerezini saklamaz; kullanıcılar 15 dakikada bir giriş ekranına atılır.",
+  );
+  console.error(
+    "Çözüm: nginx'e TLS ekleyin, ya da güvenli bir iç ağdaysanız COOKIE_SECURE=false verin.",
+  );
+  process.exit(1);
+}
+
 module.exports = {
   port: Number(process.env.PORT) || 3000,
   ortam: process.env.NODE_ENV || "development",
-  uretim: process.env.NODE_ENV === "production",
-  corsOrigin: process.env.CORS_ORIGIN
-    ? process.env.CORS_ORIGIN.split(",").map((k) => k.trim())
-    : ["http://localhost:5173"],
+  uretim,
+  cookieSecure,
+  corsOrigin,
 };

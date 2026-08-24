@@ -35,7 +35,7 @@ function createRefreshToken(kullanici) {
 // olmali ve o zaman CSRF icin ek onlem gerekir.
 const COOKIE_SECENEKLERI = {
   httpOnly: true,
-  secure: config.uretim,
+  secure: config.cookieSecure,
   sameSite: "lax",
   path: REFRESH_PATH,
 };

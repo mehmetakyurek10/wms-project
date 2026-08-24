@@ -40,6 +40,7 @@ services:
       DB_TIMEZONE: ${DB_TIMEZONE:-+03:00}
       JWT_SECRET: ${JWT_SECRET}
       CORS_ORIGIN: ${APP_ORIGIN}
+      COOKIE_SECURE: ${COOKIE_SECURE:-}
     depends_on:
       db:
         condition: service_healthy
