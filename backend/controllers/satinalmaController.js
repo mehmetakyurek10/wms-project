@@ -17,6 +17,7 @@ const listele = async (req, res, next) => {
 
     const [siparisler] = await pool.query(
       `SELECT s.id, s.durum, s.siparis_tarihi, s.teslim_tarihi, s.toplam_tutar,
+              s.iptal_tarihi, s.iptal_aciklamasi,
               t.ad AS tedarikci_adi, t.telefon AS tedarikci_telefon
        FROM satinalma_siparisleri s
        JOIN tedarikciler t ON s.tedarikci_id = t.id${kosul}
@@ -243,4 +244,63 @@ const teslimAl = async (req, res, next) => {
   }
 };
 
-module.exports = { listele, detay, olustur, teslimAl };
+const iptal = async (req, res, next) => {
+  const connection = await pool.getConnection();
+  try {
+    const { id } = req.params;
+    // aciklama schemas/purchasing.js tarafindan zorunlu tutuldu ve kirpildi.
+    const { aciklama } = req.body;
+
+    await connection.beginTransaction();
+
+    const [siparisRows] = await connection.query(
+      "SELECT id, durum FROM satinalma_siparisleri WHERE id = ? FOR UPDATE",
+      [id],
+    );
+
+    if (!siparisRows.length) {
+      await connection.rollback();
+      return res.status(404).json({ hata: "Sipariş bulunamadı" });
+    }
+
+    if (siparisRows[0].durum === "teslim_alindi") {
+      await connection.rollback();
+      return res.status(400).json({
+        hata: "Teslim alınmış sipariş iptal edilemez. Mal geri gönderilecekse çıkış hareketi veya sayım kullanın.",
+      });
+    }
+
+    if (siparisRows[0].durum === "iptal") {
+      await connection.rollback();
+      return res.status(400).json({ hata: "Bu sipariş zaten iptal edilmiş" });
+    }
+
+    const [sonuc] = await connection.query(
+      `UPDATE satinalma_siparisleri
+       SET durum = 'iptal',
+           iptal_tarihi = NOW(),
+           iptal_aciklamasi = ?,
+           iptal_eden_kullanici_id = ?
+       WHERE id = ? AND durum NOT IN ('teslim_alindi', 'iptal')`,
+      [aciklama, req.kullanici.id, id],
+    );
+
+    if (sonuc.affectedRows === 0) {
+      await connection.rollback();
+      return res.status(409).json({
+        hata: "Sipariş bu sırada değişmiş, işlem geri alındı. Tekrar deneyin.",
+      });
+    }
+
+    await connection.commit();
+
+    res.json({ mesaj: "Sipariş iptal edildi" });
+  } catch (err) {
+    await connection.rollback().catch(() => {});
+    next(err);
+  } finally {
+    connection.release();
+  }
+};
+
+module.exports = { listele, detay, olustur, teslimAl, iptal };

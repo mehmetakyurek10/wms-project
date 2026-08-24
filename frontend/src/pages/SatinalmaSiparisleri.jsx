@@ -12,17 +12,23 @@ import { lokasyonlariGetir } from "../api/lokasyonApi";
 import Etiket from "../components/Etiket";
 import Fis from "../components/Fis";
 import TeslimAlModal from "../components/TeslimAlModal";
+import CancelOrderModal from "../components/CancelOrderModal";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
+import useAuth from "../hooks/useAuth";
 import ErrorState from "../components/ErrorState";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 function SatinalmaSiparisleri() {
   const bildir = useToast();
 
+  const { kullanici } = useAuth();
+  const yonetici = kullanici?.rol === "admin";
+
   const [sayfa, setSayfa] = useState(1);
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [teslimAlinacak, setTeslimAlinacak] = useState(null);
+  const [iptalEdilecek, setIptalEdilecek] = useState(null);
 
   const [acikDetay, setAcikDetay] = useState(null);
   const [detayKalemler, setDetayKalemler] = useState([]);
@@ -344,15 +350,25 @@ function SatinalmaSiparisleri() {
                     </td>
                     <td>{s.id}</td>
                     <td>{s.tedarikci_adi}</td>
-                    <td>
+                    <td title={s.iptal_aciklamasi || undefined}>
                       <Etiket deger={s.durum} />
                     </td>
                     <td>{Number(s.toplam_tutar).toLocaleString("tr-TR")} ₺</td>
                     <td>
                       {s.durum !== "teslim_alindi" && s.durum !== "iptal" && (
-                        <button onClick={() => setTeslimAlinacak(s)}>
-                          Teslim Al
-                        </button>
+                        <>
+                          <button onClick={() => setTeslimAlinacak(s)}>
+                            Teslim Al
+                          </button>
+                          {yonetici && (
+                            <button
+                              className="ikincil"
+                              onClick={() => setIptalEdilecek(s)}
+                            >
+                              İptal
+                            </button>
+                          )}
+                        </>
                       )}
                       <button
                         className="ikincil ikon-btn"
@@ -457,6 +473,14 @@ function SatinalmaSiparisleri() {
           lokasyonlar={lokasyonlar}
           kapat={() => setTeslimAlinacak(null)}
           onayla={teslimAlOnayla}
+        />
+      )}
+
+      {iptalEdilecek && (
+        <CancelOrderModal
+          siparis={iptalEdilecek}
+          kapat={() => setIptalEdilecek(null)}
+          tamamlandi={siparisleriYukle}
         />
       )}
 

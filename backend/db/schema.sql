@@ -138,10 +138,15 @@ CREATE TABLE `satinalma_siparisleri` (
   `teslim_tarihi` datetime DEFAULT NULL,
   `toplam_tutar` decimal(10,2) NOT NULL DEFAULT '0.00',
   `olusturan_kullanici_id` int DEFAULT NULL,
+  `iptal_tarihi` datetime DEFAULT NULL,
+  `iptal_aciklamasi` varchar(255) DEFAULT NULL,
+  `iptal_eden_kullanici_id` int DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `tedarikci_id` (`tedarikci_id`),
   KEY `fk_siparis_kullanici` (`olusturan_kullanici_id`),
   KEY `idx_satinalma_tarih` (`siparis_tarihi`),
+  KEY `fk_satinalma_iptal_eden` (`iptal_eden_kullanici_id`),
+  CONSTRAINT `fk_satinalma_iptal_eden` FOREIGN KEY (`iptal_eden_kullanici_id`) REFERENCES `kullanicilar` (`id`),
   CONSTRAINT `fk_siparis_kullanici` FOREIGN KEY (`olusturan_kullanici_id`) REFERENCES `kullanicilar` (`id`),
   CONSTRAINT `satinalma_siparisleri_ibfk_1` FOREIGN KEY (`tedarikci_id`) REFERENCES `tedarikciler` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;

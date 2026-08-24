@@ -23,4 +23,12 @@ const teslimAl = z.object({
   lokasyon_id: kimlik("Malın indirileceği lokasyon seçilmelidir"),
 });
 
-module.exports = { siparisOlustur, teslimAl };
+const siparisIptal = z.object({
+  aciklama: z
+    .string({ message: "İptal sebebi yazılmalıdır" })
+    .trim()
+    .min(3, { message: "İptal sebebi en az 3 karakter olmalıdır" })
+    .max(255, { message: "İptal sebebi 255 karakteri aşamaz" }),
+});
+
+module.exports = { siparisOlustur, teslimAl, siparisIptal };
