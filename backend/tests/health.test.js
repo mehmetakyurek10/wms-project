@@ -69,3 +69,17 @@ test("saglik ucu sunucu ve veritabani saatini birlikte bildirir", async () => {
     `sunucu ve veritabani saati ${Math.round(fark / 1000)} saniye ayrisiyor`,
   );
 });
+
+test("gelistirme ortaminda sahte X-Forwarded-For basligina guvenilmez", async () => {
+  const yanit = await request(app)
+    .get("/saglik")
+    .set("X-Forwarded-For", "1.2.3.4")
+    .expect(200);
+
+  assert.ok(yanit.body.istemci_ip, "istemci adresi bildirilmeli");
+  assert.notEqual(
+    yanit.body.istemci_ip,
+    "1.2.3.4",
+    "vekil guveni acikken istemci kendi adresini uydurabilir",
+  );
+});

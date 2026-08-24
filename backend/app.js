@@ -13,6 +13,8 @@ const { yerelZaman } = require("./utils/tarih");
 
 const app = express();
 
+app.set("trust proxy", config.uretim ? 1 : false);
+
 app.use(
   pinoHttp({
     logger,
@@ -67,6 +69,7 @@ app.get("/saglik", async (req, res) => {
     res.json({
       durum: "ok",
       veritabani: "bagli",
+      istemci_ip: req.ip,
       sunucu_saati: yerelZaman(),
       sunucu_dilimi: Intl.DateTimeFormat().resolvedOptions().timeZone,
       veritabani_saati: zaman.veritabani_saati,
