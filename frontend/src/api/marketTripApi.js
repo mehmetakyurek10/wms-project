@@ -9,3 +9,5 @@ export const seferKalemleriGetir = (id) =>
 export const seferAc = (data) => api.post("/pazar-seferleri", data);
 export const seferKapat = (id, data) =>
   api.patch(`/pazar-seferleri/${id}/kapat`, data);
+export const seferHasilatGuncelle = (id, data) =>
+  api.patch(`/pazar-seferleri/${id}/hasilat`, data);

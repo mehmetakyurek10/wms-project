@@ -39,7 +39,6 @@ const varyantEkle = z
     miktar: negatifOlmayanOpsiyonel("Başlangıç stoğu geçersiz"),
     lokasyon_id: opsiyonelKimlik("Geçersiz lokasyon"),
     kritik_seviye: negatifOlmayanOpsiyonel("Kritik seviye geçersiz"),
-    perakende_fiyat: negatifOlmayanOpsiyonel("Perakende fiyat geçersiz"),
   })
   .refine((veri) => !veri.miktar || veri.lokasyon_id !== undefined, {
     message: "Başlangıç stoğu girildiğinde lokasyon seçilmelidir",
@@ -52,7 +51,6 @@ const varyantGuncelle = z.object({
   ambalaj_kg: opsiyonelPozitifSayi("Ambalaj kg sıfırdan büyük olmalıdır"),
   barkod: opsiyonelMetin(50),
   kritik_seviye: negatifOlmayanOpsiyonel("Kritik seviye geçersiz"),
-  perakende_fiyat: negatifOlmayanOpsiyonel("Perakende fiyat geçersiz"),
   aktif: bosuAtla(z.coerce.boolean().optional()),
 });
 

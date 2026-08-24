@@ -27,7 +27,8 @@ const listele = async (req, res, next) => {
               k.ad AS olusturan_adi,
               COALESCE(SUM(sk.giden_miktar), 0) AS toplam_giden,
               COALESCE(SUM(sk.donen_miktar), 0) AS toplam_donen,
-              COALESCE(SUM(sk.giden_miktar - COALESCE(sk.donen_miktar, 0)), 0) AS toplam_satilan
+                            COALESCE(SUM(sk.giden_miktar - COALESCE(sk.donen_miktar, 0)), 0) AS toplam_satilan,
+              s.hasilat
        FROM pazar_seferleri s
        JOIN lokasyonlar l ON s.lokasyon_id = l.id
        LEFT JOIN kullanicilar k ON s.olusturan_kullanici_id = k.id
@@ -66,18 +67,21 @@ const ozet = async (req, res, next) => {
               COALESCE(SUM(sk.donen_miktar), 0) AS toplam_donen,
               COALESCE(SUM(sk.giden_miktar - COALESCE(sk.donen_miktar, 0)), 0)
                 AS toplam_satilan,
-              COALESCE(SUM(
-                (sk.giden_miktar - COALESCE(sk.donen_miktar, 0)) * v.perakende_fiyat
-              ), 0) AS tahmini_hasilat
+                            COALESCE((
+                SELECT SUM(s2.hasilat)
+                FROM pazar_seferleri s2
+                WHERE s2.lokasyon_id = l.id
+                  AND s2.durum = 'tamamlandi'
+                  AND s2.cikis_tarihi >= ? AND s2.cikis_tarihi < ?
+              ), 0) AS toplam_hasilat
        FROM pazar_seferleri s
        JOIN lokasyonlar l ON s.lokasyon_id = l.id
        LEFT JOIN pazar_sefer_kalemleri sk ON sk.sefer_id = s.id
-       LEFT JOIN urun_varyantlari v ON sk.varyant_id = v.id
        WHERE s.durum = 'tamamlandi'
          AND s.cikis_tarihi >= ? AND s.cikis_tarihi < ?
        GROUP BY l.id, l.kod, l.ad
        ORDER BY toplam_satilan DESC`,
-      [`${yil}-01-01`, `${yil + 1}-01-01`],
+      [`${yil}-01-01`, `${yil + 1}-01-01`, `${yil}-01-01`, `${yil + 1}-01-01`],
     );
 
     res.json({
@@ -96,8 +100,7 @@ const detay = async (req, res, next) => {
 
     const [kalemler] = await pool.query(
       `SELECT sk.id, sk.varyant_id, sk.giden_miktar, sk.donen_miktar,
-              u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg,
-              v.perakende_fiyat
+                            u.ad AS urun_adi, v.boy, v.ambalaj_tipi, v.ambalaj_kg
        FROM pazar_sefer_kalemleri sk
        JOIN urun_varyantlari v ON sk.varyant_id = v.id
        JOIN urunler u ON v.urun_id = u.id
@@ -474,9 +477,9 @@ const seferKapat = async (req, res, next) => {
 
     const [durumSonuc] = await connection.query(
       `UPDATE pazar_seferleri
-       SET durum = 'tamamlandi', donus_tarihi = ?
+       SET durum = 'tamamlandi', donus_tarihi = ?, hasilat = ?
        WHERE id = ? AND durum = 'yolda'`,
-      [yerelTarih(), id],
+      [yerelTarih(), req.body.hasilat ?? null, id],
     );
 
     if (durumSonuc.affectedRows === 0) {
@@ -497,4 +500,31 @@ const seferKapat = async (req, res, next) => {
   }
 };
 
-module.exports = { listele, ozet, detay, seferAc, seferKapat };
+const hasilatGuncelle = async (req, res, next) => {
+  try {
+    const seferId = parseInt(req.params.id, 10);
+
+    if (!Number.isInteger(seferId)) {
+      return res.status(400).json({ hata: "Geçersiz sefer" });
+    }
+
+    const [sonuc] = await pool.query(
+      `UPDATE pazar_seferleri
+       SET hasilat = ?
+       WHERE id = ? AND durum = 'tamamlandi'`,
+      [req.body.hasilat, seferId],
+    );
+
+    if (sonuc.affectedRows === 0) {
+      return res
+        .status(404)
+        .json({ hata: "Sefer bulunamadı ya da henüz kapatılmamış" });
+    }
+
+    res.json({ mesaj: "Hasılat kaydedildi" });
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { listele, ozet, detay, seferAc, seferKapat, hasilatGuncelle };

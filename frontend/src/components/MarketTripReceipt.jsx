@@ -32,13 +32,12 @@ function MarketTripReceipt({ acik, sefer, kalemler, kapat }) {
       giden,
       donen,
       satilan,
-      hasilat: satilan * Number(kalem.perakende_fiyat || 0),
     };
   });
 
   const toplamGiden = satirlar.reduce((t, s) => t + s.giden, 0);
   const toplamSatilan = satirlar.reduce((t, s) => t + s.satilan, 0);
-  const toplamHasilat = satirlar.reduce((t, s) => t + s.hasilat, 0);
+  const toplamHasilat = Number(sefer.hasilat || 0);
 
   const whatsappMetni = () => {
     const urunler = satirlar.map((s) =>

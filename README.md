@@ -357,6 +357,8 @@ Paletlerde kural lokasyon tipine bağlıdır: `tip = 'palet'` olan lokasyonlar (
 
 Palet gözünde palet varken oraya dökme mal getirilebilir; depo haritası ekranında lokasyon açıldığında dökme satırından bu mal paletin üzerine eklenebilir. Paletin miktarı artar, dökme satırı erir, barkod varsayılan olarak korunur ve istenirse yenisi verilir. Böylece kural malın gözde birikmesini engellemez, yalnızca ikinci bir palet kimliğinin oluşmasını engeller.
 
+Varyant tanımında **fiyat tutulmaz**. Aynı ürün farklı toptancılara farklı fiyatlarla verildiği ve farklı pazarlarda farklı fiyatlara satıldığı için fiyat, ürünün özelliği değil işlemin verisidir. Satış siparişinde her kalemin fiyatı elle girilir, pazar seferinde ise hasılat sefer kapanışında kaydedilir. Fiyatı ürün kaydında tutmak, sistemin sürekli yanlış bir varsayılan önermesine ve kullanıcının bu varsayılanı düzeltmeyi unutmasına yol açıyordu.
+
 ### Rezervasyon
 
 Satış siparişi oluşturulurken stok **ayrılır**: kullanıcı hangi paletten ve dökmeden kaç adet çıkacağını seçer, seçim `stok_rezervasyonlari` tablosuna birim bazında yazılır. Böylece aynı mal iki siparişe birden satılamaz.
@@ -413,7 +415,9 @@ Kapanıştan sonra pazar konumunun **boşalmış olması** gerekir; kalıntı va
 
 Aynı anda birden fazla seferin açık kalamaması uygulama koduna bırakılmamıştır: `pazar_seferleri` tablosunda üretilmiş bir kolon üzerindeki tekillik kısıtı bunu veritabanı düzeyinde zorunlu kılar.
 
-Hasılat, satılan miktar ile varyantın `perakende_fiyat` değerinden hesaplanır ve raporda **tahmini** olarak sunulur; pazarda pazarlık yapıldığı için kasadaki gerçek tutarla birebir örtüşmesi beklenmez.
+Hasılat hesaplanmaz, **kaydedilir**. Sefer kapatılırken kasadan sayılan tutar girilebilir; para henüz sayılmamışsa alan boş bırakılır ve sonradan sefer listesinden girilir. Bu tercihin sebebi pazarda pazarlık yapılmasıdır: liste fiyatı üzerinden yapılan bir tahmin kasadaki gerçek tutarla hiçbir zaman örtüşmez ve örtüşmediği için de güvenilmez bir rakam üretir. Yıllık pazar özeti bu girilen tutarları toplar.
+
+Hasılat yalnızca kapatılmış seferlere girilebilir; açık bir seferde satış henüz bitmemiştir.
 
 ### İşlem güvenliği
 
@@ -483,7 +487,7 @@ Her yenilemede refresh çerezi yenisiyle değiştirilir (rotation), böylece ele
 | **Sayım**                    | Lokasyon bazlı sayım; her palet ve dökme yığın ayrı satır, sayım geçmişi ve fark dökümü                       |
 | **Satınalma**                | Sipariş oluşturma, teslim alma, fiş                                                                           |
 | **Satış**                    | Sipariş oluşturma, birim bazlı toplama, teslim, iptal, fiş                                                    |
-| **Pazar Seferleri**          | Pazara götürülen malın sevki, dönüşün kaydı, sevk fişi, pazar bazlı yıl özeti                                 |
+| **Pazar Seferleri**          | Pazara götürülen malın sevki, dönüşün kaydı, hasılat girişi, sevk fişi, pazar bazlı yıl özeti                 |
 | **Lokasyonlar**              | Lokasyon tanımları ve blok üreteci (önizleme ve onaylı)                                                       |
 | **Raporlar**                 | Tarih aralığına göre hareket özeti, çalışan ve kalem kırılımı, satınalma ve satış tutarları, CSV dışa aktarma |
 | **Sistem Sağlığı**           | Stok sapması, negatif stok, karşılanamayan rezervasyon, pazarda kalıntı, pasif lokasyonda stok, kapasite aşımı |
@@ -549,7 +553,7 @@ mysqldump -u root --no-data --skip-comments --set-gtid-purged=OFF wms > backend/
 - **Girdi doğrulaması yalnızca stok uçlarında şema tabanlı.** Satış, satınalma, sayım, transfer ve stok hareketi uçları `zod` şemalarıyla doğrulanır; kalan uçlarda doğrulama hâlâ denetleyici içinde elle yapılır.
 - **Servis katmanı yok.** SQL, iş kuralı ve HTTP aynı denetleyici fonksiyonunda bulunur.
 - **Sunucu tarafı idempotanlık yok.** Çift gönderim arayüzde buton kilidiyle, çift işleme ise koşullu `UPDATE`'lerle engellenir. Ağ kopması sonrası otomatik tekrar için işlem anahtarı (idempotency key) mekanizması yoktur; el terminali kullanılmaya başlandığında gerekecektir.
-- **Satınalma fiyatı denetlenmez.** Satış siparişinde girilen fiyat, varyantın kayıtlı toptan fiyatından en fazla %20 sapabilir. Satınalmada böyle bir kontrol bilinçli olarak yoktur: alış fiyatı piyasaya göre değiştiği için kayıtlı satış fiyatıyla karşılaştırmak sürekli yanlış alarm üretir.
+- **Fiyat hiçbir yerde denetlenmez.** Fiyat, ürünün kalıcı bir özelliği değil işlemin anlık verisi olduğu için varyant tanımında tutulmaz; her satış kaleminde elle girilir. Bunun sonucu olarak girilen fiyatı karşılaştıracak bir referans da yoktur — "240 yerine 24" tipi bir yazım hatasını hiçbir kontrol yakalamaz. Müşteri bazlı fiyat listesi kurulduğunda bu referans geri gelecek ve sapma denetimi yeniden anlamlı olacaktır.
 - **Dosya adlandırması iki dilli.** İş alanı dosyaları çoğunlukla Türkçe (`varyantController.js`, `DepoHaritasi.jsx`), altyapı dosyaları İngilizce (`validation.js`, `pagination.js`, `useFetch.js`); `schemas/` klasörünün tamamı İngilizce. Sayım yapıldığında 67 dosya Türkçe, 55 dosya İngilizce adlandırılmış durumdadır. Tek bir dile geçirmek 68 dosyanın yeniden adlandırılmasını ve tüm içe aktarma zincirinin güncellenmesini gerektirdiğinden, kalan sürede işlevsel eksiklere öncelik verilerek bilinçli olarak ertelenmiştir.
 - **Arayüz testleri yüzeysel.** Saf yardımcı işlevler ve paylaşılan bileşenler için Vitest testleri vardır, ancak sayfa düzeyindeki akışlar (sipariş oluşturma, sayım, pazar seferi) uçtan uca test edilmez; bunlar elle doğrulanır.
 - **Stil dosyaları konuya göre ayrıldı ama içerik yeniden düzenlenmedi.** `styles/` altındaki dosyalar özgün sırayı birebir korur; bu yüzden açık tema kuralları ve medya sorguları hâlâ birden fazla dosyaya dağılmış durumdadır.

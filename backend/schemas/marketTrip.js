@@ -3,6 +3,7 @@ const {
   kimlik,
   pozitifSayi,
   negatifOlmayanSayi,
+  bosuAtla,
   aciklama,
 } = require("../utils/validation");
 
@@ -39,6 +40,11 @@ const seferKapat = z.object({
       { message: "Dönen miktarlar gönderilmedi" },
     )
     .min(1, { message: "Dönen miktarlar gönderilmedi" }),
+  hasilat: bosuAtla(negatifOlmayanSayi("Hasılat geçersiz").optional()),
 });
 
-module.exports = { seferAc, seferKapat };
+const hasilatGuncelle = z.object({
+  hasilat: negatifOlmayanSayi("Hasılat geçersiz"),
+});
+
+module.exports = { seferAc, seferKapat, hasilatGuncelle };

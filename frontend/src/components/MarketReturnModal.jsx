@@ -12,6 +12,7 @@ function MarketReturnModal({ acik, sefer, kapat, tamamlandi }) {
   const [donenler, setDonenler] = useState({});
   const [yukleniyor, setYukleniyor] = useState(false);
   const [gonderiliyor, setGonderiliyor] = useState(false);
+  const [hasilat, setHasilat] = useState("");
 
   useEffect(() => {
     if (!acik || !sefer) return;
@@ -53,7 +54,6 @@ function MarketReturnModal({ acik, sefer, kapat, tamamlandi }) {
       donen,
       gecerli,
       satilan,
-      hasilat: satilan * Number(kalem.perakende_fiyat || 0),
     };
   };
 
@@ -65,7 +65,6 @@ function MarketReturnModal({ acik, sefer, kapat, tamamlandi }) {
   const toplamDonen = yuvarla(
     hesaplar.reduce((toplam, h) => toplam + h.donen, 0),
   );
-  const toplamHasilat = hesaplar.reduce((toplam, h) => toplam + h.hasilat, 0);
 
   const onayla = async () => {
     if (gonderiliyor || !hepsiGecerli) return;
@@ -76,6 +75,7 @@ function MarketReturnModal({ acik, sefer, kapat, tamamlandi }) {
           varyant_id: kalem.varyant_id,
           donen_miktar: hesaplar[i].donen,
         })),
+        hasilat: hasilat.trim(),
       });
       bildir(`${sefer.fis_no} numaralı sefer kapatıldı`);
       tamamlandi();
@@ -160,16 +160,18 @@ function MarketReturnModal({ acik, sefer, kapat, tamamlandi }) {
             <div>
               Depoya dönen <strong>{toplamDonen.toFixed(0)} adet</strong>
             </div>
-            <div>
-              Tahmini hasılat{" "}
-              <strong>
-                {toplamHasilat.toLocaleString("tr-TR", {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })}{" "}
-                ₺
-              </strong>
-            </div>
+          </div>
+
+          <div className="form-alan">
+            <label>Kasadaki hasılat (₺)</label>
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={hasilat}
+              onChange={(e) => setHasilat(e.target.value)}
+              placeholder="Para sayıldıysa girin"
+            />
           </div>
         </>
       )}

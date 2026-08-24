@@ -48,7 +48,6 @@ function Varyantlar() {
     birim: "adet",
     lokasyon_id: "",
     kritik_seviye: 0,
-    perakende_fiyat: 0,
   });
 
   const parametreGuncelle = (yeniler) => {
@@ -158,7 +157,6 @@ function Varyantlar() {
         miktar: miktarAdet,
         lokasyon_id: miktarAdet > 0 ? form.lokasyon_id : "",
         kritik_seviye: form.kritik_seviye,
-        perakende_fiyat: form.perakende_fiyat,
       });
       setForm({ ...form, boy: "", barkod: "", miktar: 0, lokasyon_id: "" });
       bildir("Varyant eklendi");
@@ -178,7 +176,6 @@ function Varyantlar() {
       ambalaj_kg: v.ambalaj_kg,
       barkod: v.barkod || "",
       kritik_seviye: v.kritik_seviye,
-      perakende_fiyat: v.perakende_fiyat,
       aktif: v.aktif,
     });
   };
@@ -322,17 +319,6 @@ function Varyantlar() {
             type="number"
             step="0.01"
             value={form.kritik_seviye}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div className="form-alan">
-          <label>Perakende fiyat (adet)</label>
-          <input
-            name="perakende_fiyat"
-            type="number"
-            step="0.01"
-            value={form.perakende_fiyat}
             onChange={handleChange}
           />
         </div>

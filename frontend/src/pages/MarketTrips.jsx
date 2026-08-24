@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2, Store, Receipt } from "lucide-react";
+import { Plus, Trash2, Store, Receipt, Banknote } from "lucide-react";
 import {
   seferleriGetir,
   seferOzetiGetir,
@@ -8,6 +8,7 @@ import {
 } from "../api/marketTripApi";
 import { lokasyonlariGetir } from "../api/lokasyonApi";
 import { varyantlariGetir } from "../api/varyantApi";
+import RevenueModal from "../components/RevenueModal";
 import AllocationModal from "../components/AllocationModal";
 import MarketReturnModal from "../components/MarketReturnModal";
 import MarketTripReceipt from "../components/MarketTripReceipt";
@@ -37,6 +38,7 @@ function MarketTrips() {
   const [pazarId, setPazarId] = useState("");
   const [aciklama, setAciklama] = useState("");
   const [kalemler, setKalemler] = useState([BOS_KALEM]);
+  const [hasilatSeferi, setHasilatSeferi] = useState(null);
 
   const [fisSefer, setFisSefer] = useState(null);
   const [fisKalemler, setFisKalemler] = useState([]);
@@ -88,7 +90,7 @@ function MarketTrips() {
       giden: t.giden + Number(s.toplam_giden),
       donen: t.donen + Number(s.toplam_donen),
       satilan: t.satilan + Number(s.toplam_satilan),
-      hasilat: t.hasilat + Number(s.tahmini_hasilat),
+      hasilat: t.hasilat + Number(s.toplam_hasilat),
     }),
     { giden: 0, donen: 0, satilan: 0, hasilat: 0 },
   );
@@ -385,7 +387,7 @@ function MarketTrips() {
                 <td>
                   <strong>{Number(s.toplam_satilan).toFixed(0)}</strong>
                 </td>
-                <td>{paraFormat(s.tahmini_hasilat)} ₺</td>
+                <td>{paraFormat(s.toplam_hasilat)} ₺</td>
               </tr>
             ))}
             <tr>
@@ -460,6 +462,20 @@ function MarketTrips() {
                     >
                       <Receipt size={14} />
                     </button>
+                    {s.durum === "tamamlandi" && (
+                      <button
+                        className="ikincil ikon-btn"
+                        onClick={() => setHasilatSeferi(s)}
+                        title={
+                          s.hasilat == null
+                            ? "Hasılat girilmedi"
+                            : `Hasılat: ${Number(s.hasilat).toFixed(2)} ₺`
+                        }
+                        aria-label="Hasılat gir"
+                      >
+                        <Banknote size={14} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -503,6 +519,14 @@ function MarketTrips() {
           acik
           sefer={acikSefer}
           kapat={() => setDonusAcik(false)}
+          tamamlandi={donusTamamlandi}
+        />
+      )}
+
+      {hasilatSeferi && (
+        <RevenueModal
+          sefer={hasilatSeferi}
+          kapat={() => setHasilatSeferi(null)}
           tamamlandi={donusTamamlandi}
         />
       )}
