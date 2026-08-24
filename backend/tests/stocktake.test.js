@@ -148,3 +148,42 @@ test("olmayan sayim 404 doner", async () => {
 
   await auth(request(app).get("/sayim/999999")).expect(404);
 });
+
+test("rezerve birim sifira sayilsa da sayim kaydedilir", async () => {
+  const { auth, kabulId, dokme, musteriId, varyantId } = await hazirla();
+
+  await auth(request(app).post("/satis-siparisleri"))
+    .send({
+      musteri_id: musteriId,
+      kalemler: [{ varyant_id: varyantId, miktar: 60, birim_fiyat: 100 }],
+      tahsisler: [{ birim_id: dokme.id, miktar: 60 }],
+    })
+    .expect(201);
+
+  await auth(request(app).post("/sayim"))
+    .send({
+      lokasyon_id: kabulId,
+      kalemler: [{ birim_id: dokme.id, sayilan_miktar: 0 }],
+    })
+    .expect(200);
+
+  const birimler = await auth(
+    request(app).get(`/stok-birimleri?varyant_id=${varyantId}`),
+  ).expect(200);
+
+  const kalan = birimler.body.find((b) => b.id === dokme.id);
+
+  assert.ok(kalan, "rezervasyonu olan birim silinmemeli");
+  assert.equal(Number(kalan.miktar), 0);
+
+  const saglik = await auth(request(app).get("/sistem/kontroller")).expect(200);
+  const kontrol = saglik.body.kontroller.find(
+    (k) => k.anahtar === "karsilanamayan_rezervasyon",
+  );
+
+  assert.equal(
+    kontrol.satirlar.length,
+    1,
+    "karsilanamayan rezervasyon saglik ekraninda gorunmeli",
+  );
+});

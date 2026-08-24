@@ -229,7 +229,13 @@ const kaydet = async (req, res, next) => {
       );
 
       await connection.query(
-        "DELETE FROM stok_birimleri WHERE id IN (?) AND miktar = 0",
+        `DELETE FROM stok_birimleri
+       WHERE id IN (?)
+         AND miktar = 0
+         AND NOT EXISTS (
+           SELECT 1 FROM stok_rezervasyonlari r
+           WHERE r.birim_id = stok_birimleri.id
+         )`,
         [birimIdleri],
       );
     }
@@ -247,7 +253,11 @@ const kaydet = async (req, res, next) => {
       await connection.query(
         `DELETE FROM stok_birimleri
          WHERE tip = 'dokme' AND lokasyon_id = ? AND varyant_id IN (?)
-           AND miktar = 0`,
+           AND miktar = 0
+           AND NOT EXISTS (
+             SELECT 1 FROM stok_rezervasyonlari r
+             WHERE r.birim_id = stok_birimleri.id
+           )`,
         [lokasyonId, dokmeVaryantIdleri],
       );
     }
@@ -287,6 +297,13 @@ const kaydet = async (req, res, next) => {
     });
   } catch (err) {
     await connection.rollback().catch(() => {});
+
+    if (err.code === "ER_ROW_IS_REFERENCED_2") {
+      return res.status(409).json({
+        hata: "Sayılan birimlerden biri bir siparişe ayrılmış olduğu için kaydedilemedi. Önce ilgili siparişi teslim edin ya da iptal edin.",
+      });
+    }
+
     next(err);
   } finally {
     connection.release();
