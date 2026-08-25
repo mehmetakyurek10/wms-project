@@ -10,6 +10,7 @@ const {
 } = require("../schemas/location");
 
 router.get("/tutarlilik", izinVer("admin"), lokasyonController.tutarlilik);
+router.get("/harita", lokasyonController.harita);
 router.get("/", lokasyonController.listele);
 router.get("/:id/stok", lokasyonController.stok);
 router.post("/", dogrulaGovde(lokasyonEkle), lokasyonController.ekle);

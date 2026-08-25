@@ -1,8 +1,56 @@
 const pool = require("../config/db");
+const { buildPagination } = require("../utils/pagination");
 
 const MAKS_BLOK_KAYIT = 5000;
 
+const LISTE_SECIMI = `l.id, l.kod, l.ad, l.tip, l.blok, l.sira, l.derinlik, l.kat,
+          l.satir, l.kolon, l.satir_span, l.kolon_span, l.kapasite, l.aktif,
+          EXISTS (
+            SELECT 1 FROM stok_birimleri sb
+            WHERE sb.lokasyon_id = l.id AND sb.miktar > 0
+          ) AS dolu`;
+
 const listele = async (req, res, next) => {
+  try {
+    // Secicilerin tam listeye ihtiyaci var: blokOlustur 5000 goz uretebiliyor,
+    // sayfalama zorunlu olsaydi kullanici gozlerin cogunu secemezdi. Bu yuzden
+    // sayfalama yalnizca istendiginde uygulaniyor.
+    const sayfalaniyor =
+      req.query.sayfa !== undefined || req.query.limit !== undefined;
+
+    if (!sayfalaniyor) {
+      const [rows] = await pool.query(
+        `SELECT ${LISTE_SECIMI}
+         FROM lokasyonlar l
+         ORDER BY l.satir, l.kolon`,
+      );
+
+      res.set("X-Toplam-Kayit", rows.length);
+      return res.json(rows);
+    }
+
+    const { limit, offset } = buildPagination(req.query);
+
+    const [sayim] = await pool.query(
+      "SELECT COUNT(*) AS toplam FROM lokasyonlar",
+    );
+    res.set("X-Toplam-Kayit", sayim[0].toplam);
+
+    const [rows] = await pool.query(
+      `SELECT ${LISTE_SECIMI}
+       FROM lokasyonlar l
+       ORDER BY l.satir, l.kolon
+       LIMIT ? OFFSET ?`,
+      [limit, offset],
+    );
+
+    res.json(rows);
+  } catch (err) {
+    next(err);
+  }
+};
+
+const harita = async (req, res, next) => {
   try {
     const [rows] = await pool.query(
       `SELECT l.id, l.kod, l.ad, l.tip, l.blok, l.sira, l.derinlik, l.kat,
@@ -14,6 +62,7 @@ const listele = async (req, res, next) => {
        GROUP BY l.id
        ORDER BY l.satir, l.kolon`,
     );
+
     res.json(rows);
   } catch (err) {
     next(err);
@@ -320,4 +369,5 @@ module.exports = {
   sil,
   blokOlustur,
   tutarlilik,
+  harita,
 };

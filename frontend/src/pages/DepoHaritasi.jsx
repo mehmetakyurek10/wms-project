@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { X, Layers, MoveRight, Package2, PackagePlus } from "lucide-react";
-import { lokasyonlariGetir, lokasyonStok } from "../api/lokasyonApi";
+import { lokasyonHaritasi, lokasyonStok } from "../api/lokasyonApi";
 import { palletize, paleteEkle } from "../api/stockUnitApi";
 import { useToast } from "../context/ToastContext";
 import Etiket from "../components/Etiket";
@@ -49,7 +49,7 @@ function DepoHaritasi() {
   const veriGetir = async () => {
     setHata("");
     try {
-      const response = await lokasyonlariGetir();
+      const response = await lokasyonHaritasi();
       setLokasyonlar(response.data);
       return response.data;
     } catch (err) {

@@ -533,7 +533,7 @@ function LokasyonYonetimi() {
             <th>Ad</th>
             <th>Tip</th>
             <th>Konum</th>
-            <th>Stok</th>
+            <th>Durum</th>
             <th>İşlemler</th>
           </tr>
         </thead>
@@ -551,7 +551,9 @@ function LokasyonYonetimi() {
                   ` · ${l.satir_span}×${l.kolon_span}`}
                 {l.kat > 1 && ` · ${l.kat}. kat`}
               </td>
-              <td>{Number(l.toplam_miktar).toFixed(0)}</td>
+              <td className={Number(l.dolu) > 0 ? undefined : "kucuk-not"}>
+                {Number(l.dolu) > 0 ? "Dolu" : "Boş"}
+              </td>
               <td>
                 <button
                   className="ikincil ikon-btn"

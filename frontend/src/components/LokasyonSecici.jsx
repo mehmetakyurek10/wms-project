@@ -45,7 +45,7 @@ function LokasyonSecici({
     if (l.ad) parcalar.push(l.ad);
     if (l.miktar !== undefined) {
       parcalar.push(`${Number(l.miktar).toFixed(0)} adet`);
-    } else if (Number(l.toplam_miktar) > 0) {
+    } else if (Number(l.dolu) > 0 || Number(l.toplam_miktar) > 0) {
       parcalar.push("dolu");
     }
     return parcalar.join(" · ");
