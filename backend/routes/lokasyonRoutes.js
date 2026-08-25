@@ -7,6 +7,7 @@ const {
   lokasyonEkle,
   lokasyonGuncelle,
   blokOlustur,
+  aktiflikGuncelle,
 } = require("../schemas/location");
 
 router.get("/tutarlilik", izinVer("admin"), lokasyonController.tutarlilik);
@@ -15,6 +16,12 @@ router.get("/", lokasyonController.listele);
 router.get("/:id/stok", lokasyonController.stok);
 router.post("/", dogrulaGovde(lokasyonEkle), lokasyonController.ekle);
 router.put("/:id", dogrulaGovde(lokasyonGuncelle), lokasyonController.guncelle);
+router.patch(
+  "/:id/aktiflik",
+  izinVer("admin"),
+  dogrulaGovde(aktiflikGuncelle),
+  lokasyonController.aktiflikDegistir,
+);
 router.delete("/:id", izinVer("admin"), lokasyonController.sil);
 router.post(
   "/blok-olustur",

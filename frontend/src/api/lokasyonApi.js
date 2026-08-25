@@ -8,6 +8,8 @@ export const lokasyonEkle = (data) => api.post("/lokasyonlar", data);
 export const lokasyonGuncelle = (id, data) =>
   api.put(`/lokasyonlar/${id}`, data);
 export const lokasyonSil = (id) => api.delete(`/lokasyonlar/${id}`);
+export const lokasyonAktiflik = (id, data) =>
+  api.patch(`/lokasyonlar/${id}/aktiflik`, data);
 export const blokOlustur = (data) =>
   api.post("/lokasyonlar/blok-olustur", data);
 export const tutarlilikKontrol = () => api.get("/lokasyonlar/tutarlilik");

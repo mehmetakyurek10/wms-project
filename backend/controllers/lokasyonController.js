@@ -139,7 +139,7 @@ const guncelle = async (req, res, next) => {
     const [sonuc] = await pool.query(
       `UPDATE lokasyonlar
        SET kod=?, ad=?, tip=?, satir=?, kolon=?, satir_span=?, kolon_span=?,
-           kapasite=?, aktif=?
+           kapasite=?, aktif=COALESCE(?, aktif)
        WHERE id=?`,
       [
         kod,
@@ -150,7 +150,7 @@ const guncelle = async (req, res, next) => {
         satir_span || 1,
         kolon_span || 1,
         kapasite || 0,
-        aktif === undefined ? true : aktif,
+        aktif === undefined ? null : aktif,
         id,
       ],
     );
@@ -166,6 +166,45 @@ const guncelle = async (req, res, next) => {
         hata: "Bu kod zaten kullanılıyor ya da bu konumda başka bir lokasyon var",
       });
     }
+    next(err);
+  }
+};
+
+const aktiflikDegistir = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    // aktif schemas/location.js tarafindan gercek boolean olarak dogrulandi.
+    const { aktif } = req.body;
+
+    const [sonuc] = await pool.query(
+      "UPDATE lokasyonlar SET aktif = ? WHERE id = ?",
+      [aktif, id],
+    );
+
+    if (sonuc.affectedRows === 0) {
+      return res.status(404).json({ hata: "Lokasyon bulunamadı" });
+    }
+
+    if (aktif) {
+      return res.json({ mesaj: "Lokasyon yeniden kullanıma açıldı" });
+    }
+
+    // Pasife alma engellenmiyor: tadilata giren bir bolgede mal kalmis olabilir.
+    // Ama kullanici bunu bilerek yapmali, bu yuzden durum yanitta bildiriliyor.
+    const [[stok]] = await pool.query(
+      `SELECT COALESCE(SUM(miktar), 0) AS toplam
+       FROM stok_birimleri WHERE lokasyon_id = ?`,
+      [id],
+    );
+
+    if (Number(stok.toplam) > 0) {
+      return res.json({
+        mesaj: `Lokasyon pasife alındı. Üzerinde ${Number(stok.toplam).toFixed(0)} adet stok var; sistem sağlığı ekranında uyarı olarak görünecek.`,
+      });
+    }
+
+    res.json({ mesaj: "Lokasyon pasife alındı" });
+  } catch (err) {
     next(err);
   }
 };
@@ -370,4 +409,5 @@ module.exports = {
   blokOlustur,
   tutarlilik,
   harita,
+  aktiflikDegistir,
 };

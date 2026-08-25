@@ -6,12 +6,15 @@ import {
   Pencil,
   Trash2,
   Grid3x3,
+  Power,
+  PowerOff,
 } from "lucide-react";
 import {
   lokasyonlariGetir,
   lokasyonEkle,
   lokasyonGuncelle,
   lokasyonSil,
+  lokasyonAktiflik,
   blokOlustur,
   tutarlilikKontrol,
 } from "../api/lokasyonApi";
@@ -119,6 +122,16 @@ function LokasyonYonetimi() {
       bildir(err.response?.data?.hata || "Kaydedilemedi", "hata");
     } finally {
       setAlanGonderiliyor(false);
+    }
+  };
+
+  const aktiflikDegistir = async (l) => {
+    try {
+      const yanit = await lokasyonAktiflik(l.id, { aktif: !l.aktif });
+      bildir(yanit.data.mesaj);
+      veriGetir();
+    } catch (err) {
+      bildir(err.response?.data?.hata || "Durum değiştirilemedi", "hata");
     }
   };
 
@@ -551,7 +564,8 @@ function LokasyonYonetimi() {
                   ` · ${l.satir_span}×${l.kolon_span}`}
                 {l.kat > 1 && ` · ${l.kat}. kat`}
               </td>
-              <td className={Number(l.dolu) > 0 ? undefined : "kucuk-not"}>
+              <td className={l.aktif ? undefined : "kucuk-not"}>
+                {!l.aktif && "Pasif · "}
                 {Number(l.dolu) > 0 ? "Dolu" : "Boş"}
               </td>
               <td>
@@ -562,6 +576,18 @@ function LokasyonYonetimi() {
                   aria-label="Lokasyonu düzenle"
                 >
                   <Pencil size={14} />
+                </button>
+                <button
+                  className="ikincil ikon-btn"
+                  onClick={() => aktiflikDegistir(l)}
+                  title={l.aktif ? "Pasife al" : "Yeniden kullanıma aç"}
+                  aria-label={
+                    l.aktif
+                      ? "Lokasyonu pasife al"
+                      : "Lokasyonu yeniden kullanıma aç"
+                  }
+                >
+                  {l.aktif ? <Power size={14} /> : <PowerOff size={14} />}
                 </button>
                 <button
                   className="tehlike ikon-btn"

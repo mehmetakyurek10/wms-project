@@ -70,4 +70,13 @@ const blokOlustur = z.object({
   derinlik_ters: z.boolean({ message: "Geçersiz değer" }).optional(),
 });
 
-module.exports = { lokasyonEkle, lokasyonGuncelle, blokOlustur };
+const aktiflikGuncelle = z.object({
+  aktif: z.boolean({ message: "Aktiflik değeri true ya da false olmalıdır" }),
+});
+
+module.exports = {
+  lokasyonEkle,
+  lokasyonGuncelle,
+  blokOlustur,
+  aktiflikGuncelle,
+};
