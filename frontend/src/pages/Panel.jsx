@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Package, AlertTriangle, Truck, ShoppingCart } from "lucide-react";
 import {
@@ -19,6 +19,8 @@ import { tedarikcileriGetir } from "../api/tedarikciApi";
 import { siparisleriGetir } from "../api/satinalmaApi";
 import { panelGrafikleri } from "../api/dashboardApi";
 import useTema from "../hooks/useTema";
+import useFetch from "../hooks/useFetch";
+import ErrorState from "../components/ErrorState";
 
 const RENK_GIRIS = "#22c55e";
 const RENK_CIKIS = "#ef4444";
@@ -34,6 +36,41 @@ const sayiBicimle = (deger) => Number(deger).toLocaleString("tr-TR");
 
 const basliktanSayi = (response) =>
   parseInt(response.headers["x-toplam-kayit"], 10) || 0;
+
+const BOS_PANEL = {
+  sayaclar: { urun: 0, varyant: 0, dusukStok: 0, tedarikci: 0, bekleyen: 0 },
+  dusukListe: [],
+  grafik: null,
+};
+
+// Sayaclar icin tum liste indirilmiyor: limit 1 gonderilip toplam
+// X-Toplam-Kayit basligindan okunuyor. Aksi halde sunucunun 500 kayitlik
+// varsayilan siniri sayaci sessizce 500'de dondururdu.
+const panelVerisiGetir = async () => {
+  const [urunRes, varyantRes, dusukRes, tedarikciRes, bekleyenRes, grafikRes] =
+    await Promise.all([
+      urunleriGetir({ limit: 1 }),
+      varyantlariGetir({ limit: 1 }),
+      dusukStokGetir(),
+      tedarikcileriGetir({ limit: 1 }),
+      siparisleriGetir({ bekleyen: 1, limit: 1 }),
+      panelGrafikleri(),
+    ]);
+
+  return {
+    data: {
+      sayaclar: {
+        urun: basliktanSayi(urunRes),
+        varyant: basliktanSayi(varyantRes),
+        dusukStok: dusukRes.data.length,
+        tedarikci: basliktanSayi(tedarikciRes),
+        bekleyen: basliktanSayi(bekleyenRes),
+      },
+      dusukListe: dusukRes.data,
+      grafik: grafikRes.data,
+    },
+  };
+};
 
 function Panel() {
   const { renkler } = useTema();
@@ -52,52 +89,19 @@ function Panel() {
     [renkler],
   );
 
-  const [veri, setVeri] = useState({
-    urun: 0,
-    varyant: 0,
-    dusukStok: 0,
-    tedarikci: 0,
-    bekleyen: 0,
+  const {
+    data: panel,
+    loading: yukleniyor,
+    error: hata,
+    refresh: veriGetir,
+  } = useFetch(panelVerisiGetir, [], {
+    initial: BOS_PANEL,
+    errorMessage: "Panel verileri yüklenemedi",
   });
-  const [dusukListe, setDusukListe] = useState([]);
-  const [grafik, setGrafik] = useState(null);
-  const [yukleniyor, setYukleniyor] = useState(true);
 
-  useEffect(() => {
-    const veriGetir = async () => {
-      try {
-        const [
-          urunRes,
-          varyantRes,
-          dusukRes,
-          tedarikciRes,
-          bekleyenRes,
-          grafikRes,
-        ] = await Promise.all([
-          urunleriGetir(),
-          varyantlariGetir(),
-          dusukStokGetir(),
-          tedarikcileriGetir({ limit: 1 }),
-          siparisleriGetir({ bekleyen: 1, limit: 1 }),
-          panelGrafikleri(),
-        ]);
-        setVeri({
-          urun: urunRes.data.length,
-          varyant: varyantRes.data.length,
-          dusukStok: dusukRes.data.length,
-          tedarikci: basliktanSayi(tedarikciRes),
-          bekleyen: basliktanSayi(bekleyenRes),
-        });
-        setDusukListe(dusukRes.data);
-        setGrafik(grafikRes.data);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        setYukleniyor(false);
-      }
-    };
-    veriGetir();
-  }, []);
+  const veri = panel.sayaclar;
+  const dusukListe = panel.dusukListe;
+  const grafik = panel.grafik;
 
   if (yukleniyor)
     return (
@@ -106,6 +110,7 @@ function Panel() {
         <span>Yükleniyor...</span>
       </div>
     );
+  if (hata) return <ErrorState mesaj={hata} tekrarDene={veriGetir} />;
 
   const kartlar = [
     {
