@@ -1,24 +1,33 @@
 # Veritabanı
 
-`schema.sql` dosyası mevcut şemanın (tablo yapıları, kısıtlar, indeksler) dışa aktarılmış halidir. Veri içermez.
+Bu klasör şemanın iki farklı temsilini barındırıyor:
 
-## Sıfırdan kurulum
+- **`schema.sql`** — güncel şemanın anlık görüntüsü. Tablo yapıları, kısıtlar, indeksler
+  ve uygulanmış migration kayıtları. Uygulama verisi içermez. Sıfırdan kurulum ve testler
+  bunu kullanır.
+- **`migrations/`** — sıralı, tek seferlik şema değişiklikleri. Mevcut bir veritabanını
+  ilerletir, değişiklik geçmişini taşır.
+- **`migrate.js`** — uygulanmamış migration'ları sırayla çalıştıran araç.
 
-```bash
-mysql -u root -e "CREATE DATABASE wms;"
-mysql -u root wms < backend/db/schema.sql
-```
+Kurulum adımları, komut listesi ve şema değiştirme yöntemi kök `README.md` dosyasında
+anlatılıyor. Aşağıdakiler yalnızca bu klasöre özgü notlar.
 
-Ardından uygulamayı başlatıp ilk kullanıcıyı oluşturun — sistemde hiç kullanıcı yokken
-`POST /auth/kayit` açıktır ve oluşturulan ilk kullanıcı otomatik olarak `admin` rolünü alır.
+## Anlık görüntüyü yenileme
 
-## Şema güncellendiğinde
-
-Şemada değişiklik yaptıktan sonra bu dosyayı yeniden üretin:
+Bir migration ekledikten sonra `schema.sql` **iki komutla** yeniden üretilir:
 
 ```bash
 mysqldump -u root --no-data --skip-comments --set-gtid-purged=OFF wms > backend/db/schema.sql
+mysqldump -u root --no-create-info --skip-comments --set-gtid-purged=OFF wms schema_migrations >> backend/db/schema.sql
 ```
 
-> Not: Şu an versiyonlanmış migration altyapısı yok, değişiklikler elle uygulanıyor.
-> Bu dosya bir anlık görüntüdür, değişiklik geçmişi tutmaz.
+İkinci komut şart. Atlanırsa `schema_migrations` tablosu dosyada boş kalır ve şu zincir
+işler: `schema.sql` ile kurulum yapan biri sonra `npm run migrate` çalıştırır, çalıştırıcı
+hiçbir sürümü uygulanmış saymaz, baştan başlar ve zaten var olan bir indeksi yeniden
+oluşturmaya çalışır — `ER_DUP_KEYNAME` ile durur.
+
+## Migration yazarken
+
+MySQL'de `ALTER TABLE` gibi ifadeler örtük commit üretir; bir migration yarıda kalırsa
+geri alınamaz. Her dosyayı tek bir mantıksal değişiklikle sınırlı tut ve çalıştırmadan
+önce yedek al.

@@ -354,6 +354,13 @@ CREATE TABLE `urunler` (
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
+INSERT INTO `schema_migrations` (`surum`) VALUES
+('001_baseline.sql'),
+('002_performans_indeksleri.sql'),
+('003_stocktake_records.sql'),
+('004_drop_wholesale_price.sql'),
+('005_market_trip_revenue.sql'),
+('006_purchase_order_cancellation.sql');
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
 /*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;

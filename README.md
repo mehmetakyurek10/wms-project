@@ -138,15 +138,15 @@ Uygulama açılışta bu değişkenleri doğrular. Zorunlu biri eksikse ya da `J
 
 ### `.env` (proje kökü, yalnızca Docker)
 
-| Değişken           | Açıklama                                          |
-| ------------------ | ------------------------------------------------- |
-| `DB_NAME`          | Konteynerde oluşturulacak veritabanı adı          |
-| `DB_ROOT_PASSWORD` | MySQL kök parolası — konteyner ağı dışına açılmaz |
-| `JWT_SECRET`       | Token imzalama anahtarı, en az 32 karakter        |
-| `APP_PORT`         | Uygulamanın yayınlanacağı port (varsayılan 8080)  |
-| `APP_ORIGIN`       | Uygulamanın adresi, örn. `http://localhost:8080`  |
+| Değişken           | Açıklama                                                  |
+| ------------------ | --------------------------------------------------------- |
+| `DB_NAME`          | Konteynerde oluşturulacak veritabanı adı                  |
+| `DB_ROOT_PASSWORD` | MySQL kök parolası — konteyner ağı dışına açılmaz         |
+| `JWT_SECRET`       | Token imzalama anahtarı, en az 32 karakter                |
+| `APP_PORT`         | Uygulamanın yayınlanacağı port (varsayılan 8080)          |
+| `APP_ORIGIN`       | Uygulamanın adresi, örn. `http://localhost:8080`          |
 | `TZ`               | Konteynerlerin saat dilimi (varsayılan `Europe/Istanbul`) |
-| `DB_TIMEZONE`      | MySQL sunucusunun saat dilimi (varsayılan `+03:00`) |
+| `DB_TIMEZONE`      | MySQL sunucusunun saat dilimi (varsayılan `+03:00`)       |
 
 Docker kurulumunda `backend/.env` ve `frontend/.env` **okunmaz**; değişkenler doğrudan Compose tarafından verilir. Arayüzün API adresi de derleme sırasında `/api` olarak sabitlenir, çünkü her ikisi de aynı adres üzerinden sunulur.
 
@@ -434,13 +434,13 @@ Birden fazla satır kilitlenecekse **her zaman aynı ölçüte göre sıralı** 
 
 Onay penceresi istemenin ölçütü işlemin **geri alınabilirliği** ve **yetki değiştirip değiştirmediğidir**, sıklığı değil. Onay isteyen işlemler:
 
-| İşlem                       | Gerekçe                                                        |
-| --------------------------- | -------------------------------------------------------------- |
-| Kayıt silme                 | Geri alınamaz                                                  |
-| Sipariş iptali              | Rezervasyonları serbest bırakır                                |
-| Rol değiştirme              | Yetki yükseltir; mesaj yeni yetkilerin ne olduğunu açıklar     |
-| Kullanıcıyı pasife alma     | Erişimi keser                                                  |
-| Blok üretme                 | Binlerce kayıt oluşturabilir ve toplu geri alma yolu yoktur    |
+| İşlem                   | Gerekçe                                                     |
+| ----------------------- | ----------------------------------------------------------- |
+| Kayıt silme             | Geri alınamaz                                               |
+| Sipariş iptali          | Rezervasyonları serbest bırakır                             |
+| Rol değiştirme          | Yetki yükseltir; mesaj yeni yetkilerin ne olduğunu açıklar  |
+| Kullanıcıyı pasife alma | Erişimi keser                                               |
+| Blok üretme             | Binlerce kayıt oluşturabilir ve toplu geri alma yolu yoktur |
 
 Onay istemeyen iki işlem bilinçli olarak dışarıda bırakılmıştır. **Kullanıcıyı aktifleştirmek** erişim verir, geri alınabilir ve zararsızdır; pasife almanın onay istemesi, aktifleştirmenin istememesi riskin asimetrik olmasındandır. **Paletleme** ise günlük bir depo işlemidir ve kullanıcı zaten kod girip miktar yazarak bilinçli bir eylemde bulunur; her paletlemede onay istemek, onayların okunmadan geçilmesine alışkanlık kazandırır ve asıl kritik uyarıları da etkisizleştirir.
 
@@ -477,21 +477,21 @@ Her yenilemede refresh çerezi yenisiyle değiştirilir (rotation), böylece ele
 
 ## Modüller
 
-| Modül                        | İçerik                                                                                                        |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **Panel**                    | Özet kartlar, son 14 gün giriş/çıkış grafiği, en çok hareket gören kalemler, bölge bazlı dağılım              |
-| **Ürünler / Stok Kalemleri** | Ürün ve varyant tanımları (boy, ambalaj tipi, ambalaj kg, barkod, kritik seviye)                              |
-| **Depo Haritası**            | Kuş bakışı yerleşim planı, kat katmanları, lokasyon detayı, paletleme, palete mal ekleme ve taşıma            |
-| **Palet Sorgula**            | Barkod ile palet arama, depodaki paletlerin listesi, Code128 barkod etiketi yazdırma                          |
-| **Stok Hareketleri**         | Giriş/çıkış kaydı, birim seçimi, filtreleme ve sayfalama                                                      |
-| **Sayım**                    | Lokasyon bazlı sayım; her palet ve dökme yığın ayrı satır, sayım geçmişi ve fark dökümü                       |
-| **Satınalma**                | Sipariş oluşturma, teslim alma, fiş                                                                           |
-| **Satış**                    | Sipariş oluşturma, birim bazlı toplama, teslim, iptal, fiş                                                    |
-| **Pazar Seferleri**          | Pazara götürülen malın sevki, dönüşün kaydı, hasılat girişi, sevk fişi, pazar bazlı yıl özeti                 |
-| **Lokasyonlar**              | Lokasyon tanımları ve blok üreteci (önizleme ve onaylı)                                                       |
-| **Raporlar**                 | Tarih aralığına göre hareket özeti, çalışan ve kalem kırılımı, satınalma ve satış tutarları, CSV dışa aktarma |
+| Modül                        | İçerik                                                                                                         |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| **Panel**                    | Özet kartlar, son 14 gün giriş/çıkış grafiği, en çok hareket gören kalemler, bölge bazlı dağılım               |
+| **Ürünler / Stok Kalemleri** | Ürün ve varyant tanımları (boy, ambalaj tipi, ambalaj kg, barkod, kritik seviye)                               |
+| **Depo Haritası**            | Kuş bakışı yerleşim planı, kat katmanları, lokasyon detayı, paletleme, palete mal ekleme ve taşıma             |
+| **Palet Sorgula**            | Barkod ile palet arama, depodaki paletlerin listesi, Code128 barkod etiketi yazdırma                           |
+| **Stok Hareketleri**         | Giriş/çıkış kaydı, birim seçimi, filtreleme ve sayfalama                                                       |
+| **Sayım**                    | Lokasyon bazlı sayım; her palet ve dökme yığın ayrı satır, sayım geçmişi ve fark dökümü                        |
+| **Satınalma**                | Sipariş oluşturma, teslim alma, fiş                                                                            |
+| **Satış**                    | Sipariş oluşturma, birim bazlı toplama, teslim, iptal, fiş                                                     |
+| **Pazar Seferleri**          | Pazara götürülen malın sevki, dönüşün kaydı, hasılat girişi, sevk fişi, pazar bazlı yıl özeti                  |
+| **Lokasyonlar**              | Lokasyon tanımları ve blok üreteci (önizleme ve onaylı)                                                        |
+| **Raporlar**                 | Tarih aralığına göre hareket özeti, çalışan ve kalem kırılımı, satınalma ve satış tutarları, CSV dışa aktarma  |
 | **Sistem Sağlığı**           | Stok sapması, negatif stok, karşılanamayan rezervasyon, pazarda kalıntı, pasif lokasyonda stok, kapasite aşımı |
-| **Kullanıcılar**             | Kullanıcı yönetimi, rol atama, parola değiştirme, yönetici tarafından parola sıfırlama                        |
+| **Kullanıcılar**             | Kullanıcı yönetimi, rol atama, parola değiştirme, yönetici tarafından parola sıfırlama                         |
 
 ### Roller
 
@@ -540,9 +540,10 @@ Sonra sıradaki numarayla açıklayıcı adlı bir dosya oluştur (`002_pazar_se
 ```bash
 npm run migrate --prefix backend
 mysqldump -u root --no-data --skip-comments --set-gtid-purged=OFF wms > backend/db/schema.sql
+mysqldump -u root --no-create-info --skip-comments --set-gtid-purged=OFF wms schema_migrations >> backend/db/schema.sql
 ```
 
-İki dosyanın da güncellenmesi gerekiyor çünkü farklı işlere yarıyorlar: migration dosyaları değişiklik geçmişini taşır ve mevcut bir veritabanını ilerletir; `schema.sql` ise güncel durumun anlık görüntüsüdür ve testler her çalıştırmada şemayı ondan kurar.
+İki dosyanın da güncellenmesi gerekiyor çünkü farklı işlere yarıyorlar: migration dosyaları değişiklik geçmişini taşır ve mevcut bir veritabanını ilerletir; `schema.sql` ise güncel durumun anlık görüntüsüdür ve testler her çalıştırmada şemayı ondan kurar.Üçüncü komut `schema_migrations` tablosunun içeriğini de anlık görüntüye yazar; bu olmadan `schema.sql` ile kurulan bir veritabanında `npm run migrate` uygulanmış sürümleri göremez ve var olan indeksleri yeniden oluşturmaya çalışır.
 
 > **Not:** MySQL'de `ALTER TABLE` gibi ifadeler örtük commit üretir, yani bir migration yarıda kalırsa geri alınamaz. Her dosyayı tek bir mantıksal değişiklikle sınırlı tut.
 
