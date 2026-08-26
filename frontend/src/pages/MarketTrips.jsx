@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Plus, Trash2, Store, Receipt, Banknote } from "lucide-react";
 import {
   seferleriGetir,
@@ -40,6 +40,7 @@ function MarketTrips() {
   const [kalemler, setKalemler] = useState([BOS_KALEM]);
   const [hasilatSeferi, setHasilatSeferi] = useState(null);
 
+  const fisIstekRef = useRef(0);
   const [fisSefer, setFisSefer] = useState(null);
   const [fisKalemler, setFisKalemler] = useState([]);
 
@@ -127,11 +128,15 @@ function MarketTrips() {
   };
 
   const fisAc = async (sefer) => {
+    const istekId = ++fisIstekRef.current;
+
     try {
       const response = await seferKalemleriGetir(sefer.id);
+      if (istekId !== fisIstekRef.current) return;
       setFisKalemler(response.data);
       setFisSefer(sefer);
     } catch (err) {
+      if (istekId !== fisIstekRef.current) return;
       bildir(err.response?.data?.hata || "Fiş oluşturulamadı", "hata");
     }
   };

@@ -1,4 +1,4 @@
-import { Fragment, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { ChevronDown, ChevronRight, Receipt } from "lucide-react";
 import {
   satislariGetir,
@@ -29,8 +29,18 @@ function SatisSiparisleri() {
   const [iptalEdilecek, setIptalEdilecek] = useState(null);
 
   const [acikDetay, setAcikDetay] = useState(null);
-  const [detayKalemler, setDetayKalemler] = useState([]);
-  const [detayYukleniyor, setDetayYukleniyor] = useState(false);
+
+  const {
+    data: detayKalemler,
+    loading: detayYukleniyor,
+    error: detayHatasi,
+  } = useFetch(
+    () => (acikDetay ? satisDetay(acikDetay) : Promise.resolve({ data: [] })),
+    [acikDetay],
+    { initial: [], errorMessage: "Sipariş detayı yüklenemedi" },
+  );
+
+  const fisIstekRef = useRef(0);
 
   const [fisSiparis, setFisSiparis] = useState(null);
   const [fisKalemler, setFisKalemler] = useState([]);
@@ -110,30 +120,20 @@ function SatisSiparisleri() {
       };
     });
 
-  const detayAc = async (id) => {
-    if (acikDetay === id) {
-      setAcikDetay(null);
-      return;
-    }
-    setAcikDetay(id);
-    setDetayKalemler([]);
-    setDetayYukleniyor(true);
-    try {
-      const response = await satisDetay(id);
-      setDetayKalemler(response.data);
-    } catch (err) {
-      bildir(err.response?.data?.hata || "Sipariş detayı yüklenemedi", "hata");
-    } finally {
-      setDetayYukleniyor(false);
-    }
+  const detayAc = (id) => {
+    setAcikDetay((onceki) => (onceki === id ? null : id));
   };
 
   const fisAc = async (siparis) => {
+    const istekId = ++fisIstekRef.current;
+
     try {
       const response = await satisDetay(siparis.id);
+      if (istekId !== fisIstekRef.current) return;
       setFisKalemler(response.data);
       setFisSiparis(siparis);
     } catch (err) {
+      if (istekId !== fisIstekRef.current) return;
       bildir(err.response?.data?.hata || "Fiş oluşturulamadı", "hata");
     }
   };
@@ -415,6 +415,8 @@ function SatisSiparisleri() {
                           <div className="yukleniyor-kutu">
                             <div className="spinner" />
                           </div>
+                        ) : detayHatasi ? (
+                          <div className="bos-durum">{detayHatasi}</div>
                         ) : detayKalemler.length === 0 ? (
                           <div className="bos-durum">
                             Bu siparişte kalem yok.
