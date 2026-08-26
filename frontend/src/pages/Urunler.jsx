@@ -6,6 +6,7 @@ import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
 import ErrorState from "../components/ErrorState";
+import Pagination from "../components/Pagination";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 function Urunler() {
@@ -36,8 +37,6 @@ function Urunler() {
     initial: [],
     errorMessage: "Kategoriler yüklenemedi",
   });
-
-  const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
 
   useEffect(() => {
     const zamanlayici = setTimeout(() => {
@@ -246,25 +245,12 @@ function Urunler() {
             </tbody>
           </table>
 
-          {toplam > SAYFA_BOYUTU && (
-            <div className="sayfalama">
-              <button
-                onClick={() => setSayfa(sayfa - 1)}
-                disabled={sayfa === 1}
-              >
-                Önceki
-              </button>
-              <span>
-                Sayfa {sayfa} / {toplamSayfa} · Toplam {toplam} kayıt
-              </span>
-              <button
-                onClick={() => setSayfa(sayfa + 1)}
-                disabled={sayfa >= toplamSayfa}
-              >
-                Sonraki
-              </button>
-            </div>
-          )}
+          <Pagination
+            sayfa={sayfa}
+            toplam={toplam}
+            sayfaBoyutu={SAYFA_BOYUTU}
+            degisti={setSayfa}
+          />
         </>
       )}
 

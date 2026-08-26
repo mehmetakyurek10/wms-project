@@ -15,6 +15,7 @@ import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import OnayModal from "../components/OnayModal";
 import ErrorState from "../components/ErrorState";
+import Pagination from "../components/Pagination";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 const FILTRE_ALANLARI = ["kategori_id", "urun_id", "aktif", "sadece_dusuk"];
@@ -108,7 +109,6 @@ function Varyantlar() {
 
   const lokasyonlar = tumLokasyonlar.filter((l) => l.aktif);
 
-  const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
   const filtreVar =
     aranan !== "" || FILTRE_ALANLARI.some((alan) => filtre[alan] !== "");
 
@@ -546,25 +546,12 @@ function Varyantlar() {
             </tbody>
           </table>
 
-          {toplam > SAYFA_BOYUTU && (
-            <div className="sayfalama">
-              <button
-                onClick={() => parametreGuncelle({ sayfa: sayfa - 1 })}
-                disabled={sayfa === 1}
-              >
-                Önceki
-              </button>
-              <span>
-                Sayfa {sayfa} / {toplamSayfa} · Toplam {toplam} kayıt
-              </span>
-              <button
-                onClick={() => parametreGuncelle({ sayfa: sayfa + 1 })}
-                disabled={sayfa >= toplamSayfa}
-              >
-                Sonraki
-              </button>
-            </div>
-          )}
+          <Pagination
+            sayfa={sayfa}
+            toplam={toplam}
+            sayfaBoyutu={SAYFA_BOYUTU}
+            degisti={(yeni) => parametreGuncelle({ sayfa: yeni })}
+          />
         </>
       )}
 

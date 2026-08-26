@@ -13,6 +13,7 @@ import LokasyonSecici from "../components/LokasyonSecici";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import ErrorState from "../components/ErrorState";
+import Pagination from "../components/Pagination";
 
 import { SAYFA_BOYUTU } from "../sabitler";
 const FILTRE_ALANLARI = ["varyant_id", "tip", "sebep", "baslangic", "bitis"];
@@ -100,7 +101,6 @@ function StokHareketleri() {
     (b) => Number(b.kullanilabilir) > 0,
   );
 
-  const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
   const filtreVar = FILTRE_ALANLARI.some((alan) => filtre[alan] !== "");
 
   const filtreDegisti = (e) => {
@@ -410,25 +410,12 @@ function StokHareketleri() {
             </tbody>
           </table>
 
-          {toplam > SAYFA_BOYUTU && (
-            <div className="sayfalama">
-              <button
-                onClick={() => parametreGuncelle({ sayfa: sayfa - 1 })}
-                disabled={sayfa === 1}
-              >
-                Önceki
-              </button>
-              <span>
-                Sayfa {sayfa} / {toplamSayfa} · Toplam {toplam} kayıt
-              </span>
-              <button
-                onClick={() => parametreGuncelle({ sayfa: sayfa + 1 })}
-                disabled={sayfa >= toplamSayfa}
-              >
-                Sonraki
-              </button>
-            </div>
-          )}
+          <Pagination
+            sayfa={sayfa}
+            toplam={toplam}
+            sayfaBoyutu={SAYFA_BOYUTU}
+            degisti={(yeni) => parametreGuncelle({ sayfa: yeni })}
+          />
         </>
       )}
     </div>

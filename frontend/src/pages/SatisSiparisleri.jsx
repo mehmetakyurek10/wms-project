@@ -16,6 +16,7 @@ import OnayModal from "../components/OnayModal";
 import AllocationModal from "../components/AllocationModal";
 import DeliveryModal from "../components/DeliveryModal";
 import ErrorState from "../components/ErrorState";
+import Pagination from "../components/Pagination";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 function SatisSiparisleri() {
@@ -74,7 +75,6 @@ function SatisSiparisleri() {
   );
 
   const hata = siparisHatasi || musteriHatasi;
-  const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
   const secilenMusteriId = musteriId || musteriler[0]?.id || "";
 
   const kalemHesapla = (kalem) => {
@@ -473,25 +473,12 @@ function SatisSiparisleri() {
             </tbody>
           </table>
 
-          {toplam > SAYFA_BOYUTU && (
-            <div className="sayfalama">
-              <button
-                onClick={() => setSayfa(sayfa - 1)}
-                disabled={sayfa === 1}
-              >
-                Önceki
-              </button>
-              <span>
-                Sayfa {sayfa} / {toplamSayfa} · Toplam {toplam} kayıt
-              </span>
-              <button
-                onClick={() => setSayfa(sayfa + 1)}
-                disabled={sayfa >= toplamSayfa}
-              >
-                Sonraki
-              </button>
-            </div>
-          )}
+          <Pagination
+            sayfa={sayfa}
+            toplam={toplam}
+            sayfaBoyutu={SAYFA_BOYUTU}
+            degisti={setSayfa}
+          />
         </>
       )}
 

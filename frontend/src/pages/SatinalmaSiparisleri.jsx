@@ -17,6 +17,7 @@ import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import useAuth from "../hooks/useAuth";
 import ErrorState from "../components/ErrorState";
+import Pagination from "../components/Pagination";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 function SatinalmaSiparisleri() {
@@ -83,7 +84,6 @@ function SatinalmaSiparisleri() {
 
   const lokasyonlar = tumLokasyonlar.filter((l) => l.aktif);
   const hata = siparisHatasi || tedarikciHatasi;
-  const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
   const secilenTedarikciId = tedarikciId || tedarikciler[0]?.id || "";
 
   const kalemHesapla = (kalem) => {
@@ -446,25 +446,12 @@ function SatinalmaSiparisleri() {
             </tbody>
           </table>
 
-          {toplam > SAYFA_BOYUTU && (
-            <div className="sayfalama">
-              <button
-                onClick={() => setSayfa(sayfa - 1)}
-                disabled={sayfa === 1}
-              >
-                Önceki
-              </button>
-              <span>
-                Sayfa {sayfa} / {toplamSayfa} · Toplam {toplam} kayıt
-              </span>
-              <button
-                onClick={() => setSayfa(sayfa + 1)}
-                disabled={sayfa >= toplamSayfa}
-              >
-                Sonraki
-              </button>
-            </div>
-          )}
+          <Pagination
+            sayfa={sayfa}
+            toplam={toplam}
+            sayfaBoyutu={SAYFA_BOYUTU}
+            degisti={setSayfa}
+          />
         </>
       )}
 

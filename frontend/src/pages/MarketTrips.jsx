@@ -15,6 +15,7 @@ import MarketTripReceipt from "../components/MarketTripReceipt";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
 import ErrorState from "../components/ErrorState";
+import Pagination from "../components/Pagination";
 
 import { SAYFA_BOYUTU } from "../sabitler";
 const BOS_KALEM = { varyant_id: "", miktar: "", birim: "adet" };
@@ -83,7 +84,6 @@ function MarketTrips() {
 
   const pazarlar = lokasyonlar.filter((l) => l.tip === "pazar" && l.aktif);
   const acikSefer = acikSeferler[0] || null;
-  const toplamSayfa = Math.ceil(toplam / SAYFA_BOYUTU);
   const secilenPazarId = pazarId || pazarlar[0]?.id || "";
 
   const ozetToplami = ozet.satirlar.reduce(
@@ -487,25 +487,12 @@ function MarketTrips() {
             </tbody>
           </table>
 
-          {toplam > SAYFA_BOYUTU && (
-            <div className="sayfalama">
-              <button
-                onClick={() => setSayfa(sayfa - 1)}
-                disabled={sayfa === 1}
-              >
-                Önceki
-              </button>
-              <span>
-                Sayfa {sayfa} / {toplamSayfa} · Toplam {toplam} kayıt
-              </span>
-              <button
-                onClick={() => setSayfa(sayfa + 1)}
-                disabled={sayfa >= toplamSayfa}
-              >
-                Sonraki
-              </button>
-            </div>
-          )}
+          <Pagination
+            sayfa={sayfa}
+            toplam={toplam}
+            sayfaBoyutu={SAYFA_BOYUTU}
+            degisti={setSayfa}
+          />
         </>
       )}
 
