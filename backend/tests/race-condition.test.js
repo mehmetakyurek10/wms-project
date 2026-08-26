@@ -102,3 +102,62 @@ test("teslim alinmis siparis tekrar teslim alinamaz", async () => {
   const { variantTotal } = await stockTotals();
   assert.equal(variantTotal, 40);
 });
+
+test("es zamanli iki sefer acma isteginden yalnizca biri gecer", async () => {
+  await resetDatabase();
+  const token = await getAdminToken(app);
+  const { varyantId, kabulId } = await seedWarehouse(app, token);
+
+  const auth = (istek) => istek.set("Authorization", `Bearer ${token}`);
+
+  const pazar = await auth(request(app).post("/lokasyonlar"))
+    .send({ kod: "TEST-PAZAR", tip: "pazar", satir: 1, kolon: 3, kapasite: 0 })
+    .expect(201);
+
+  await auth(request(app).post("/stok-hareketleri"))
+    .send({
+      varyant_id: varyantId,
+      lokasyon_id: kabulId,
+      tip: "giris",
+      sebep: "satinalma",
+      miktar: 100,
+    })
+    .expect(201);
+
+  const birimler = await auth(
+    request(app).get(`/stok-birimleri?varyant_id=${varyantId}`),
+  ).expect(200);
+
+  const dokme = birimler.body.find((b) => b.lokasyon_id === kabulId);
+
+  // Bilerek senkron: supertest'in zincirlenebilir istek nesnesi gerekiyor.
+  const seferAc = () =>
+    auth(request(app).post("/pazar-seferleri")).send({
+      lokasyon_id: pazar.body.id,
+      kalemler: [{ varyant_id: varyantId, miktar: 40 }],
+      tahsisler: [{ birim_id: dokme.id, miktar: 40 }],
+    });
+
+  const [birinci, ikinci] = await Promise.all([seferAc(), seferAc()]);
+
+  const kodlar = [birinci.status, ikinci.status].sort((a, b) => a - b);
+
+  assert.equal(
+    kodlar[0],
+    201,
+    `Isteklerden biri basarili olmaliydi. Donen kodlar: ${kodlar.join(", ")}`,
+  );
+  assert.ok(
+    kodlar[1] === 409 || kodlar[1] === 400,
+    `Ikinci istek anlamli bir hatayla reddedilmeliydi, 500 donmemeli. Donen kodlar: ${kodlar.join(", ")}`,
+  );
+
+  const seferler = await auth(request(app).get("/pazar-seferleri")).expect(200);
+
+  assert.equal(seferler.body.length, 1, "yalnizca tek sefer olusmali");
+
+  const { variantTotal, unitTotal } = await stockTotals();
+
+  assert.equal(unitTotal, variantTotal, "yaris sonrasi denge bozulmamali");
+  assert.equal(variantTotal, 100, "toplam stok degismemeli");
+});

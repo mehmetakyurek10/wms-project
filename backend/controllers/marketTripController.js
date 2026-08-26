@@ -147,11 +147,8 @@ const seferAc = async (req, res, next) => {
       return res.status(404).json({ hata: "Pazar bulunamadı" });
     }
 
-    // Veritabanindaki yolda_tek kisiti ayni anda tek acik sefer olmasini
-    // zaten garanti ediyor. Buradaki kontrol kullaniciya anlamli bir mesaj
-    // vermek icin; asil koruma semada.
     const [acikRows] = await connection.query(
-      "SELECT fis_no FROM pazar_seferleri WHERE durum = 'yolda' FOR UPDATE",
+      "SELECT fis_no FROM pazar_seferleri WHERE yolda_anahtar = 'YOLDA'",
     );
 
     if (acikRows.length) {
@@ -274,37 +271,61 @@ const seferAc = async (req, res, next) => {
     // Mal depodan pazara tasiniyor. Toplam stok degismiyor, bu yuzden
     // urun_varyantlari.miktar'a dokunulmuyor ve stok_hareketleri'ne kayit
     // yazilmiyor; bu bir cikis degil, yer degistirme.
+    // Asagidaki islemler birim sayisindan bagimsiz olarak sabit sayida sorgu
+    // kullaniyor. Onceki halinde her birim icin iki ayri sorgu calisiyordu;
+    // kilitlenen satirlar transaction boyunca acik kaldigi icin bu sure es
+    // zamanli satis islemlerinin bekleme olasiligini artiriyordu.
+    // satisController.teslimEt ayni kalibi kullaniyor.
+    const dususCase = birimRows.map(() => "WHEN ? THEN ?").join(" ");
+    const dususDegerleri = [];
     for (const birim of birimRows) {
-      const dusulecek = istekler.get(birim.id);
-
-      const [dususSonuc] = await connection.query(
-        `UPDATE stok_birimleri SET miktar = miktar - ?
-         WHERE id = ? AND miktar >= ?`,
-        [dusulecek, birim.id, dusulecek],
-      );
-
-      if (dususSonuc.affectedRows === 0) {
-        await connection.rollback();
-        return res.status(409).json({
-          hata: "Stok bu sırada değişmiş, işlem geri alındı. Tekrar deneyin.",
-        });
-      }
-
-      await connection.query(
-        "DELETE FROM stok_birimleri WHERE id = ? AND miktar = 0",
-        [birim.id],
-      );
+      dususDegerleri.push(birim.id, istekler.get(birim.id));
     }
 
-    for (const [varyantId, miktar] of gereken) {
-      await connection.query(
-        `INSERT INTO stok_birimleri
-         (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
-         VALUES ('dokme', ?, ?, ?, ?)
-         ON DUPLICATE KEY UPDATE miktar = miktar + ?`,
-        [varyantId, lokasyon_id, miktar, req.kullanici.id, miktar],
-      );
+    const [dususSonuc] = await connection.query(
+      `UPDATE stok_birimleri
+       SET miktar = miktar - CASE id ${dususCase} ELSE 0 END
+       WHERE id IN (?)
+         AND miktar >= CASE id ${dususCase} ELSE 0 END`,
+      [...dususDegerleri, birimIdleri, ...dususDegerleri],
+    );
+
+    if (dususSonuc.affectedRows !== birimRows.length) {
+      await connection.rollback();
+      return res.status(409).json({
+        hata: "Stok bu sırada değişmiş, işlem geri alındı. Tekrar deneyin.",
+      });
     }
+
+    await connection.query(
+      `DELETE FROM stok_birimleri
+       WHERE id IN (?)
+         AND miktar = 0
+         AND NOT EXISTS (
+           SELECT 1 FROM stok_rezervasyonlari r
+           WHERE r.birim_id = stok_birimleri.id
+         )`,
+      [birimIdleri],
+    );
+
+    const pazarBirimSatirlari = [...gereken.entries()].map(
+      ([varyantId, miktar]) => [
+        "dokme",
+        varyantId,
+        lokasyon_id,
+        miktar,
+        req.kullanici.id,
+      ],
+    );
+
+    await connection.query(
+      `INSERT INTO stok_birimleri
+       (tip, varyant_id, lokasyon_id, miktar, olusturan_kullanici_id)
+       VALUES ?
+       AS yeni
+       ON DUPLICATE KEY UPDATE miktar = stok_birimleri.miktar + yeni.miktar`,
+      [pazarBirimSatirlari],
+    );
 
     await connection.commit();
 
@@ -315,6 +336,15 @@ const seferAc = async (req, res, next) => {
     });
   } catch (err) {
     await connection.rollback().catch(() => {});
+
+    // Kilit daraldigi icin fis_no_tek ve yolda_tek kisitlarina carpma
+    // ihtimali gercek: iki istek ayni anda ilerleyebiliyor.
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({
+        hata: "Sefer bu sırada başka bir kullanıcı tarafından açılmış. Sayfayı yenileyip tekrar deneyin.",
+      });
+    }
+
     next(err);
   } finally {
     connection.release();
