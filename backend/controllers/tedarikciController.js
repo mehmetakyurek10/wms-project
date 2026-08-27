@@ -60,6 +60,18 @@ const guncelle = async (req, res, next) => {
 const sil = async (req, res, next) => {
   try {
     const { id } = req.params;
+
+    const [sayim] = await pool.query(
+      "SELECT COUNT(*) AS adet FROM satinalma_siparisleri WHERE tedarikci_id = ?",
+      [id],
+    );
+
+    if (sayim[0].adet > 0) {
+      return res.status(409).json({
+        hata: `Bu tedarikçinin ${sayim[0].adet} siparişi var, silinemez`,
+      });
+    }
+
     const [sonuc] = await pool.query("DELETE FROM tedarikciler WHERE id=?", [
       id,
     ]);

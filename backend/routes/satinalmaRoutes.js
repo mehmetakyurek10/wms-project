@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const satinalmaController = require("../controllers/satinalmaController");
-const izinVer = require("../middleware/izinVer");
 const { dogrulaGovde } = require("../utils/validation");
 const {
   siparisOlustur,
@@ -19,7 +18,6 @@ router.patch(
 );
 router.patch(
   "/:id/iptal",
-  izinVer("admin"),
   dogrulaGovde(siparisIptal),
   satinalmaController.iptal,
 );

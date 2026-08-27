@@ -15,16 +15,12 @@ import TeslimAlModal from "../components/TeslimAlModal";
 import CancelOrderModal from "../components/CancelOrderModal";
 import { useToast } from "../context/ToastContext";
 import useFetch from "../hooks/useFetch";
-import useAuth from "../hooks/useAuth";
 import ErrorState from "../components/ErrorState";
 import Pagination from "../components/Pagination";
 import { SAYFA_BOYUTU } from "../sabitler";
 
 function SatinalmaSiparisleri() {
   const bildir = useToast();
-
-  const { kullanici } = useAuth();
-  const yonetici = kullanici?.rol === "admin";
 
   const [sayfa, setSayfa] = useState(1);
   const [gonderiliyor, setGonderiliyor] = useState(false);
@@ -361,14 +357,12 @@ function SatinalmaSiparisleri() {
                           <button onClick={() => setTeslimAlinacak(s)}>
                             Teslim Al
                           </button>
-                          {yonetici && (
-                            <button
-                              className="ikincil"
-                              onClick={() => setIptalEdilecek(s)}
-                            >
-                              İptal
-                            </button>
-                          )}
+                          <button
+                            className="ikincil"
+                            onClick={() => setIptalEdilecek(s)}
+                          >
+                            İptal
+                          </button>
                         </>
                       )}
                       <button

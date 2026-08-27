@@ -168,16 +168,18 @@ test("teslim alinmis siparis iptal edilemez", async () => {
   assert.match(yanit.body.hata, /teslim alınmış/i);
 });
 
-test("depo sorumlusu siparis iptal edemez", async () => {
+test("depo sorumlusu da siparis iptal edebilir", async () => {
   const id = await siparisAc();
 
-  const yanit = await depocu(
-    request(app).patch(`/satinalma-siparisleri/${id}/iptal`),
-  )
-    .send({ aciklama: "Yetkisiz deneme" })
-    .expect(403);
+  await depocu(request(app).patch(`/satinalma-siparisleri/${id}/iptal`))
+    .send({ aciklama: "Musteri vazgecti" })
+    .expect(200);
 
-  assert.match(yanit.body.hata, /yetkiniz yok/i);
+  const hepsi = await yonetici(
+    request(app).get("/satinalma-siparisleri"),
+  ).expect(200);
+
+  assert.equal(hepsi.body.find((s) => s.id === id).durum, "iptal");
 });
 
 test("iptal sebebi zorunlu", async () => {

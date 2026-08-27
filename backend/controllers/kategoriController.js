@@ -53,6 +53,9 @@ const ekle = async (req, res, next) => {
     );
     res.status(201).json({ id: result.insertId, ad });
   } catch (err) {
+    if (err.code === "ER_DUP_ENTRY") {
+      return res.status(409).json({ hata: "Bu adda bir kategori zaten var" });
+    }
     next(err);
   }
 };
