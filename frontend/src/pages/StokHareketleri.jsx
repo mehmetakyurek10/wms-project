@@ -168,8 +168,9 @@ function StokHareketleri() {
 
       <form onSubmit={handleSubmit}>
         <div className="form-alan">
-          <label>Varyant</label>
+          <label htmlFor="stokhareketleri-varyant">Varyant</label>
           <select
+            id="stokhareketleri-varyant"
             name="varyant_id"
             value={secilenVaryantId}
             onChange={handleChange}
@@ -186,8 +187,13 @@ function StokHareketleri() {
         </div>
 
         <div className="form-alan">
-          <label>Hareket tipi</label>
-          <select name="tip" value={form.tip} onChange={handleChange}>
+          <label htmlFor="stokhareketleri-hareket-tipi">Hareket tipi</label>
+          <select
+            id="stokhareketleri-hareket-tipi"
+            name="tip"
+            value={form.tip}
+            onChange={handleChange}
+          >
             <option value="giris">Giriş</option>
             <option value="cikis">Çıkış</option>
           </select>
@@ -195,8 +201,11 @@ function StokHareketleri() {
 
         {cikisModu ? (
           <div className="form-alan">
-            <label>Hangi birimden</label>
+            <label htmlFor="stokhareketleri-hangi-birimden">
+              Hangi birimden
+            </label>
             <select
+              id="stokhareketleri-hangi-birimden"
               name="birim_id"
               value={form.birim_id}
               onChange={handleChange}
@@ -219,8 +228,9 @@ function StokHareketleri() {
           </div>
         ) : (
           <div className="form-alan">
-            <label>Nereye</label>
+            <label htmlFor="stokhareketleri-nereye">Nereye</label>
             <LokasyonSecici
+              kimlik="stokhareketleri-nereye"
               ad="lokasyon_id"
               deger={form.lokasyon_id}
               degisti={handleChange}
@@ -231,8 +241,13 @@ function StokHareketleri() {
         )}
 
         <div className="form-alan">
-          <label>Sebep</label>
-          <select name="sebep" value={form.sebep} onChange={handleChange}>
+          <label htmlFor="stokhareketleri-sebep">Sebep</label>
+          <select
+            id="stokhareketleri-sebep"
+            name="sebep"
+            value={form.sebep}
+            onChange={handleChange}
+          >
             <option value="manuel">Manuel</option>
             <option value="satinalma">Satınalma</option>
             <option value="satis">Satış</option>
@@ -243,9 +258,10 @@ function StokHareketleri() {
         </div>
 
         <div className="form-alan">
-          <label>Miktar</label>
+          <label htmlFor="stokhareketleri-miktar">Miktar</label>
           <div className="miktar-girisi">
             <input
+              id="stokhareketleri-miktar"
               name="miktar"
               type="number"
               step="0.01"
@@ -266,8 +282,9 @@ function StokHareketleri() {
         </div>
 
         <div className="form-alan">
-          <label>Açıklama</label>
+          <label htmlFor="stokhareketleri-aciklama">Açıklama</label>
           <input
+            id="stokhareketleri-aciklama"
             name="aciklama"
             placeholder="İsteğe bağlı"
             value={form.aciklama}
@@ -282,8 +299,9 @@ function StokHareketleri() {
 
       <div className="filtre-cubugu">
         <div className="form-alan">
-          <label>Varyant</label>
+          <label htmlFor="stokhareketleri-varyant-2">Varyant</label>
           <select
+            id="stokhareketleri-varyant-2"
             name="varyant_id"
             value={filtre.varyant_id}
             onChange={filtreDegisti}
@@ -298,8 +316,13 @@ function StokHareketleri() {
         </div>
 
         <div className="form-alan">
-          <label>Tip</label>
-          <select name="tip" value={filtre.tip} onChange={filtreDegisti}>
+          <label htmlFor="stokhareketleri-tip">Tip</label>
+          <select
+            id="stokhareketleri-tip"
+            name="tip"
+            value={filtre.tip}
+            onChange={filtreDegisti}
+          >
             <option value="">Tümü</option>
             <option value="giris">Giriş</option>
             <option value="cikis">Çıkış</option>
@@ -307,8 +330,13 @@ function StokHareketleri() {
         </div>
 
         <div className="form-alan">
-          <label>Sebep</label>
-          <select name="sebep" value={filtre.sebep} onChange={filtreDegisti}>
+          <label htmlFor="stokhareketleri-sebep-2">Sebep</label>
+          <select
+            id="stokhareketleri-sebep-2"
+            name="sebep"
+            value={filtre.sebep}
+            onChange={filtreDegisti}
+          >
             <option value="">Tümü</option>
             <option value="manuel">Manuel</option>
             <option value="satinalma">Satınalma</option>
@@ -320,8 +348,9 @@ function StokHareketleri() {
         </div>
 
         <div className="form-alan">
-          <label>Başlangıç</label>
+          <label htmlFor="stokhareketleri-baslangic">Başlangıç</label>
           <input
+            id="stokhareketleri-baslangic"
             type="date"
             name="baslangic"
             value={filtre.baslangic}
@@ -330,8 +359,9 @@ function StokHareketleri() {
         </div>
 
         <div className="form-alan">
-          <label>Bitiş</label>
+          <label htmlFor="stokhareketleri-bitis">Bitiş</label>
           <input
+            id="stokhareketleri-bitis"
             type="date"
             name="bitis"
             value={filtre.bitis}

@@ -117,10 +117,11 @@ function Giris() {
           <form onSubmit={handleSubmit} className="giris-form">
             {ilkKurulum && (
               <div className="form-alan">
-                <label>Ad Soyad</label>
+                <label htmlFor="giris-ad-soyad">Ad Soyad</label>
                 <div className="ikonlu-giris">
                   <User size={16} />
                   <input
+                    id="giris-ad-soyad"
                     placeholder="Adınız Soyadınız"
                     value={ad}
                     onChange={(e) => setAd(e.target.value)}
@@ -132,10 +133,11 @@ function Giris() {
             )}
 
             <div className="form-alan">
-              <label>E-posta</label>
+              <label htmlFor="giris-e-posta">E-posta</label>
               <div className="ikonlu-giris">
                 <Mail size={16} />
                 <input
+                  id="giris-e-posta"
                   type="email"
                   placeholder="ornek@sirket.com"
                   value={email}
@@ -147,10 +149,11 @@ function Giris() {
             </div>
 
             <div className="form-alan">
-              <label>Şifre</label>
+              <label htmlFor="giris-sifre">Şifre</label>
               <div className="ikonlu-giris">
                 <Lock size={16} />
                 <input
+                  id="giris-sifre"
                   type={sifreGorunur ? "text" : "password"}
                   placeholder="••••••••"
                   value={sifre}
@@ -171,10 +174,11 @@ function Giris() {
 
             {ilkKurulum && (
               <div className="form-alan">
-                <label>Şifre (Tekrar)</label>
+                <label htmlFor="giris-sifre-tekrar">Şifre (Tekrar)</label>
                 <div className="ikonlu-giris">
                   <Lock size={16} />
                   <input
+                    id="giris-sifre-tekrar"
                     type={sifreGorunur ? "text" : "password"}
                     placeholder="••••••••"
                     value={sifreTekrar}

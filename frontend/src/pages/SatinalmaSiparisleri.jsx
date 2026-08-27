@@ -207,8 +207,9 @@ function SatinalmaSiparisleri() {
 
       <form onSubmit={handleSubmit} className="form-dikey">
         <div className="form-satir">
-          <label>Tedarikçi</label>
+          <label htmlFor="satinalmasiparisleri-tedarikci">Tedarikçi</label>
           <select
+            id="satinalmasiparisleri-tedarikci"
             value={secilenTedarikciId}
             onChange={(e) => setTedarikciId(e.target.value)}
           >

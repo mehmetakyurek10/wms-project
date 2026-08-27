@@ -5,6 +5,7 @@ function LokasyonSecici({
   degisti,
   lokasyonlar,
   ad,
+  kimlik,
   bosMetin = "Seçiniz",
   zorunlu,
 }) {
@@ -64,7 +65,13 @@ function LokasyonSecici({
         </select>
       )}
 
-      <select name={ad} value={deger} onChange={degisti} required={zorunlu}>
+      <select
+        id={kimlik}
+        name={ad}
+        value={deger}
+        onChange={degisti}
+        required={zorunlu}
+      >
         <option value="">{bosMetin}</option>
 
         {alanlar.length > 0 && (

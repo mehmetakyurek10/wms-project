@@ -218,8 +218,9 @@ function Varyantlar() {
 
       <form onSubmit={handleSubmit}>
         <div className="form-alan">
-          <label>Ürün</label>
+          <label htmlFor="varyantlar-urun">Ürün</label>
           <select
+            id="varyantlar-urun"
             name="urun_id"
             value={form.urun_id}
             onChange={handleChange}
@@ -236,8 +237,9 @@ function Varyantlar() {
         </div>
 
         <div className="form-alan">
-          <label>Boy (kalibre)</label>
+          <label htmlFor="varyantlar-boy-kalibre">Boy (kalibre)</label>
           <input
+            id="varyantlar-boy-kalibre"
             name="boy"
             placeholder="201/230"
             value={form.boy}
@@ -247,8 +249,9 @@ function Varyantlar() {
         </div>
 
         <div className="form-alan">
-          <label>Ambalaj</label>
+          <label htmlFor="varyantlar-ambalaj">Ambalaj</label>
           <select
+            id="varyantlar-ambalaj"
             name="ambalaj_tipi"
             value={form.ambalaj_tipi}
             onChange={handleChange}
@@ -259,8 +262,9 @@ function Varyantlar() {
         </div>
 
         <div className="form-alan">
-          <label>Ambalaj kg</label>
+          <label htmlFor="varyantlar-ambalaj-kg">Ambalaj kg</label>
           <input
+            id="varyantlar-ambalaj-kg"
             name="ambalaj_kg"
             type="number"
             step="0.1"
@@ -270,8 +274,9 @@ function Varyantlar() {
         </div>
 
         <div className="form-alan">
-          <label>Barkod</label>
+          <label htmlFor="varyantlar-barkod">Barkod</label>
           <input
+            id="varyantlar-barkod"
             name="barkod"
             placeholder="İsteğe bağlı"
             value={form.barkod}
@@ -280,9 +285,10 @@ function Varyantlar() {
         </div>
 
         <div className="form-alan">
-          <label>Başlangıç stoğu</label>
+          <label htmlFor="varyantlar-baslangic-stogu">Başlangıç stoğu</label>
           <div className="miktar-girisi">
             <input
+              id="varyantlar-baslangic-stogu"
               name="miktar"
               type="number"
               step="0.01"
@@ -301,8 +307,11 @@ function Varyantlar() {
 
         {miktarAdet > 0 && (
           <div className="form-alan">
-            <label>Başlangıç stoğu nereye girsin</label>
+            <label htmlFor="varyantlar-baslangic-stogu-lokasyon">
+              Başlangıç stoğu nereye girsin
+            </label>
             <LokasyonSecici
+              kimlik="varyantlar-baslangic-stogu-lokasyon"
               ad="lokasyon_id"
               deger={form.lokasyon_id}
               degisti={handleChange}
@@ -313,8 +322,11 @@ function Varyantlar() {
         )}
 
         <div className="form-alan">
-          <label>Kritik seviye (adet)</label>
+          <label htmlFor="varyantlar-kritik-seviye-adet">
+            Kritik seviye (adet)
+          </label>
           <input
+            id="varyantlar-kritik-seviye-adet"
             name="kritik_seviye"
             type="number"
             step="0.01"
@@ -339,8 +351,9 @@ function Varyantlar() {
 
       <div className="filtre-cubugu">
         <div className="form-alan">
-          <label>Kategori</label>
+          <label htmlFor="varyantlar-kategori">Kategori</label>
           <select
+            id="varyantlar-kategori"
             name="kategori_id"
             value={filtre.kategori_id}
             onChange={filtreDegisti}
@@ -355,8 +368,9 @@ function Varyantlar() {
         </div>
 
         <div className="form-alan">
-          <label>Ürün</label>
+          <label htmlFor="varyantlar-urun-2">Ürün</label>
           <select
+            id="varyantlar-urun-2"
             name="urun_id"
             value={filtre.urun_id}
             onChange={filtreDegisti}
@@ -371,8 +385,13 @@ function Varyantlar() {
         </div>
 
         <div className="form-alan">
-          <label>Durum</label>
-          <select name="aktif" value={filtre.aktif} onChange={filtreDegisti}>
+          <label htmlFor="varyantlar-durum">Durum</label>
+          <select
+            id="varyantlar-durum"
+            name="aktif"
+            value={filtre.aktif}
+            onChange={filtreDegisti}
+          >
             <option value="">Tümü</option>
             <option value="1">Aktif</option>
             <option value="0">Pasif</option>
@@ -380,8 +399,9 @@ function Varyantlar() {
         </div>
 
         <div className="form-alan">
-          <label>Stok</label>
+          <label htmlFor="varyantlar-stok">Stok</label>
           <select
+            id="varyantlar-stok"
             name="sadece_dusuk"
             value={filtre.sadece_dusuk}
             onChange={filtreDegisti}

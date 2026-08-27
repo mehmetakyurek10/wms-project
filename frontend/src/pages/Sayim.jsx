@@ -174,8 +174,9 @@ function Sayim() {
 
       <div className="filtre-cubugu">
         <div className="form-alan">
-          <label>Sayılacak lokasyon</label>
+          <label htmlFor="sayim-sayilacak-lokasyon">Sayılacak lokasyon</label>
           <LokasyonSecici
+            kimlik="sayim-sayilacak-lokasyon"
             deger={lokasyonId}
             degisti={lokasyonSecildi}
             lokasyonlar={lokasyonlar}
@@ -183,16 +184,21 @@ function Sayim() {
         </div>
 
         <div className="form-alan">
-          <label>Sayım birimi</label>
-          <select value={birim} onChange={(e) => setBirim(e.target.value)}>
+          <label htmlFor="sayim-sayim-birimi">Sayım birimi</label>
+          <select
+            id="sayim-sayim-birimi"
+            value={birim}
+            onChange={(e) => setBirim(e.target.value)}
+          >
             <option value="adet">adet</option>
             <option value="kg">kg</option>
           </select>
         </div>
 
         <div className="form-alan">
-          <label>Açıklama</label>
+          <label htmlFor="sayim-aciklama">Açıklama</label>
           <input
+            id="sayim-aciklama"
             placeholder="Örn. Temmuz ayı sayımı"
             value={aciklama}
             onChange={(e) => setAciklama(e.target.value)}
@@ -212,8 +218,11 @@ function Sayim() {
         <>
           <div className="filtre-cubugu">
             <div className="form-alan">
-              <label>Listede olmayan ürün ekle (dökme)</label>
+              <label htmlFor="sayim-listede-olmayan-urun-ekle-dokme">
+                Listede olmayan ürün ekle (dökme)
+              </label>
               <select
+                id="sayim-listede-olmayan-urun-ekle-dokme"
                 value={eklenecekVaryant}
                 onChange={(e) => setEklenecekVaryant(e.target.value)}
               >
@@ -331,8 +340,9 @@ function Sayim() {
 
       <div className="filtre-cubugu">
         <div className="form-alan">
-          <label>Durum</label>
+          <label htmlFor="sayim-durum">Durum</label>
           <select
+            id="sayim-durum"
             value={durumFiltre}
             onChange={(e) => setDurumFiltre(e.target.value)}
           >

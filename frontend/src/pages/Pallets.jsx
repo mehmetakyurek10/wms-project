@@ -98,8 +98,9 @@ function Pallets() {
 
       <form onSubmit={scan}>
         <div className="form-alan">
-          <label>Palet kodu</label>
+          <label htmlFor="pallets-palet-kodu">Palet kodu</label>
           <input
+            id="pallets-palet-kodu"
             value={scanKod}
             onChange={(e) => setScanKod(e.target.value)}
             placeholder="Barkodu okut veya kodu yaz"

@@ -42,8 +42,9 @@ function RevenueModal({ sefer, kapat, tamamlandi }) {
 
       <form onSubmit={kaydet}>
         <div className="form-alan">
-          <label>Hasılat (₺)</label>
+          <label htmlFor="revenuemodal-hasilat">Hasılat (₺)</label>
           <input
+            id="revenuemodal-hasilat"
             type="number"
             step="0.01"
             min="0"

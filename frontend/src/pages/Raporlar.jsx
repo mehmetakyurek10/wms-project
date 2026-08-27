@@ -132,16 +132,18 @@ function Raporlar() {
 
       <form onSubmit={(e) => e.preventDefault()}>
         <div className="form-alan">
-          <label>Başlangıç</label>
+          <label htmlFor="raporlar-baslangic">Başlangıç</label>
           <input
+            id="raporlar-baslangic"
             type="date"
             value={form.baslangic}
             onChange={(e) => setForm({ ...form, baslangic: e.target.value })}
           />
         </div>
         <div className="form-alan">
-          <label>Bitiş</label>
+          <label htmlFor="raporlar-bitis">Bitiş</label>
           <input
+            id="raporlar-bitis"
             type="date"
             value={form.bitis}
             onChange={(e) => setForm({ ...form, bitis: e.target.value })}

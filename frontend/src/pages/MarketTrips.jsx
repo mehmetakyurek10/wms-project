@@ -236,8 +236,9 @@ function MarketTrips() {
           ) : (
             <form onSubmit={handleSubmit}>
               <div className="form-alan">
-                <label>Pazar</label>
+                <label htmlFor="markettrips-pazar">Pazar</label>
                 <select
+                  id="markettrips-pazar"
                   value={secilenPazarId}
                   onChange={(e) => setPazarId(e.target.value)}
                 >
@@ -255,8 +256,9 @@ function MarketTrips() {
                   return (
                     <div className="kalem-satiri" key={index}>
                       <div className="form-alan">
-                        <label>Ürün</label>
+                        <label htmlFor="markettrips-urun">Ürün</label>
                         <select
+                          id="markettrips-urun"
                           value={kalem.varyant_id}
                           onChange={(e) =>
                             kalemDegistir(index, "varyant_id", e.target.value)
@@ -273,9 +275,12 @@ function MarketTrips() {
                       </div>
 
                       <div className="form-alan">
-                        <label>Götürülecek</label>
+                        <label htmlFor="markettrips-goturulecek">
+                          Götürülecek
+                        </label>
                         <div className="miktar-girisi">
                           <input
+                            id="markettrips-goturulecek"
                             type="number"
                             step="0.01"
                             min="0"
@@ -320,8 +325,9 @@ function MarketTrips() {
               </div>
 
               <div className="form-alan">
-                <label>Açıklama</label>
+                <label htmlFor="markettrips-aciklama">Açıklama</label>
                 <input
+                  id="markettrips-aciklama"
                   placeholder="İsteğe bağlı"
                   value={aciklama}
                   onChange={(e) => setAciklama(e.target.value)}
@@ -349,8 +355,9 @@ function MarketTrips() {
 
       <div className="filtre-cubugu">
         <div className="form-alan">
-          <label>Yıl</label>
+          <label htmlFor="markettrips-yil">Yıl</label>
           <select
+            id="markettrips-yil"
             value={ozetYil || ozet.yil || ""}
             onChange={(e) => setOzetYil(e.target.value)}
           >

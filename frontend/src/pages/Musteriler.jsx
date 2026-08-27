@@ -123,20 +123,28 @@ function Musteriler() {
 
       <form onSubmit={handleSubmit}>
         <div className="form-alan">
-          <label>Müşteri adı</label>
-          <input name="ad" value={form.ad} onChange={handleChange} required />
+          <label htmlFor="musteriler-musteri-adi">Müşteri adı</label>
+          <input
+            id="musteriler-musteri-adi"
+            name="ad"
+            value={form.ad}
+            onChange={handleChange}
+            required
+          />
         </div>
         <div className="form-alan">
-          <label>Yetkili kişi</label>
+          <label htmlFor="musteriler-yetkili-kisi">Yetkili kişi</label>
           <input
+            id="musteriler-yetkili-kisi"
             name="yetkili_kisi"
             value={form.yetkili_kisi}
             onChange={handleChange}
           />
         </div>
         <div className="form-alan">
-          <label>Telefon</label>
+          <label htmlFor="musteriler-telefon">Telefon</label>
           <input
+            id="musteriler-telefon"
             name="telefon"
             placeholder="5xx xxx xx xx"
             value={form.telefon}
@@ -144,12 +152,22 @@ function Musteriler() {
           />
         </div>
         <div className="form-alan">
-          <label>E-posta</label>
-          <input name="email" value={form.email} onChange={handleChange} />
+          <label htmlFor="musteriler-e-posta">E-posta</label>
+          <input
+            id="musteriler-e-posta"
+            name="email"
+            value={form.email}
+            onChange={handleChange}
+          />
         </div>
         <div className="form-alan">
-          <label>Adres</label>
-          <input name="adres" value={form.adres} onChange={handleChange} />
+          <label htmlFor="musteriler-adres">Adres</label>
+          <input
+            id="musteriler-adres"
+            name="adres"
+            value={form.adres}
+            onChange={handleChange}
+          />
         </div>
         <button type="submit" disabled={gonderiliyor}>
           {gonderiliyor ? "Ekleniyor..." : "Ekle"}

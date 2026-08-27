@@ -113,8 +113,9 @@ function Urunler() {
 
       <form onSubmit={handleSubmit}>
         <div className="form-alan">
-          <label>Ürün adı</label>
+          <label htmlFor="urunler-urun-adi">Ürün adı</label>
           <input
+            id="urunler-urun-adi"
             name="ad"
             placeholder="Örn. Kırma"
             value={form.ad}
@@ -123,8 +124,9 @@ function Urunler() {
           />
         </div>
         <div className="form-alan">
-          <label>Kategori</label>
+          <label htmlFor="urunler-kategori">Kategori</label>
           <select
+            id="urunler-kategori"
             name="kategori_id"
             value={form.kategori_id}
             onChange={handleChange}

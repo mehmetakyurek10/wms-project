@@ -149,12 +149,19 @@ function Kullanicilar() {
 
       <form onSubmit={handleSubmit}>
         <div className="form-alan">
-          <label>Ad Soyad</label>
-          <input name="ad" value={form.ad} onChange={handleChange} required />
+          <label htmlFor="kullaniciler-ad-soyad">Ad Soyad</label>
+          <input
+            id="kullaniciler-ad-soyad"
+            name="ad"
+            value={form.ad}
+            onChange={handleChange}
+            required
+          />
         </div>
         <div className="form-alan">
-          <label>E-posta</label>
+          <label htmlFor="kullaniciler-e-posta">E-posta</label>
           <input
+            id="kullaniciler-e-posta"
             name="email"
             type="email"
             value={form.email}
@@ -163,8 +170,9 @@ function Kullanicilar() {
           />
         </div>
         <div className="form-alan">
-          <label>Şifre</label>
+          <label htmlFor="kullaniciler-sifre">Şifre</label>
           <input
+            id="kullaniciler-sifre"
             name="sifre"
             type="password"
             value={form.sifre}
@@ -173,8 +181,13 @@ function Kullanicilar() {
           />
         </div>
         <div className="form-alan">
-          <label>Rol</label>
-          <select name="rol" value={form.rol} onChange={handleChange}>
+          <label htmlFor="kullaniciler-rol">Rol</label>
+          <select
+            id="kullaniciler-rol"
+            name="rol"
+            value={form.rol}
+            onChange={handleChange}
+          >
             <option value="depo_sorumlusu">Depo Sorumlusu</option>
             <option value="admin">Yönetici</option>
           </select>
@@ -281,8 +294,9 @@ function Kullanicilar() {
 
         <form onSubmit={sifreSifirlaGonder}>
           <div className="form-alan">
-            <label>Yeni şifre</label>
+            <label htmlFor="kullaniciler-yeni-sifre">Yeni şifre</label>
             <input
+              id="kullaniciler-yeni-sifre"
               type="text"
               value={yeniSifre}
               onChange={(e) => setYeniSifre(e.target.value)}

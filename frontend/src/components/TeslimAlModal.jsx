@@ -35,8 +35,9 @@ function TeslimAlModal({ acik, siparis, lokasyonlar, kapat, onayla }) {
 
       <form onSubmit={kaydet} className="transfer-form">
         <div className="form-alan">
-          <label>Malın indirileceği lokasyon</label>
+          <label htmlFor="teslimal-lokasyon">Malın indirileceği lokasyon</label>
           <LokasyonSecici
+            kimlik="teslimal-lokasyon"
             deger={lokasyonId}
             degisti={(e) => setLokasyonId(e.target.value)}
             lokasyonlar={lokasyonlar}

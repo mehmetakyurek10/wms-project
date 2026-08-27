@@ -58,8 +58,9 @@ function ChangePassword() {
 
       <form onSubmit={submit} className="dar-form">
         <div className="form-alan">
-          <label>Mevcut Şifre</label>
+          <label htmlFor="changepassword-mevcut-sifre">Mevcut Şifre</label>
           <input
+            id="changepassword-mevcut-sifre"
             type="password"
             value={currentPassword}
             onChange={(e) => setCurrentPassword(e.target.value)}
@@ -69,8 +70,9 @@ function ChangePassword() {
         </div>
 
         <div className="form-alan">
-          <label>Yeni Şifre</label>
+          <label htmlFor="changepassword-yeni-sifre">Yeni Şifre</label>
           <input
+            id="changepassword-yeni-sifre"
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
@@ -80,8 +82,11 @@ function ChangePassword() {
         </div>
 
         <div className="form-alan">
-          <label>Yeni Şifre (Tekrar)</label>
+          <label htmlFor="changepassword-yeni-sifre-tekrar">
+            Yeni Şifre (Tekrar)
+          </label>
           <input
+            id="changepassword-yeni-sifre-tekrar"
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}

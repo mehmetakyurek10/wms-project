@@ -77,8 +77,9 @@ function TransferModal({
 
       <form onSubmit={kaydet} className="transfer-form">
         <div className="form-alan">
-          <label>Hedef lokasyon</label>
+          <label htmlFor="transfer-hedef-lokasyon">Hedef lokasyon</label>
           <LokasyonSecici
+            kimlik="transfer-hedef-lokasyon"
             deger={hedefId}
             degisti={(e) => setHedefId(e.target.value)}
             lokasyonlar={hedefler}
@@ -92,8 +93,11 @@ function TransferModal({
           </p>
         ) : (
           <div className="form-alan">
-            <label>Miktar (adet) · mevcut {mevcut.toFixed(0)}</label>
+            <label htmlFor="transfermodal-miktar-adet-mevcut">
+              Miktar (adet) · mevcut {mevcut.toFixed(0)}
+            </label>
             <input
+              id="transfermodal-miktar-adet-mevcut"
               type="number"
               step="0.01"
               min="0.01"
@@ -106,8 +110,9 @@ function TransferModal({
         )}
 
         <div className="form-alan">
-          <label>Açıklama</label>
+          <label htmlFor="transfermodal-aciklama">Açıklama</label>
           <input
+            id="transfermodal-aciklama"
             placeholder="İsteğe bağlı"
             value={aciklama}
             onChange={(e) => setAciklama(e.target.value)}

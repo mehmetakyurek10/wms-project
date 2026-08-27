@@ -283,8 +283,9 @@ function LokasyonYonetimi() {
 
       <form onSubmit={alanKaydet}>
         <div className="form-alan">
-          <label>Kod</label>
+          <label htmlFor="lokasyonyonetimi-kod">Kod</label>
           <input
+            id="lokasyonyonetimi-kod"
             name="kod"
             placeholder="SEVK-01"
             value={alanForm.kod}
@@ -293,8 +294,9 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Ad</label>
+          <label htmlFor="lokasyonyonetimi-ad">Ad</label>
           <input
+            id="lokasyonyonetimi-ad"
             name="ad"
             placeholder="İsteğe bağlı"
             value={alanForm.ad}
@@ -302,8 +304,13 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Tip</label>
-          <select name="tip" value={alanForm.tip} onChange={alanDegisti}>
+          <label htmlFor="lokasyonyonetimi-tip">Tip</label>
+          <select
+            id="lokasyonyonetimi-tip"
+            name="tip"
+            value={alanForm.tip}
+            onChange={alanDegisti}
+          >
             <option value="alan">Alan</option>
             <option value="kabul">Mal Kabul</option>
             <option value="sevkiyat">Sevkiyat</option>
@@ -315,8 +322,9 @@ function LokasyonYonetimi() {
           </select>
         </div>
         <div className="form-alan">
-          <label>Satır</label>
+          <label htmlFor="lokasyonyonetimi-satir">Satır</label>
           <input
+            id="lokasyonyonetimi-satir"
             name="satir"
             type="number"
             min="1"
@@ -326,8 +334,9 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Kolon</label>
+          <label htmlFor="lokasyonyonetimi-kolon">Kolon</label>
           <input
+            id="lokasyonyonetimi-kolon"
             name="kolon"
             type="number"
             min="1"
@@ -337,8 +346,9 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Satır yayılma</label>
+          <label htmlFor="lokasyonyonetimi-satir-yayilma">Satır yayılma</label>
           <input
+            id="lokasyonyonetimi-satir-yayilma"
             name="satir_span"
             type="number"
             min="1"
@@ -347,8 +357,9 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Kolon yayılma</label>
+          <label htmlFor="lokasyonyonetimi-kolon-yayilma">Kolon yayılma</label>
           <input
+            id="lokasyonyonetimi-kolon-yayilma"
             name="kolon_span"
             type="number"
             min="1"
@@ -357,8 +368,11 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Kapasite (adet)</label>
+          <label htmlFor="lokasyonyonetimi-kapasite-adet">
+            Kapasite (adet)
+          </label>
           <input
+            id="lokasyonyonetimi-kapasite-adet"
             name="kapasite"
             type="number"
             step="0.01"
@@ -392,8 +406,9 @@ function LokasyonYonetimi() {
 
       <form onSubmit={blokKaydet}>
         <div className="form-alan">
-          <label>Blok kodu</label>
+          <label htmlFor="lokasyonyonetimi-blok-kodu">Blok kodu</label>
           <input
+            id="lokasyonyonetimi-blok-kodu"
             name="blok"
             placeholder="L"
             value={blokForm.blok}
@@ -402,8 +417,9 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>İlk sıra no</label>
+          <label htmlFor="lokasyonyonetimi-ilk-sira-no">İlk sıra no</label>
           <input
+            id="lokasyonyonetimi-ilk-sira-no"
             name="sira_baslangic"
             type="number"
             min="1"
@@ -412,8 +428,9 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Sıra sayısı</label>
+          <label htmlFor="lokasyonyonetimi-sira-sayisi">Sıra sayısı</label>
           <input
+            id="lokasyonyonetimi-sira-sayisi"
             name="sira_sayisi"
             type="number"
             min="1"
@@ -423,8 +440,9 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Derinlik</label>
+          <label htmlFor="lokasyonyonetimi-derinlik">Derinlik</label>
           <input
+            id="lokasyonyonetimi-derinlik"
             name="derinlik"
             type="number"
             min="1"
@@ -434,8 +452,9 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Kat</label>
+          <label htmlFor="lokasyonyonetimi-kat">Kat</label>
           <input
+            id="lokasyonyonetimi-kat"
             name="kat"
             type="number"
             min="1"
@@ -445,8 +464,11 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Başlangıç satır</label>
+          <label htmlFor="lokasyonyonetimi-baslangic-satir">
+            Başlangıç satır
+          </label>
           <input
+            id="lokasyonyonetimi-baslangic-satir"
             name="baslangic_satir"
             type="number"
             min="1"
@@ -455,8 +477,11 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Başlangıç kolon</label>
+          <label htmlFor="lokasyonyonetimi-baslangic-kolon">
+            Başlangıç kolon
+          </label>
           <input
+            id="lokasyonyonetimi-baslangic-kolon"
             name="baslangic_kolon"
             type="number"
             min="1"
@@ -465,8 +490,11 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Derinlik genişliği</label>
+          <label htmlFor="lokasyonyonetimi-derinlik-genisligi">
+            Derinlik genişliği
+          </label>
           <input
+            id="lokasyonyonetimi-derinlik-genisligi"
             name="derinlik_genislik"
             type="number"
             min="1"
@@ -475,8 +503,11 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Sıralar yukarı doğru</label>
+          <label htmlFor="lokasyonyonetimi-siralar-yukari-dogru">
+            Sıralar yukarı doğru
+          </label>
           <input
+            id="lokasyonyonetimi-siralar-yukari-dogru"
             name="ters"
             type="checkbox"
             checked={blokForm.ters}
@@ -484,8 +515,9 @@ function LokasyonYonetimi() {
           />
         </div>
         <div className="form-alan">
-          <label>Derinlik ters</label>
+          <label htmlFor="lokasyonyonetimi-derinlik-ters">Derinlik ters</label>
           <input
+            id="lokasyonyonetimi-derinlik-ters"
             name="derinlik_ters"
             type="checkbox"
             checked={blokForm.derinlik_ters}
@@ -508,8 +540,9 @@ function LokasyonYonetimi() {
 
       <div className="filtre-cubugu">
         <div className="form-alan">
-          <label>Tip</label>
+          <label htmlFor="lokasyonyonetimi-tip-2">Tip</label>
           <select
+            id="lokasyonyonetimi-tip-2"
             value={tipFiltre}
             onChange={(e) => setTipFiltre(e.target.value)}
           >
@@ -524,8 +557,9 @@ function LokasyonYonetimi() {
           </select>
         </div>
         <div className="form-alan">
-          <label>Blok</label>
+          <label htmlFor="lokasyonyonetimi-blok">Blok</label>
           <select
+            id="lokasyonyonetimi-blok"
             value={blokFiltre}
             onChange={(e) => setBlokFiltre(e.target.value)}
           >

@@ -232,8 +232,9 @@ function SatisSiparisleri() {
 
       <form onSubmit={handleSubmit} className="form-dikey">
         <div className="form-satir">
-          <label>Müşteri</label>
+          <label htmlFor="satissiparisleri-musteri">Müşteri</label>
           <select
+            id="satissiparisleri-musteri"
             value={secilenMusteriId}
             onChange={(e) => setMusteriId(e.target.value)}
             required

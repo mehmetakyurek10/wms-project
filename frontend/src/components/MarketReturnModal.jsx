@@ -163,8 +163,11 @@ function MarketReturnModal({ acik, sefer, kapat, tamamlandi }) {
           </div>
 
           <div className="form-alan">
-            <label>Kasadaki hasılat (₺)</label>
+            <label htmlFor="marketreturnmodal-kasadaki-hasilat">
+              Kasadaki hasılat (₺)
+            </label>
             <input
+              id="marketreturnmodal-kasadaki-hasilat"
               type="number"
               step="0.01"
               min="0"
