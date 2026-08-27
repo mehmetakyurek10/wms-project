@@ -2,4 +2,7 @@
 .claude/
 HANDOVER-*.md
 .env
+.env.test
+rapor.md
 rapor2.md
+AUDIT.md
