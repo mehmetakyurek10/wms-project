@@ -122,21 +122,21 @@
   z-index: 2;
 }
 
-.palet-kutu.secili {
-  border-color: var(--renk-birincil);
-  box-shadow: 0 0 0 2px var(--renk-birincil-parlak);
-  z-index: 2;
-}
-
 .palet-kutu.bos {
   background: var(--renk-yuzey-koyu);
   color: var(--renk-metin-soluk);
 }
 
 .palet-kutu.dolu {
-  background: rgba(99, 102, 241, 0.22);
-  border-color: rgba(99, 102, 241, 0.5);
+  background: rgba(245, 158, 11, 0.2);
+  border-color: rgba(245, 158, 11, 0.55);
   color: var(--renk-metin);
+}
+
+.palet-kutu.secili {
+  border-color: var(--renk-birincil);
+  box-shadow: 0 0 0 3px var(--renk-birincil-parlak);
+  z-index: 2;
 }
 
 .palet-sira {

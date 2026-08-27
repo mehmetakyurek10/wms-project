@@ -305,7 +305,11 @@ function DepoHaritasi() {
                   gridColumn: `${l.kolon} / span ${l.kolon_span || 1}`,
                 }}
                 onClick={() => lokasyonSec(l)}
-                title={l.kod}
+                title={`${l.kod} · ${
+                  Number(l.toplam_miktar) > 0
+                    ? `${Number(l.toplam_miktar).toFixed(0)} adet`
+                    : "boş"
+                }`}
               >
                 <span className="palet-sira">
                   {l.blok}
