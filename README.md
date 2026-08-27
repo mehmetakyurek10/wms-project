@@ -6,7 +6,7 @@ Zeytin toptancılığı için geliştirilmiş depo yönetim sistemi. Stok takibi
 
 **Yığın:** Express 5 + MySQL 8 (backend) · React 19 + Vite (frontend) · Docker
 
-**Durum:** Backend 62, frontend 14 otomatik test; her ikisi de lint ve biçim denetiminden geçiyor, sürekli tümleştirme her gönderimde çalışıyor.
+**Durum:** Backend 84, frontend 20 otomatik test; her ikisi de lint ve biçim denetiminden geçiyor, sürekli tümleştirme her gönderimde çalışıyor.
 
 ---
 
@@ -111,22 +111,25 @@ Boş bir kurulumda aşağıdaki sıra, sistemin tüm temel akışlarını uçtan
 
 ### `backend/.env`
 
-| Değişken       | Açıklama                                                        |
-| -------------- | --------------------------------------------------------------- |
-| `NODE_ENV`     | `development` / `production` — üretimde hata detayları gizlenir |
-| `PORT`         | API portu (varsayılan 3000)                                     |
-| `DB_HOST`      | MySQL sunucusu                                                  |
-| `DB_USER`      | MySQL kullanıcısı                                               |
-| `DB_PASSWORD`  | MySQL parolası                                                  |
-| `DB_NAME`      | Veritabanı adı                                                  |
-| `DB_PORT`      | MySQL portu (varsayılan 3306)                                   |
-| `DB_POOL_SIZE` | Bağlantı havuzu boyutu (varsayılan 20)                          |
-| `JWT_SECRET`   | Token imzalama anahtarı — **en az 32 karakter**                 |
-| `CORS_ORIGIN`  | İzinli kaynaklar, virgülle ayrılmış                             |
-| `LOG_LEVEL`    | Günlük seviyesi — boşsa ortama göre seçilir                     |
-| `DB_TIMEZONE`  | MySQL bağlantısının saat dilimi — boşsa sürecin yerel saati     |
+| Değişken        | Açıklama                                                            |
+| --------------- | ------------------------------------------------------------------- |
+| `NODE_ENV`      | `development` / `production` — üretimde hata detayları gizlenir     |
+| `PORT`          | API portu (varsayılan 3000)                                         |
+| `DB_HOST`       | MySQL sunucusu                                                      |
+| `DB_USER`       | MySQL kullanıcısı                                                   |
+| `DB_PASSWORD`   | MySQL parolası                                                      |
+| `DB_NAME`       | Veritabanı adı                                                      |
+| `DB_PORT`       | MySQL portu (varsayılan 3306)                                       |
+| `DB_POOL_SIZE`  | Bağlantı havuzu boyutu (varsayılan 20)                              |
+| `JWT_SECRET`    | Token imzalama anahtarı — **en az 32 karakter**                     |
+| `CORS_ORIGIN`   | İzinli kaynaklar, virgülle ayrılmış                                 |
+| `LOG_LEVEL`     | Günlük seviyesi — boşsa ortama göre seçilir                         |
+| `DB_TIMEZONE`   | MySQL bağlantısının saat dilimi — boşsa sürecin yerel saati         |
+| `COOKIE_SECURE` | Oturum çerezinin `secure` bayrağı — boşsa `NODE_ENV`'e göre seçilir |
 
 Uygulama açılışta bu değişkenleri doğrular. Zorunlu biri eksikse ya da `JWT_SECRET` kısaysa **başlamaz** — hatalı yapılandırmayla çalışmaktansa açıkça durmak tercih edilmiştir.
+
+Aynı kontrol çerez ayarı için de geçerlidir: `COOKIE_SECURE` açıkken `CORS_ORIGIN` `https://` olmayan bir adres gösteriyorsa (yerel adresler hariç) uygulama açılışta durur ve sebebini yazar. Gerekçesi Dağıtım bölümünde.
 
 ### `frontend/.env`
 
@@ -138,15 +141,16 @@ Uygulama açılışta bu değişkenleri doğrular. Zorunlu biri eksikse ya da `J
 
 ### `.env` (proje kökü, yalnızca Docker)
 
-| Değişken           | Açıklama                                                  |
-| ------------------ | --------------------------------------------------------- |
-| `DB_NAME`          | Konteynerde oluşturulacak veritabanı adı                  |
-| `DB_ROOT_PASSWORD` | MySQL kök parolası — konteyner ağı dışına açılmaz         |
-| `JWT_SECRET`       | Token imzalama anahtarı, en az 32 karakter                |
-| `APP_PORT`         | Uygulamanın yayınlanacağı port (varsayılan 8080)          |
-| `APP_ORIGIN`       | Uygulamanın adresi, örn. `http://localhost:8080`          |
-| `TZ`               | Konteynerlerin saat dilimi (varsayılan `Europe/Istanbul`) |
-| `DB_TIMEZONE`      | MySQL sunucusunun saat dilimi (varsayılan `+03:00`)       |
+| Değişken           | Açıklama                                                                      |
+| ------------------ | ----------------------------------------------------------------------------- |
+| `DB_NAME`          | Konteynerde oluşturulacak veritabanı adı                                      |
+| `DB_ROOT_PASSWORD` | MySQL kök parolası — konteyner ağı dışına açılmaz                             |
+| `JWT_SECRET`       | Token imzalama anahtarı, en az 32 karakter                                    |
+| `APP_PORT`         | Uygulamanın yayınlanacağı port (varsayılan 8080)                              |
+| `APP_ORIGIN`       | Uygulamanın adresi, örn. `http://localhost:8080`                              |
+| `TZ`               | Konteynerlerin saat dilimi (varsayılan `Europe/Istanbul`)                     |
+| `DB_TIMEZONE`      | MySQL sunucusunun saat dilimi (varsayılan `+03:00`)                           |
+| `COOKIE_SECURE`    | Çerez `secure` bayrağı — HTTPS olmayan bir adresten yayın yapılıyorsa `false` |
 
 Docker kurulumunda `backend/.env` ve `frontend/.env` **okunmaz**; değişkenler doğrudan Compose tarafından verilir. Arayüzün API adresi de derleme sırasında `/api` olarak sabitlenir, çünkü her ikisi de aynı adres üzerinden sunulur.
 
@@ -203,18 +207,21 @@ Testler **yalnızca `wms_test` veritabanında** çalışır. `DB_NAME` başka bi
 Her çalıştırmada şema sıfırdan kurulur. Kapsam:
 
 - **Stok değişmezi** — mal kabul, paletleme, transfer, fire, satış ve sayım akışları sırayla çalıştırılır; her adımdan sonra `SUM(stok_birimleri.miktar) == SUM(urun_varyantlari.miktar)` doğrulanır
-- **Yarış durumu** — aynı satınalma siparişine eşzamanlı iki teslim alma isteği gönderilir; stoğun bir kez arttığı ve deftere tek hareket yazıldığı doğrulanır
+- **Yarış durumu** — aynı satınalma siparişine eşzamanlı iki teslim alma isteği gönderilir; stoğun bir kez arttığı ve deftere tek hareket yazıldığı doğrulanır. Aynı biçimde eşzamanlı iki pazar seferi açma isteğinden yalnızca birinin geçtiği, ikincisinin sunucu hatası yerine anlamlı bir çakışma yanıtı aldığı ve stok dengesinin bozulmadığı sınanır
 - **Rezervasyon** — ayrılan stoğun fiziksel miktara dokunmadığı, kullanılabilirin üstünde rezervasyon yapılamadığı, rezerve malın çıkış/paletleme/transfer ile tüketilemediği, paletin bütün olarak taşınabildiği, siparişin iptalinin rezervasyonu serbest bıraktığı
 - **Oturum** — refresh çerezinin `HttpOnly` ve `Path=/auth` olarak basıldığı, refresh token'ın API isteğinde kabul edilmediği, yenilemede çerezin döndürüldüğü, çıkışın çerezi sildiği, şifre değişiminde eski token'ın düştüğü ama kullanıcının kendi oturumunun sürdüğü
 - **Sayfalama** — istemcinin gönderdiği limitin sunucu üst sınırını (500) aşamadığı, sayfa ve kayma hesabının doğruluğu; `X-Toplam-Kayit` başlığının sayfadaki değil toplam kayıt sayısını bildirdiği, ardışık sayfaların çakışmadığı ve birlikte tüm kümeyi kapsadığı
 - **Yetkilendirme** — on altı ucun token'sız erişime kapalı olduğu, depo sorumlusunun admin uçlarına ve kullanıcı kaydına erişemediği, günlük işlem uçlarına erişebildiği
 - **Pazar seferi** — sefer açılışının toplam stoğu değiştirmediği, açık sefer varken ikincisinin açılamadığı, rezerve malın pazara çıkamadığı, kapanışta dönenin mal kabule girip kalanın satış olarak düştüğü, sefer sonrası pazar konumunun boşaldığı, pazardaki mala sayım ve transfer yapılamadığı
-- **Girdi doğrulama** — arayüzün boş metin olarak gönderdiği alanların "gönderilmemiş" sayıldığı, hata iletilerinin değişmediği, şemada tanımsız alanların isteği reddettirmediği, satış fiyatının kayıtlı fiyattan çok sapmasının engellendiği
+- **Girdi doğrulama** — arayüzün boş metin olarak gönderdiği alanların "gönderilmemiş" sayıldığı, hata iletilerinin değişmediği, şemada tanımsız alanların isteği reddettirmediği, uzunluk sınırını aşan açıklamanın anlamlı hata döndürdüğü, sayım kaleminin birim ya da varyanttan birini taşıması gerektiği
 - **Sistem sağlığı ve kurulum** — sağlık ucunun veritabanı bağlantısını doğru bildirdiği, ilk kullanıcının admin olduğu, kurulum ucunun kullanıcı oluşana kadar kurulum gerektiğini bildirdiği; normal işleyişte altı sağlık kontrolünün hiçbirinin yanlış alarm üretmediği, pasife alınan lokasyonda kalan stoğun raporlandığı, kapasite aşımında sınır davranışının doğru olduğu (tanımsız kapasitenin sayılmadığı, kapasite tam doluyken uyarı çıkmadığı, ancak aşıldığında çıktığı); sunucu ve veritabanı saatlerinin bir dakikadan fazla ayrışmadığı
 - **Palet gözü kuralı** — palet tipi lokasyona ikinci paletin transfer edilemediği ve orada yeni palet oluşturulamadığı, alan tipi lokasyonun birden fazla palet alabildiği, dökme malın palet gözüne taşınmasının engellenmediği
 - **Varyant başlangıç stoğu** — varyant oluştururken stok girildiğinde lokasyonun zorunlu olduğu, reddedilen isteğin hiçbir iz bırakmadığı, kabul edilen istekte stok biriminin ve giriş hareketinin varyantla aynı işlemde oluştuğu
 - **Parola sıfırlama** — yöneticinin sıfırladığı hesapta eski access token'ın düştüğü, eski parolayla girilemediği ve yenisinin geçerli olduğu; yöneticinin kendi parolasını bu uçtan sıfırlayamadığı, kısa parolanın ve token'sız isteğin reddedildiği
-- **Sayım kaydı** — sayımın kendisinin kayıt altına alındığı, ürettiği stok hareketlerinin bu kayda bağlandığı, fark çıkmayan sayımların da kaydedildiği (hareket yazılmadan), geçmişin duruma göre süzülebildiği ve süzmenin toplam sayacı da etkilediği
+- **Sayım kaydı** — sayımın kendisinin kayıt altına alındığı, ürettiği stok hareketlerinin bu kayda bağlandığı, fark çıkmayan sayımların da kaydedildiği (hareket yazılmadan), geçmişin duruma göre süzülebildiği ve süzmenin toplam sayacı da etkilediği; bir siparişe ayrılmış birimin sayımda sıfıra düşürülmesinin sayımı kilitlemediği, birimin silinmek yerine sıfır miktarla kaldığı ve sistem sağlığında karşılanamayan rezervasyon olarak göründüğü
+- **Satınalma iptali** — iptal edilen siparişin bekleyen sayacından düştüğü ve gerekçesinin kayıtlı kaldığı, iptalin stok tarafında hiçbir hareket üretmediği, teslim alınmış siparişin iptal edilemediği ve iptal edilmiş siparişin teslim alınamadığı, işlemin yönetici yetkisi ve gerekçe istediği
+- **Lokasyon aktifliği** — düzenlemenin pasif bir lokasyonu sessizce yeniden aktifleştirmediği, pasife almanın ve geri açmanın çalıştığı, pasif lokasyona stok girilemediği, üzerinde stok kalan lokasyon pasife alınırken miktarın kullanıcıya bildirildiği, aktiflik değerinin metin değil gerçek boolean istediği
+- **Lokasyon uçları** — sayfalama istenmediğinde tüm lokasyonların döndüğü (seçicilerin listeyi eksiksiz alması gerektiği için), istendiğinde sayfalandığı, doluluk bayrağının stok durumunu yansıttığı, hafif ucun stok toplamı taşımadığı ve harita ucunun taşıdığı
 
 ### Arayüz testleri
 
@@ -225,7 +232,7 @@ npm test
 
 Frontend testleri Vitest ve React Testing Library ile çalışır, veritabanı ya da çalışan bir sunucu gerektirmez; DOM `jsdom` üzerinde canlandırılır. Kapsam:
 
-- **CSV üretimi** — alan ayracının noktalı virgül, satır ayracının CRLF olduğu; ayraç, tırnak veya satır sonu içeren değerlerin tırnaklanıp iç tırnakların ikilendiği; boş değerlerin boş hücre yazdığı
+- **CSV üretimi** — alan ayracının noktalı virgül, satır ayracının CRLF olduğu; ayraç, tırnak veya satır sonu içeren değerlerin tırnaklanıp iç tırnakların ikilendiği; boş değerlerin boş hücre yazdığı; `=`, `+`, `@` ile başlayan hücrelerin formül olarak yorumlanmayacak biçimde etkisizleştirildiği, buna karşılık negatif sayıların bozulmadan kaldığı
 - **Yerel tarih biçimlendirme** — sıfır doldurma ve gece yarısına yakın saatlerde günün kaymadığı (UTC'ye çevirmenin tarihi bir gün kaydırdığı klasik hata)
 - **Sayfalama bileşeni** — tek sayfalık veride hiç çizilmediği, sayfa ve toplam bilgisinin doğru gösterildiği, ilk ve son sayfada ilgili düğmenin kapandığı, düğmelerin komşu sayfa numarasıyla geri bildirdiği
 
@@ -306,6 +313,8 @@ frontend/
 Docker kurulumunda üç konteyner çalışır. Nginx hem statik dosyaları sunar hem `/api` ile başlayan istekleri backend'e yönlendirir; böylece tarayıcı tek bir adres görür ve CORS ile çerez kısıtları devreye girmez. Refresh çerezinin yolu geçiş sırasında `/api/auth` olarak yeniden yazılır.
 
 Backend konteyneri açılışta önce şema geçişlerini uygular, sonra sunucuyu başlatır. Veritabanının hazır olmasını sağlık kontrolü bekler — konteynerin başlaması ile bağlantı kabul etmeye hazır olması aynı şey değildir.
+
+**HTTPS ve oturum çerezi.** Tarayıcılar `Secure` bayraklı çerezleri yalnızca güvenli kaynaklardan kabul eder; `localhost` bu kuralın istisnasıdır. Bu yüzden geliştirici makinesinde sorun görünmez, ancak uygulama `http://192.168.1.50:8080` gibi bir yerel ağ adresinden yayınlandığında tarayıcı çerezi sessizce atar. Sonuç, kullanıcının on beş dakikada bir giriş ekranına atılmasıdır ve belirtiden sebebe ulaşmak zordur. Bu yüzden çerez bayrağı `NODE_ENV`'e değil ayrı bir `COOKIE_SECURE` değişkenine bağlıdır ve tutarsız yapılandırma açılışta durdurulur. Doğru çözüm nginx'e TLS eklemektir; kurum içi sertifika da olur. Güvenli bir iç ağda geçici olarak `COOKIE_SECURE=false` verilebilir.
 
 ### Saat dilimi
 
@@ -485,10 +494,10 @@ Her yenilemede refresh çerezi yenisiyle değiştirilir (rotation), böylece ele
 | **Palet Sorgula**            | Barkod ile palet arama, depodaki paletlerin listesi, Code128 barkod etiketi yazdırma                           |
 | **Stok Hareketleri**         | Giriş/çıkış kaydı, birim seçimi, filtreleme ve sayfalama                                                       |
 | **Sayım**                    | Lokasyon bazlı sayım; her palet ve dökme yığın ayrı satır, sayım geçmişi ve fark dökümü                        |
-| **Satınalma**                | Sipariş oluşturma, teslim alma, fiş                                                                            |
+| **Satınalma**                | Sipariş oluşturma, teslim alma, gerekçeli iptal, fiş                                                           |
 | **Satış**                    | Sipariş oluşturma, birim bazlı toplama, teslim, iptal, fiş                                                     |
 | **Pazar Seferleri**          | Pazara götürülen malın sevki, dönüşün kaydı, hasılat girişi, sevk fişi, pazar bazlı yıl özeti                  |
-| **Lokasyonlar**              | Lokasyon tanımları ve blok üreteci (önizleme ve onaylı)                                                        |
+| **Lokasyonlar**              | Lokasyon tanımları, pasife alma, blok üreteci (önizleme ve onaylı)                                             |
 | **Raporlar**                 | Tarih aralığına göre hareket özeti, çalışan ve kalem kırılımı, satınalma ve satış tutarları, CSV dışa aktarma  |
 | **Sistem Sağlığı**           | Stok sapması, negatif stok, karşılanamayan rezervasyon, pazarda kalıntı, pasif lokasyonda stok, kapasite aşımı |
 | **Kullanıcılar**             | Kullanıcı yönetimi, rol atama, parola değiştirme, yönetici tarafından parola sıfırlama                         |
@@ -553,6 +562,8 @@ mysqldump -u root --no-create-info --skip-comments --set-gtid-purged=OFF wms sch
 
 - **Girdi doğrulaması yalnızca stok uçlarında şema tabanlı.** Satış, satınalma, sayım, transfer ve stok hareketi uçları `zod` şemalarıyla doğrulanır; kalan uçlarda doğrulama hâlâ denetleyici içinde elle yapılır.
 - **Servis katmanı yok.** SQL, iş kuralı ve HTTP aynı denetleyici fonksiyonunda bulunur.
+- **Satınalma siparişinde kısmi teslim yok.** Sipariş ya tamamen teslim alınır ya da gerekçesiyle iptal edilir; tedarikçinin malın bir bölümünü göndermesi durumu modellenmemiştir. Kalem bazında teslim alınan miktarın izlenmesi gerektiği için bu bir veri modeli değişikliğidir.
+- **Tek bir oturum düşürülemiyor.** Refresh token her yenilemede döndürülür ancak eskisi geçersizleşmez ve sunucuda oturum kaydı tutulmaz. Bir çerez ele geçerse yedi gün boyunca kullanılabilir; tek çare kullanıcının `token_surumu` değerini artırmaktır, o da o kullanıcının **tüm** oturumlarını düşürür. Oturum kimliği taşıyan bir tablo hem tekil iptali hem de token yeniden kullanımının tespitini mümkün kılar.
 - **Sunucu tarafı idempotanlık yok.** Çift gönderim arayüzde buton kilidiyle, çift işleme ise koşullu `UPDATE`'lerle engellenir. Ağ kopması sonrası otomatik tekrar için işlem anahtarı (idempotency key) mekanizması yoktur; el terminali kullanılmaya başlandığında gerekecektir.
 - **Fiyat hiçbir yerde denetlenmez.** Fiyat, ürünün kalıcı bir özelliği değil işlemin anlık verisi olduğu için varyant tanımında tutulmaz; her satış kaleminde elle girilir. Bunun sonucu olarak girilen fiyatı karşılaştıracak bir referans da yoktur — "240 yerine 24" tipi bir yazım hatasını hiçbir kontrol yakalamaz. Müşteri bazlı fiyat listesi kurulduğunda bu referans geri gelecek ve sapma denetimi yeniden anlamlı olacaktır.
 - **Dosya adlandırması iki dilli.** İş alanı dosyaları çoğunlukla Türkçe (`varyantController.js`, `DepoHaritasi.jsx`), altyapı dosyaları İngilizce (`validation.js`, `pagination.js`, `useFetch.js`); `schemas/` klasörünün tamamı İngilizce. Sayım yapıldığında 67 dosya Türkçe, 55 dosya İngilizce adlandırılmış durumdadır. Tek bir dile geçirmek 68 dosyanın yeniden adlandırılmasını ve tüm içe aktarma zincirinin güncellenmesini gerektirdiğinden, kalan sürede işlevsel eksiklere öncelik verilerek bilinçli olarak ertelenmiştir.
