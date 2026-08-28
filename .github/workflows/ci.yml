@@ -114,11 +114,57 @@ jobs:
             if (tablolar[0].n < 15) {
               throw new Error("Beklenenden az tablo olustu");
             }
-            if (surumler[0].n < 1) {
+                        if (surumler[0].n < 1) {
               throw new Error("Hicbir surum kaydedilmemis");
             }
           })();
           JS
+
+      # schema.sql ile kurulan bir veritabaninda migrate calistirmak eskiden
+      # ER_DUP_KEYNAME veriyordu: anlik goruntu uygulanmis surumleri
+      # icermedigi icin calistirici var olan indeksleri yeniden olusturmaya
+      # calisiyordu. Yukaridaki adim bos veritabaninda calistigi icin bu
+      # senaryoyu hic gormuyor. Iki kurulum yolunun birlestigi yer burasi.
+      - name: Anlik goruntuden kurulum sonrasi migration
+        working-directory: backend
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASSWORD: ""
+          DB_NAME: wms_snapshot
+          DB_PORT: "3306"
+        run: |
+          node - <<'JS'
+          const fs = require("node:fs");
+          const mysql = require("mysql2/promise");
+          (async () => {
+            const kur = await mysql.createConnection({
+              host: "127.0.0.1",
+              user: "root",
+              port: 3306,
+            });
+            await kur.query("DROP DATABASE IF EXISTS wms_snapshot");
+            await kur.query("CREATE DATABASE wms_snapshot");
+            await kur.end();
+
+            const c = await mysql.createConnection({
+              host: "127.0.0.1",
+              user: "root",
+              port: 3306,
+              database: "wms_snapshot",
+              multipleStatements: true,
+            });
+            await c.query(fs.readFileSync("db/schema.sql", "utf8"));
+            await c.end();
+          })();
+          JS
+
+          node db/migrate.js | tee /tmp/snapshot-migrate.log
+
+          if ! grep -q "guncel" /tmp/snapshot-migrate.log; then
+            echo "schema.sql uygulanmis surumleri icermiyor; migrate bastan basladi"
+            exit 1
+          fi
 
   frontend:
     name: Frontend (lint + test + build)
