@@ -19,6 +19,7 @@ Zeytin toptancılığı için geliştirilmiş depo yönetim sistemi. Stok takibi
 - [Mimari](#mimari) — [dağıtım](#dağıtım), [saat dilimi](#saat-dilimi), [yetkilendirme](#yetkilendirme), [günlükleme](#günlükleme), [stok modeli](#stok-modeli), [rezervasyon](#rezervasyon), [sayım kaydı](#sayım-kaydı), [kapasite](#kapasite), [pazar seferi](#pazar-seferi), [işlem güvenliği](#işlem-güvenliği), [onay tasarımı](#onay-tasarımı), [oturum yönetimi](#oturum-yönetimi)
 - [Modüller](#modüller) · [roller](#roller) · [lokasyon adresleme](#lokasyon-adresleme)
 - [Şema değişiklikleri](#şema-değişiklikleri)
+- [Yedekleme](#yedekleme)
 - [Bilinen sınırlar](#bilinen-sınırlar)
 
 ---
@@ -558,8 +559,73 @@ mysqldump -u root --no-create-info --skip-comments --set-gtid-purged=OFF wms sch
 
 ---
 
+## Yedekleme
+
+Depo yönetim sistemi veri kaybını kaldıramaz: stok bakiyeleri, sipariş geçmişi ve sayım kayıtları başka hiçbir yerde tutulmuyor. Docker kurulumunda veriler adlandırılmış bir birimde kalıcıdır, ancak bu yalnızca konteyner yeniden başlatmalarına karşı koruma sağlar — disk arızası, yanlışlıkla silme veya hatalı bir geçiş için yedek gerekir.
+
+> **Betiğin varlığı yedek alındığı anlamına gelmez.** Aşağıdaki zamanlanmış görev kurulmadıkça yedek yalnızca elle çalıştırıldığında alınır, elle yapılan iş de er geç unutulur. Sistemi gerçekten kullanıma alırken atlanmaması gereken adım budur.
+
+### Yedek alma
+
+```bash
+./scripts/backup.sh          # yerel MySQL kurulumu
+./scripts/backup.sh docker   # konteynerdeki MySQL
+```
+
+Yedekler varsayılan olarak `~/wms-yedekler` altına sıkıştırılmış yazılır ve on dört günden eskiler silinir. İkisi de değiştirilebilir:
+
+```bash
+WMS_YEDEK_DIZINI=/Volumes/yedek/wms WMS_YEDEK_SAKLAMA=30 ./scripts/backup.sh
+```
+
+Betik `--single-transaction` kullanır; yedek alınırken tablolar kilitlenmez, yani depo çalışmaya devam edebilir. Dosya bir kilobayttan küçük çıkarsa işlem başarısız sayılır ve dosya silinir — sessizce boş yedek biriktirmemek için. Docker modunda kök parolası `.env` dosyasından okunur ve `MYSQL_PWD` ile aktarılır, böylece konteyner içindeki süreç listesinde görünmez.
+
+### Otomatik çalıştırma
+
+Her gün 03:00'te almak için (`crontab -e`):
+
+```
+PATH=/usr/local/bin:/usr/bin:/bin
+
+0 3 * * * cd /Users/kullanici/Desktop/wms-projesi && ./scripts/backup.sh docker >> ~/wms-yedek.log 2>&1
+```
+
+`PATH` satırı şart: `cron` çok dar bir ortamla çalışır ve `docker` komutunu kendiliğinden bulamaz. Bu, zamanlanmış yedeklerin sessizce çalışmamasının en yaygın sebebidir.
+
+> macOS'ta `cron` görevlerinin çalışması için sistem ayarlarından `cron`'a Tam Disk Erişimi verilmesi gerekir; ayrıca makine uykudayken görev çalışmaz. Sürekli açık bir Linux sunucuda ikisi de sorun değildir.
+
+Yedeğin **başka bir diske** yazılması gerekir. Aynı diskteki yedek, disk arızasında veriyle birlikte gider.
+
+### Geri yükleme
+
+```bash
+gunzip -c ~/wms-yedekler/wms-20260828-030000.sql.gz | mysql -u root wms
+```
+
+Docker kurulumunda:
+
+```bash
+gunzip -c ~/wms-yedekler/wms-20260828-030000.sql.gz | docker compose exec -T db mysql -u root -p wms
+```
+
+### Yedeği doğrulama
+
+Denenmemiş yedek, yedek değildir. Ayda bir, yedeği **ayrı bir veritabanına** geri yükleyip kontrol edin:
+
+```bash
+mysql -u root -e "DROP DATABASE IF EXISTS wms_yedek_testi; CREATE DATABASE wms_yedek_testi;"
+gunzip -c ~/wms-yedekler/$(ls -t ~/wms-yedekler | head -1) | mysql -u root wms_yedek_testi
+mysql -u root wms_yedek_testi -e "SELECT COUNT(*) AS varyant FROM urun_varyantlari; SELECT COUNT(*) AS hareket FROM stok_hareketleri;"
+mysql -u root -e "DROP DATABASE wms_yedek_testi;"
+```
+
+Sayılar beklediğiniz büyüklükteyse yedek sağlamdır. Bu adım atlanırsa, yedeğin bozuk olduğu ancak ona gerçekten ihtiyaç duyulduğu gün anlaşılır.
+
+---
+
 ## Bilinen sınırlar
 
+- **Otomatik yedekleme kurulmadı.** `scripts/backup.sh` hazır, elle çalıştırıldığında doğru çalışıyor ve geri yüklemesi sınandı; ancak zamanlanmış görev geliştirme makinesinde kurulmadı. Sistem kullanıma alınırken ilk yapılacak iş budur.
 - **Girdi doğrulaması yalnızca stok uçlarında şema tabanlı.** Satış, satınalma, sayım, transfer ve stok hareketi uçları `zod` şemalarıyla doğrulanır; kalan uçlarda doğrulama hâlâ denetleyici içinde elle yapılır.
 - **Servis katmanı yok.** SQL, iş kuralı ve HTTP aynı denetleyici fonksiyonunda bulunur.
 - **Satınalma siparişinde kısmi teslim yok.** Sipariş ya tamamen teslim alınır ya da gerekçesiyle iptal edilir; tedarikçinin malın bir bölümünü göndermesi durumu modellenmemiştir. Kalem bazında teslim alınan miktarın izlenmesi gerektiği için bu bir veri modeli değişikliğidir.
